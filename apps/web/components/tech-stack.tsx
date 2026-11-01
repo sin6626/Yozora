@@ -2,6 +2,7 @@ import { getThemeConfig } from "@/lib/blog-data";
 import { getLocale, getT } from "../lib/i18n/server";
 import { parseTechStack, type Tech } from "@/lib/theme-config";
 import IconifyIcon, { isIconName } from "./iconify-icon";
+import Reveal from "./reveal";
 
 // 首页底部的技术栈：两行只显示图标的横向无限滚动（单数行向左、双数行向右），鼠标停上去暂停并显示名字；
 // “减少动态效果”时不滚动，改成可以手动横向拖动。内容在后台配置片段 theme/sin-space 的 techStack 里改（格式见 lib/theme-config.ts），
@@ -34,9 +35,9 @@ const defaultRows: Tech[][] = [
   ],
 ];
 
-function Track({ items, reverse }: { items: Tech[]; reverse?: boolean }) {
+function Track({ items, reverse, index }: { items: Tech[]; reverse?: boolean; index: number }) {
   return (
-    <div className="stack-marquee">
+    <Reveal className="stack-marquee" index={index + 1}>
       <ul className="stack-track" data-reverse={reverse ? "" : undefined}>
         {/* 图标比文字窄，重复 4 份才够两个屏幕宽；滚动一半（2 份）正好无缝衔接。只有第一份给读屏读 */}
         {[...items, ...items, ...items, ...items].map((item, index) => (
@@ -46,7 +47,7 @@ function Track({ items, reverse }: { items: Tech[]; reverse?: boolean }) {
           </li>
         ))}
       </ul>
-    </div>
+    </Reveal>
   );
 }
 
@@ -65,11 +66,11 @@ export default async function TechStack() {
   const description = locale === "zh" ? config?.description ?? t.home.techNote : t.home.techNote;
   return (
     <section className="home-section home-stack" aria-labelledby="home-stack-heading">
-      <div className="home-section-heading">
+      <Reveal className="home-section-heading">
         <h2 id="home-stack-heading">{title}</h2>
         <p>{description}</p>
-      </div>
-      {(config?.rows ?? defaultRows).map((items, index) => <Track key={index} items={items} reverse={index % 2 === 1} />)}
+      </Reveal>
+      {(config?.rows ?? defaultRows).map((items, index) => <Track key={index} items={items} reverse={index % 2 === 1} index={index} />)}
     </section>
   );
 }

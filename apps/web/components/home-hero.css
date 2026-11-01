@@ -83,14 +83,107 @@
   display: inline-block;
 }
 
-/* 强调词是“被月光照亮的字”：和月亮同色的暖奶白，带一圈很淡的月光晕（开灯时换成暮色深青加白色光晕，见 globals.css）；
+/* 强调词是“被月光照亮的字”：和月亮同色的暖奶白，带一圈月光晕；开灯时是暮色深青，光晕换成和字互补的亮色（--emphasis-halo，见 globals.css）。
+   “大三学生”用文楷粗体（700），不靠颜色也看得出是强调（墨黑配色里强调色和正文同色）；“Sin”的字重和丛雨的手对位绑定，不动。
    名字右上角缀一颗会轻轻闪的小星，样子和导航当前页的亮星一样 */
 .home-hero-title strong {
   position: relative;
   margin-inline: 0.5rem;
-  font-weight: 400;
+  font-weight: 700;
   color: var(--moonlight);
-  text-shadow: 0 0 1.5rem var(--moonlight-glow);
+  text-shadow: 0 0 1.5rem var(--emphasis-halo);
+}
+
+/* 入场（2026-10-31）：每次进入首页播一次，和换页的“夜里重新对焦”同一个感觉——
+   天空从暗处亮起，标题两行、说明、社交图标、头像、底部依次从下方模糊处对焦浮上，最后“Sin”“大三学生”亮一下。
+   纯 CSS：元素一出现就播、播完停在原样，不跑脚本也正常显示；Next 藏起首页再显示时（站内跳回来）会重新播。
+   起点透明度用 0.0001 而不是 0，否则浏览器不把它算进首屏最大内容绘制（LCP）。 */
+.home-hero .starfield {
+  animation: home-hero-sky 1.2s var(--ease-out) both;
+}
+
+.home-hero-title > span,
+.home-hero-title > strong,
+.home-hero-description,
+.home-hero-socials,
+.home-hero-avatar,
+.home-hero-bottom {
+  animation: home-hero-rise 0.7s var(--ease-out) var(--rise-delay, 0s) both;
+}
+
+.home-hero-title > span { --rise-delay: 0.1s; }
+.home-hero-title > br ~ span,
+.home-hero-title > br ~ strong { --rise-delay: 0.22s; }
+.home-hero-description { --rise-delay: 0.34s; }
+.home-hero-socials { --rise-delay: 0.46s; }
+.home-hero-avatar { --rise-delay: 0.2s; }
+.home-hero-bottom { --rise-delay: 0.6s; }
+
+/* 强调字在自己那行落定后亮一下：光晕先比平时更亮，再收回到平时 */
+.home-hero-title .home-hero-name {
+  animation: home-hero-light 0.9s var(--ease-out) 0.7s both;
+}
+
+.home-hero-title > strong {
+  animation:
+    home-hero-rise 0.7s var(--ease-out) var(--rise-delay) both,
+    home-hero-light 0.9s var(--ease-out) 0.8s both;
+}
+
+@keyframes home-hero-sky {
+  from { opacity: 0.0001; }
+}
+
+@keyframes home-hero-rise {
+  from {
+    opacity: 0.0001;
+    translate: 0 1rem;
+    filter: blur(8px);
+  }
+}
+
+@keyframes home-hero-light {
+  from { text-shadow: 0 0 0 transparent; }
+  55% { text-shadow: 0 0 2.25rem var(--emphasis-halo), 0 0 0.5rem var(--emphasis-halo); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-hero .starfield,
+  .home-hero-title > span,
+  .home-hero-title > strong,
+  .home-hero-title .home-hero-name,
+  .home-hero-description,
+  .home-hero-socials,
+  .home-hero-avatar,
+  .home-hero-bottom {
+    animation: none;
+  }
+}
+
+/* 首页下半部分：带 data-reveal 的块第一次滚进视野时上浮淡入，之后不再重播（reveal-on-view.tsx 改 data-reveal-state）；
+   --reveal-i 是同一列表里的序号，一条比一条晚 60 毫秒。脚本没跑时没有 data-reveal-state，什么都不藏。 */
+[data-reveal-state="waiting"] {
+  opacity: 0.0001;
+  translate: 0 1rem;
+}
+
+[data-reveal-state="shown"] {
+  animation: home-reveal 0.7s var(--ease-out) calc(var(--reveal-i, 0) * 60ms) both;
+}
+
+@keyframes home-reveal {
+  from {
+    opacity: 0.0001;
+    translate: 0 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal-state] {
+    opacity: 1;
+    translate: none;
+    animation: none;
+  }
 }
 
 .home-hero-star {

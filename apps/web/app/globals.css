@@ -46,6 +46,8 @@
   --sky-leetcode: var(--moonlight);
   --sky-github: var(--primary);
   --moonlight-glow: light-dark(rgb(255 255 255 / 60%), rgb(246 234 208 / 40%));
+  /* 首屏强调字的光晕：熄灯是月光晕；开灯时白色光晕在浅色天空上看不见，换成和字互补的亮色（深青字配浅青晕），像黄昏里最先亮起的那几个字 */
+  --emphasis-halo: light-dark(rgb(153 246 228 / 85%), rgb(246 234 208 / 40%));
   --evening-star: light-dark(#ffffff, #f6ead0);       /*名字旁的小星：开灯时像黄昏最早亮起的长庚星，亮白*/
   --band-sky: light-dark(#f1d9ea, #1d1533);           /*内页顶部夜空带（开灯时是淡晚霞）*/
   --band-star: light-dark(rgb(255 255 255 / 90%), rgb(253 246 255 / 85%));
@@ -140,6 +142,8 @@
   --sky-leetcode: light-dark(#8a5a12, #f3c98b);
   --sky-github: light-dark(#2f5ea8, #a9c6ff);
   --moonlight-glow: light-dark(rgb(17 17 19 / 16%), rgb(255 255 255 / 32%));
+  /* 墨黑没有颜色可用，开灯时强调字靠粗体，再垫一圈纯白光 */
+  --emphasis-halo: light-dark(rgb(255 255 255 / 95%), rgb(255 255 255 / 32%));
   --evening-star: light-dark(#111113, #ffffff);
   --band-sky: light-dark(#e8e8eb, #0a0a0c);
   --band-star: light-dark(rgb(17 17 19 / 45%), rgb(255 255 255 / 90%));
@@ -181,6 +185,8 @@
   /*银河开灯时月光色和强调色是两种相近的蓝紫，星带里刷题换成暖色*/
   --sky-leetcode: light-dark(#a15c26, #f1ecff);
   --moonlight-glow: light-dark(rgb(255 255 255 / 60%), rgb(196 178 255 / 38%));
+  /* 深靛字配淡金晕（黎明的颜色），和蓝紫天空互补 */
+  --emphasis-halo: light-dark(rgb(255 233 168 / 85%), rgb(196 178 255 / 38%));
   --evening-star: light-dark(#ffffff, #f1ecff);
   --band-sky: light-dark(#e3e2f7, #131943);
   --band-star: light-dark(rgb(255 255 255 / 90%), rgb(235 240 255 / 88%));

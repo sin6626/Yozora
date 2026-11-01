@@ -1,5 +1,6 @@
 import { Feather, FileText, Heart, Lightbulb, MessageCircleMore, MessageSquare, type LucideIcon } from "lucide-react";
 import Link from "./locale-provider";
+import Reveal from "./reveal";
 import { unstable_rethrow } from "next/navigation";
 import { getRecentActivity, type RecentActivity } from "../lib/blog-data";
 import { formatDate } from "../lib/date";
@@ -71,10 +72,10 @@ export default async function RecentActivityList() {
   if (!items.length) return <p className="post-empty">{t.quiet}</p>;
   return (
     <ul className="activity-timeline">
-      {items.map((item) => {
+      {items.map((item, index) => {
         const Icon = icons[item.kind];
         return (
-        <li key={item.key} className="activity-item" data-kind={item.kind}>
+        <Reveal as="li" key={item.key} index={index} className="activity-item" data-kind={item.kind}>
           <span className="activity-icon" aria-hidden="true">
             <Icon size={14} strokeWidth={1.8} />
           </span>
@@ -82,7 +83,7 @@ export default async function RecentActivityList() {
             <Body item={item} t={t} />
             <time dateTime={item.created}>{formatDate(item.created)}</time>
           </div>
-        </li>
+        </Reveal>
         );
       })}
     </ul>

@@ -9,6 +9,7 @@ import { getLocale, getT } from "../lib/i18n/server";
 import { excerpt } from "../lib/excerpt";
 import { postHref } from "./post-list";
 import RecentActivityList from "./recent-activity";
+import Reveal from "./reveal";
 import TechStack from "./tech-stack";
 import "./corners.css";
 
@@ -25,11 +26,11 @@ async function load<T>(read: () => Promise<T>) {
 // allLabel：“全部”按当前语言（由 HomeLatest 读好传进来）
 function Heading({ title, note, allHref, allLabel }: { title: string; note: string; allHref?: string; allLabel?: string }) {
   return (
-    <div className="home-section-heading">
+    <Reveal className="home-section-heading">
       <h2>{title}</h2>
       <p>{note}</p>
       {allHref && <Link className="home-section-more" href={allHref}>{allLabel}<ArrowRight size={14} aria-hidden="true" /></Link>}
-    </div>
+    </Reveal>
   );
 }
 
@@ -55,7 +56,9 @@ function Section<T>({ title, note, allHref, allLabel, failed, items, empty, clas
 }
 
 // 竖向时间线的一条：前面一颗小星，标题在左，附加信息和日期靠右；整条可点。
-function TimelineItem({ href, created, title, meta, serif, pinned, original }: {
+// index：在列表里的序号，滚进视野时一条比一条晚一点出现（reveal-on-view.tsx）
+function TimelineItem({ href, created, title, meta, serif, pinned, original, index }: {
+  index: number;
   href: string | null;
   created: string;
   title: string;
@@ -65,7 +68,7 @@ function TimelineItem({ href, created, title, meta, serif, pinned, original }: {
   original?: boolean;
 }) {
   return (
-    <li className={pinned ? "home-timeline-item is-pinned" : "home-timeline-item"}>
+    <Reveal as="li" index={index} className={pinned ? "home-timeline-item is-pinned" : "home-timeline-item"}>
       <span className="home-timeline-node" aria-hidden="true" />
       <span className={serif ? "home-timeline-title is-serif" : "home-timeline-title"} lang={original ? "zh-CN" : undefined}>
         {href ? <Link className="card-link" href={href}>{title}</Link> : title}
@@ -74,7 +77,7 @@ function TimelineItem({ href, created, title, meta, serif, pinned, original }: {
         {meta}
         <time dateTime={created}>{formatDate(created)}</time>
       </span>
-    </li>
+    </Reveal>
   );
 }
 
@@ -93,9 +96,10 @@ export default async function HomeLatest() {
         <Section {...section(t.posts)} allHref="/posts" items={posts}>
           {(items) => (
             <ol className="home-timeline">
-              {items.map((post) => (
+              {items.map((post, index) => (
                 <TimelineItem
                   key={post.id}
+                  index={index}
                   href={postHref(post)}
                   created={post.created}
                   title={post.title}
@@ -110,9 +114,10 @@ export default async function HomeLatest() {
         <Section {...section(t.notes)} allHref="/notes" items={notes}>
           {(items) => (
             <ol className="home-timeline">
-              {items.map((note) => (
+              {items.map((note, index) => (
                 <TimelineItem
                   key={note.id}
+                  index={index}
                   href={`/notes/${note.nid}`}
                   created={note.created}
                   title={note.title}
@@ -129,11 +134,11 @@ export default async function HomeLatest() {
         <Section {...section(t.murmurs)} allHref="/murmurs" items={murmurs} className="home-side-murmurs">
           {(items) => (
             <ul className="home-murmurs">
-              {items.map((item) => {
+              {items.map((item, index) => {
                 const images = murmurImageSources(item.content);
                 const text = excerpt(item.content, 140);
                 return (
-                  <li key={item.id}>
+                  <Reveal as="li" key={item.id} index={index}>
                     <time dateTime={item.created}>{formatDate(item.created)}</time>
                     {text && <p lang="zh-CN">{text}</p>}
                     {images.length > 0 && (
@@ -145,7 +150,7 @@ export default async function HomeLatest() {
                         {images.length > 3 && <span>+{images.length - 3}</span>}
                       </div>
                     )}
-                  </li>
+                  </Reveal>
                 );
               })}
             </ul>

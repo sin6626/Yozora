@@ -14,6 +14,7 @@ import SubscribeForm from "@/components/subscribe-form";
 import { getApiUrl } from "@/lib/config";
 import SocialIconsPreview from "./social-icons";
 import HomePanelPreviews from "./home-panel-preview";
+import HeroEntrancePreview from "./hero-entrance";
 import { OpenSearchButton } from "@/components/command-search";
 import { ActiveFilter } from "@/components/list-filters";
 import StyleGuide from "./style-guide";
@@ -152,6 +153,11 @@ export default function DebugPage() {
           <li id="debug-home-panel">
             <h2>导航首页面板</h2>
             <HomePanelPreviews />
+          </li>
+          <li id="debug-hero-entrance">
+            <h2>首页入场动画</h2>
+            <p className="post-meta">home-hero.css：首屏天空从暗处亮起，标题两行、说明、社交图标、头像、底部依次对焦浮上，最后“Sin”“大三学生”亮一下；首页下半部分用 components/reveal.tsx，滚到才出现、只播一次，离开首页再回来重置。开灯时“大三学生”是粗体，光晕是 --emphasis-halo（每套配色一种）。地址加 ?palette=night / galaxy / ink 换配色对比</p>
+            <HeroEntrancePreview />
           </li>
           <li id="debug-search">
             <h2>⌘K 搜索</h2>
