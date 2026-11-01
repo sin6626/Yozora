@@ -65,6 +65,9 @@ function onlineCount(message: unknown) {
   return typeof data?.online === "number" ? data.online : null;
 }
 
+// 连上以后才有值；其他组件要听 Core 的广播时用它（如站长“正在用 / 在听”）
+export const useSocket = () => useContext(SocketContext);
+
 export function OnlineCount() {
   const online = useContext(OnlineContext);
   const t = useT().footer;

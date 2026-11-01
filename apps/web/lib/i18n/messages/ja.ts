@@ -24,6 +24,11 @@ const ja: Messages = {
     kinds: { post: "記事", note: "ノート", page: "ページ" },
     reading: (kind: string, title: string, percent: number) => `${kind}を読んでいます：${title}（${percent}% 読了）。ナビゲーションを開く`,
     goSee: "見てみる",
+    presence: {
+      prefix: "管理人はいま：",
+      using: (app: string) => `${app} を使用中`,
+      listening: (title: string, artist?: string) => `${artist ? `${title} – ${artist}` : title} を再生中`,
+    },
   },
   nav: {
     label: "メインナビゲーション",

@@ -24,6 +24,12 @@ const zh = {
     kinds: { post: "文章", note: "手记", page: "页面" },
     reading: (kind: string, title: string, percent: number) => `正在读${kind}：${title}，已读 ${percent}%，展开导航`,
     goSee: "去看看",
+    // 站长此刻在用的 App、在听的歌（components/owner-presence.tsx），显示在页头站名下面
+    presence: {
+      prefix: "站长此刻：",
+      using: (app: string) => `在用 ${app}`,
+      listening: (title: string, artist?: string) => `在听 ${artist ? `${title} – ${artist}` : title}`,
+    },
   },
   nav: {
     label: "主导航",

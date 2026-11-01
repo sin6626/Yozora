@@ -24,6 +24,11 @@ const en: Messages = {
     kinds: { post: "Post", note: "Note", page: "Page" },
     reading: (kind: string, title: string, percent: number) => `Reading ${kind.toLowerCase()}: ${title}, ${percent}% read. Expand navigation`,
     goSee: "Take a look",
+    presence: {
+      prefix: "The owner right now: ",
+      using: (app: string) => `Using ${app}`,
+      listening: (title: string, artist?: string) => `Listening to ${artist ? `${title} – ${artist}` : title}`,
+    },
   },
   nav: {
     label: "Main navigation",

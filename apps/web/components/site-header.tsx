@@ -83,7 +83,8 @@ function useScrolled() {
 // account：读者登录入口（header-account.tsx），放在主题按钮左边
 // activityIcons：播报用的图标（island-icons.tsx，服务端渲染好传进来）
 // search：⌘K 搜索（header-search.tsx），放在最左边
-export default function SiteHeader({ brand, nav, search, account, activityIcons }: { brand: ReactNode; nav: ReactNode; search?: ReactNode; account?: ReactNode; activityIcons: Record<IslandActivityIcon, ReactNode> }) {
+// presence：站长此刻在用的 App、在听的歌（owner-presence.tsx），挂在站名下面
+export default function SiteHeader({ brand, nav, search, account, presence, activityIcons }: { brand: ReactNode; nav: ReactNode; search?: ReactNode; account?: ReactNode; presence?: ReactNode; activityIcons: Record<IslandActivityIcon, ReactNode> }) {
   const t = useT().header;
   const scrolled = useScrolled();
   const [hovered, setHovered] = useState(false);
@@ -199,6 +200,7 @@ export default function SiteHeader({ brand, nav, search, account, activityIcons 
         >
           <motion.div layout="position" transition={spring} className="island-brand">
             <Link className="site-brand" href="/" aria-label={t.home}>{brand}</Link>
+            {presence}
           </motion.div>
 
           <motion.div layout="position" transition={spring} className="island-nav">{nav}</motion.div>

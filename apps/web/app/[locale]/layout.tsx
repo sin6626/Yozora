@@ -10,6 +10,7 @@ import { islandIcons } from "@/components/island-icons";
 import Navigation from "@/components/navigation";
 import SiteFooter from "@/components/site-footer";
 import SiteHeader from "@/components/site-header";
+import OwnerPresence from "@/components/owner-presence";
 import HeaderSearch from "@/components/header-search";
 import { getOwner } from "@/lib/blog-data";
 import { LocaleProvider } from "@/components/locale-provider";
@@ -124,6 +125,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
               nav={<Navigation account={<Suspense fallback={null}><HeaderAccount side="top" /></Suspense>} />}
               search={<Suspense fallback={<span className="icon-button" aria-hidden="true" />}><HeaderSearch /></Suspense>}
               account={<Suspense fallback={<span className="account-trigger" aria-hidden="true" />}><HeaderAccount host /></Suspense>}
+              presence={<OwnerPresence apiUrl={getApiUrl()} />}
               activityIcons={islandIcons}
             />
             {/* 视图过渡套在铺满整行的 .site-page 上，而不是宽度随页面变化的 main：
