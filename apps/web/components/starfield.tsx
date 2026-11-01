@@ -2,12 +2,16 @@
 
 import { useEffect, useRef } from "react";
 import { moonPhase } from "../lib/moon";
-import MoonTip from "./moon-tip";
 import { useResolvedTheme } from "./use-resolved-theme";
+import "./starfield.css";
 
-// 首页第一屏的夜空：一张铺满的 WebGL 画布，片元着色器里画出天空渐变、淡淡的星云、三层闪烁的星星、
-// 偶尔划过的流星，以及按访客当天真实月相照亮的月亮。星星和银河绕北天极缓缓转动（像真的在看夜空）。开灯时整片天空在 0.6 秒内过渡到黄昏。悬停月亮显示今晚的月相（moon-tip.tsx）。
-// 场景离开视野或标签页隐藏时停止绘制；“减少动态效果”时只画一帧静止的夜空；浏览器不支持 WebGL 时退回 CSS 渐变。
+// 全站的夜空（2026-11-01 原型）：一张固定在视口后面的 WebGL 画布，挂在根布局里、在换页过渡之外，换页时不重建。
+// 片元着色器里画出天空渐变、淡淡的星云、三层闪烁的星星、偶尔划过的流星，以及按访客当天真实月相照亮的月亮。
+// 星星和银河绕北天极缓缓转动（像真的在看夜空）。开灯时整片天空在 0.6 秒内过渡到黄昏。
+// 两种状态：首页第一屏在视野里时是完整的夜空（月亮跟着第一屏走，画在首屏里悬停区域 .moon-tip 的位置，位置和大小写在 moon-tip.css）；
+// 内页和首页往下滚之后是“安静”的夜空：天色压向页面底色、星星变暗变慢、没有流星和月亮，每秒只画约 15 帧。
+// 标签页隐藏时停止绘制；“减少动态效果”时星星不闪不转，只在状态变化时重画；浏览器不支持 WebGL 时画布隐藏，首屏退回 CSS 渐变。
+// 没有显卡加速（软件渲染，例如 Chrome 关了硬件加速）时全屏着色器全靠 CPU 算，安静夜空也要占 3 个核，所以那时安静夜空只画一帧静止的。
 
 const vertexSource = `
 attribute vec2 aPosition;
@@ -22,6 +26,8 @@ uniform float uLight;   // 0 夜里，1 黄昏
 uniform float uPhase;   // 月相：0 新月，0.5 满月
 uniform vec3 uMoon;     // 月亮圆心（像素）和半径（像素）
 uniform float uSpin;    // 星空绕北天极转过的角度（弧度）
+uniform float uQuiet;   // 0 完整夜空（首页第一屏），1 安静夜空（内页）
+uniform vec3 uPage;     // 页面底色，安静时天色往它靠
 // 配色（下面的 palettes，夜紫 / 墨黑 / 银河）：天空渐变、地平线的光、银河、星星的色温与多少、月亮的光晕与暗面
 uniform vec3 uNightTop, uNightLow, uDuskTop, uDuskLow, uHorizonNight, uHorizonDusk;
 uniform vec3 uNebulaA, uNebulaB;
@@ -92,16 +98,18 @@ void main() {
   float band = exp(-pow((suv.y - 0.45 - (suv.x - 0.5) * uBandTilt) * uBandWidth, 2.0));
   float cloud = fbm(q * 2.0 + fbm(q * 1.3));
   // 尘埃带：另一层噪声里浓的地方把银河的光和星星压暗，银河才有立体感
-  float lanes = smoothstep(0.48, 0.72, fbm(q * 3.1 + 7.0)) * band * uDust;
+  float lanes = uDust > 0.0 ? smoothstep(0.48, 0.72, fbm(q * 3.1 + 7.0)) * band * uDust : 0.0;
   vec3 nebula = mix(uNebulaA, uNebulaB, cloud) * band * pow(cloud, 2.4) * uNebula * (1.0 - lanes);
   // 核心：银河正中最亮的那一线光
   nebula += uCoreColor * pow(band, 4.0) * smoothstep(0.3, 0.85, cloud) * uCore * (1.0 - lanes);
   // 银河会随星空转动，转到画面最上面时会压在导航文字后面：亮银河（有尘埃带的配色）在顶部两成渐渐收淡，保证导航看得清
   nebula *= 1.0 - smoothstep(0.78, 0.97, uv.y) * 0.75 * min(uDust, 1.0);
-  sky += nebula * (1.0 - uLight * 0.8);
+  sky += nebula * (1.0 - uLight * 0.8) * (1.0 - uQuiet * 0.5);
+  // 安静时天色大半压向页面底色，正文读起来不费眼
+  sky = mix(sky, uPage, uQuiet * 0.7);
 
-  // 三层星星：远处的小而密，近处的大而疏；银河里星星更多
-  float starAmount = 1.0 - uLight * 0.85;
+  // 三层星星：远处的小而密，近处的大而疏；银河里星星更多。安静时只剩约一半亮度
+  float starAmount = (1.0 - uLight * 0.85) * (1.0 - uQuiet * 0.5);
   vec3 stars = starLayer(sp, 140.0, 0.10 + band * 0.22, 0.06, t, 0.0) * 0.8
              + starLayer(sp + 3.1, 70.0, 0.08 + band * 0.12, 0.07, t * 0.8, 0.0)
              + starLayer(sp + 7.7, 26.0, 0.07, 0.06, t * 0.6, uSpikes) * 1.5;
@@ -111,7 +119,7 @@ void main() {
   float period = 23.0;
   float k = floor(t / period);
   float life = fract(t / period) * period;
-  if (life < 1.1 && uLight < 0.5) {
+  if (life < 1.1 && uLight < 0.5 && uQuiet < 0.5) {
     vec2 start = vec2(0.2 + 0.6 * hash(vec2(k, 1.0)), 0.75 + 0.2 * hash(vec2(k, 2.0))) * vec2(uResolution.x / uResolution.y, 1.0);
     vec2 dir = normalize(vec2(-0.85 - 0.3 * hash(vec2(k, 3.0)), -0.45));
     vec2 head = start + dir * life * 0.55;
@@ -129,8 +137,9 @@ void main() {
   float lit = (1.0 - cos(6.2831 * uPhase)) * 0.5;
   // 光晕从月面中心一直延伸出去，月亮边缘和光晕之间不会出现一圈暗缝
   float glow = exp(-max(r - 0.9, 0.0) * 2.4) * (0.18 + 0.5 * lit) * (1.0 - smoothstep(0.0, 1.0, max(r - 1.0, 0.0) / 6.0));
-  sky += mix(uMoonGlow, vec3(1.0, 0.95, 0.9), uLight) * glow * mix(0.55, 0.35, uLight);
-  if (r < 1.02) {
+  float moonShow = 1.0 - uQuiet;
+  sky += mix(uMoonGlow, vec3(1.0, 0.95, 0.9), uLight) * glow * mix(0.55, 0.35, uLight) * moonShow;
+  if (r < 1.02 && moonShow > 0.0) {
     float edge = smoothstep(1.0, 1.0 - 2.0 / uMoon.z, r);
     float s = sqrt(max(1.0 - m.y * m.y, 0.0));
     float c = cos(6.2831 * uPhase);
@@ -139,7 +148,7 @@ void main() {
     float maria = 0.82 + 0.18 * fbm(m * 2.6 + 4.0);
     vec3 moonLit = vec3(1.0, 0.96, 0.88) * maria;
     vec3 moonDark = mix(sky, uMoonDark, 0.6);
-    sky = mix(sky, mix(moonDark, moonLit, bright), edge);
+    sky = mix(sky, mix(moonDark, moonLit, bright), edge * moonShow);
   }
 
   // 一点颗粒，避免渐变出现色带
@@ -204,9 +213,27 @@ function compile(gl: WebGLRenderingContext, type: number, source: string) {
   return shader;
 }
 
+// 页面底色（body 的 background-color）转成 0–1 的 RGB，安静时天色往它靠
+function pageColor(): Vec3 {
+  const value = getComputedStyle(document.body).backgroundColor;
+  const parts = (value.match(/[\d.]+/g) ?? ["0", "0", "0"]).slice(0, 3).map(Number);
+  const scale = value.startsWith("color(") ? 1 : 255;
+  return [parts[0] / scale, parts[1] / scale, parts[2] / scale];
+}
+
+// 首屏在视口里占了多少（0–1）。Next 把上一页藏起来时（display: none）它的尺寸是 0，自然算作不在
+function heroInView() {
+  let best: { hero: HTMLElement; amount: number } | null = null;
+  for (const hero of document.querySelectorAll<HTMLElement>(".home-hero")) {
+    const rect = hero.getBoundingClientRect();
+    const amount = Math.max(0, Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0)) / window.innerHeight;
+    if (!best || amount > best.amount) best = { hero, amount };
+  }
+  return best;
+}
+
 export default function Starfield() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const moonRef = useRef<HTMLDivElement>(null);
   const theme = useResolvedTheme();
   // 目标天色交给绘制循环读取（开灯 1，熄灯 0），循环里再慢慢过渡过去。
   const lightTarget = useRef(theme === "light" ? 1 : 0);
@@ -245,6 +272,8 @@ export default function Starfield() {
       phase: gl.getUniformLocation(program, "uPhase"),
       moon: gl.getUniformLocation(program, "uMoon"),
       spin: gl.getUniformLocation(program, "uSpin"),
+      quiet: gl.getUniformLocation(program, "uQuiet"),
+      page: gl.getUniformLocation(program, "uPage"),
     };
     gl.uniform1f(uniforms.phase, moonPhase(Date.now()));
     // 配色在页面打开时由地址参数定下（layout.tsx 的 themeScript），这里读一次
@@ -255,17 +284,24 @@ export default function Starfield() {
       if (typeof value === "number") gl.uniform1f(location, value);
       else gl.uniform3f(location, ...value);
     }
+    const setPage = () => gl.uniform3f(uniforms.page, ...pageColor());
+    setPage();
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const rendererInfo = gl.getExtension("WEBGL_debug_renderer_info");
+    const software = /swiftshader|llvmpipe|software|basic render/i.test(rendererInfo ? String(gl.getParameter(rendererInfo.UNMASKED_RENDERER_WEBGL)) : "");
     let light = lightTarget.current;
-    let visible = true;
+    let quiet = 1;
+    let ratio = 1;
+    let time = 8;
     let frame = 0;
+    let timer = 0;
     let last = performance.now();
-    const start = last;
+    let drawn = "";
 
-    // 画布尺寸跟着元素走，像素比最多 1.5，全屏着色器在高分屏上也不会太费电。
+    // 画布铺满视口，像素比最多 1.5，全屏着色器在高分屏上也不会太费电。
     const resize = () => {
-      const ratio = Math.min(window.devicePixelRatio || 1, 1.5);
+      ratio = Math.min(window.devicePixelRatio || 1, 1.5);
       const width = Math.round(canvas.clientWidth * ratio);
       const height = Math.round(canvas.clientHeight * ratio);
       if (canvas.width !== width || canvas.height !== height) {
@@ -274,63 +310,71 @@ export default function Starfield() {
       }
       gl.viewport(0, 0, width, height);
       gl.uniform2f(uniforms.resolution, width, height);
-      // 月亮放在右上方；竖屏（手机）时缩小，放在导航栏和标题之间的右上角，不压住文字
-      const portrait = height > width;
-      const radius = portrait ? width * 0.045 : Math.min(width, height) * 0.055;
-      const moonX = width * (portrait ? 0.84 : 0.86);
-      const moonY = portrait ? height - radius * 4.2 : height * 0.8;
-      gl.uniform3f(uniforms.moon, moonX, moonY, radius);
-      // 月亮的悬停区域跟着画布里的月亮走（CSS 像素，左上角为原点）
-      const tip = moonRef.current;
-      if (tip) {
-        tip.style.left = `${moonX / ratio}px`;
-        tip.style.top = `${(height - moonY) / ratio}px`;
-        tip.style.setProperty("--moon-size", `${(radius * 2) / ratio}px`);
-      }
+      drawn = "";
+    };
+
+    // 月亮画在首屏悬停区域（.moon-tip）的正下方，跟着首屏一起滚动
+    const placeMoon = (hero: HTMLElement) => {
+      const tip = hero.querySelector(".moon-tip")?.getBoundingClientRect();
+      if (!tip) return "";
+      gl.uniform3f(uniforms.moon, (tip.left + tip.width / 2) * ratio, canvas.height - (tip.top + tip.height / 2) * ratio, (tip.width / 2) * ratio);
+      return `${Math.round(tip.top)}/${Math.round(tip.width)}`;
     };
 
     const draw = (now: number) => {
-      const step = Math.min((now - last) / 1000, 0.1);
+      const step = Math.min((now - last) / 1000, 0.25);
       last = now;
-      // 开灯 / 熄灯：0.6 秒内过渡到目标天色
-      light += Math.sign(lightTarget.current - light) * Math.min(Math.abs(lightTarget.current - light), step / 0.6);
+      const ease = (value: number, target: number, seconds: number) => value + Math.sign(target - value) * Math.min(Math.abs(target - value), step / seconds);
+      // 开灯 / 熄灯：0.6 秒内过渡到目标天色；首屏占视口一半以上时是完整夜空，往下滚、换到内页时 0.8 秒内安静下来
+      light = reduceMotion ? lightTarget.current : ease(light, lightTarget.current, 0.6);
+      const found = heroInView();
+      const quietTarget = 1 - Math.min(Math.max((found?.amount ?? 0) - 0.25, 0) / 0.5, 1);
+      quiet = reduceMotion ? quietTarget : ease(quiet, quietTarget, 0.8);
+      const moonKey = found && quiet < 1 ? placeMoon(found.hero) : "";
+      // 减少动态效果、或软件渲染时的安静夜空：画面静止，只在天色、安静程度、月亮位置变化时重画
+      const still = reduceMotion || (software && quiet >= 1);
+      // 安静时星星闪得慢一些
+      if (!still) time += step * (1 - quiet * 0.6);
+      const key = `${light}/${quiet}/${moonKey}`;
+      if (still && key === drawn) return;
+      drawn = key;
       gl.uniform1f(uniforms.light, light);
-      gl.uniform1f(uniforms.time, reduceMotion ? 8 : (now - start) / 1000);
-      gl.uniform1f(uniforms.spin, skyAngle(Date.now()));
+      gl.uniform1f(uniforms.quiet, quiet);
+      gl.uniform1f(uniforms.time, time);
+      gl.uniform1f(uniforms.spin, reduceMotion ? 0 : skyAngle(Date.now()));
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
 
+    // 完整夜空每帧都画；安静（或减少动态效果）时约每秒 15 帧，中间让浏览器歇着
     const loop = (now: number) => {
+      frame = 0;
       draw(now);
-      frame = visible && !document.hidden ? requestAnimationFrame(loop) : 0;
+      if (document.hidden) return;
+      if (quiet >= 0.999 || reduceMotion) timer = window.setTimeout(() => { timer = 0; frame = requestAnimationFrame(loop); }, 66);
+      else frame = requestAnimationFrame(loop);
     };
     const wake = () => {
-      if (!frame && visible && !document.hidden) {
+      if (!frame && !timer && !document.hidden) {
         last = performance.now();
-        frame = requestAnimationFrame(reduceMotion ? (now) => { light = lightTarget.current; draw(now); frame = 0; } : loop);
+        frame = requestAnimationFrame(loop);
       }
     };
 
-    const observer = new IntersectionObserver(([entry]) => {
-      visible = entry.isIntersecting;
-      wake();
-    });
-    observer.observe(canvas);
     const resizeObserver = new ResizeObserver(() => {
       resize();
       wake();
     });
     resizeObserver.observe(canvas);
     document.addEventListener("visibilitychange", wake);
-    // 减少动态效果时没有循环，主题变化要主动重画一帧
-    const themeObserver = new MutationObserver(() => requestAnimationFrame(wake));
+    // 主题变了，页面底色跟着变
+    const themeObserver = new MutationObserver(() => requestAnimationFrame(() => { setPage(); drawn = ""; }));
     themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     resize();
     wake();
 
     return () => {
       cancelAnimationFrame(frame);
-      observer.disconnect();
+      clearTimeout(timer);
       resizeObserver.disconnect();
       themeObserver.disconnect();
       document.removeEventListener("visibilitychange", wake);
@@ -341,10 +385,5 @@ export default function Starfield() {
     };
   }, []);
 
-  return (
-    <>
-      <canvas ref={canvasRef} className="starfield" aria-hidden="true" />
-      <MoonTip ref={moonRef} />
-    </>
-  );
+  return <canvas ref={canvasRef} className="starfield" aria-hidden="true" />;
 }

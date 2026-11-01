@@ -19,26 +19,9 @@
   }
 }
 
-.starfield {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  display: block;
-  width: 100%;
-  height: 100%;
-  /* 着色器还没画出来、或浏览器不支持 WebGL 时，先是一片同色系的渐变 */
+/* 夜空是全站的 WebGL 画布（starfield.css）；浏览器不支持 WebGL 时，第一屏用一片同色系的渐变代替 */
+html:has(.starfield[data-fallback]) .home-hero {
   background: linear-gradient(to bottom, var(--sky-fallback-top), var(--sky-fallback-low));
-}
-
-/* 夜空底部渐渐融进页面背景 */
-.home-hero::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 0;
-  z-index: -1;
-  height: 8rem;
-  background: linear-gradient(to bottom, transparent, var(--background));
-  pointer-events: none;
 }
 
 /* 按 1920×991 调的比例（参照 Shiro）：内容铺开到约 78rem，文字靠左、头像靠右，中间留出大片夜空 */
@@ -95,13 +78,9 @@
 }
 
 /* 入场（2026-10-31）：每次进入首页播一次，和换页的“夜里重新对焦”同一个感觉——
-   天空从暗处亮起，标题两行、说明、社交图标、头像、底部依次从下方模糊处对焦浮上，最后“Sin”“大三学生”亮一下。
+   天空由全站画布从安静慢慢亮起（starfield.tsx），标题两行、说明、社交图标、头像、底部依次从下方模糊处对焦浮上，最后“Sin”“大三学生”亮一下。
    纯 CSS：元素一出现就播、播完停在原样，不跑脚本也正常显示；Next 藏起首页再显示时（站内跳回来）会重新播。
    起点透明度用 0.0001 而不是 0，否则浏览器不把它算进首屏最大内容绘制（LCP）。 */
-.home-hero .starfield {
-  animation: home-hero-sky 1.2s var(--ease-out) both;
-}
-
 .home-hero-title > span,
 .home-hero-title > strong,
 .home-hero-description,
@@ -130,10 +109,6 @@
     home-hero-light 0.9s var(--ease-out) 0.8s both;
 }
 
-@keyframes home-hero-sky {
-  from { opacity: 0.0001; }
-}
-
 @keyframes home-hero-rise {
   from {
     opacity: 0.0001;
@@ -148,7 +123,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-hero .starfield,
   .home-hero-title > span,
   .home-hero-title > strong,
   .home-hero-title .home-hero-name,

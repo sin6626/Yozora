@@ -2,16 +2,16 @@
 
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useT } from "./locale-provider";
-import { useState, type Ref } from "react";
+import { useState } from "react";
 import { moonInfo } from "../lib/moon";
 import "./moon-tip.css";
 
 // 首屏月亮的悬停区域：鼠标移上月亮（键盘聚焦、触屏点按也算）时，月亮外圈亮起一道光环，
 // 左侧用 Motion 弹簧依次弹出今晚的月相、亮面、月龄和下一次满月/新月；移开后依次收回。没有浮层框。
-// 位置由 starfield.tsx 按画布里月亮的位置设置；数据在显示时才按当前时间计算，不进服务端渲染。
+// 由首屏渲染，位置和大小写在 moon-tip.css，全站夜空画布（starfield.tsx）按它的位置画月亮；数据在显示时才按当前时间计算，不进服务端渲染。
 const spring = { type: "spring", stiffness: 420, damping: 22, mass: 0.8 } as const;
 
-export default function MoonTip({ ref }: { ref: Ref<HTMLDivElement> }) {
+export default function MoonTip() {
   const t = useT().moon;
   const [info, setInfo] = useState<ReturnType<typeof moonInfo> | null>(null);
   const show = () => setInfo(moonInfo(Date.now()));
@@ -29,7 +29,6 @@ export default function MoonTip({ ref }: { ref: Ref<HTMLDivElement> }) {
   return (
     <MotionConfig reducedMotion="user">
       <div
-        ref={ref}
         className="moon-tip"
         tabIndex={0}
         aria-label={t.label}

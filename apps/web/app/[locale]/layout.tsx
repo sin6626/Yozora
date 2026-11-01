@@ -10,6 +10,7 @@ import { islandIcons } from "@/components/island-icons";
 import Navigation from "@/components/navigation";
 import SiteFooter from "@/components/site-footer";
 import SiteHeader from "@/components/site-header";
+import Starfield from "@/components/starfield";
 import OwnerPresence from "@/components/owner-presence";
 import HeaderSearch from "@/components/header-search";
 import { getOwner } from "@/lib/blog-data";
@@ -119,6 +120,8 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
           <a className="skip-link" href="#main-content">
             {t.common.skipToContent}
           </a>
+          {/* 全站一张夜空画布，在换页过渡之外：首页第一屏是完整夜空，其他地方是安静的夜空 */}
+          <Starfield />
           <div className="site-shell">
             <SiteHeader
               brand={<Suspense fallback={<span className="site-brand-name">{siteName}</span>}><SiteBrand /></Suspense>}

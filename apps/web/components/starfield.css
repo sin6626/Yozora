@@ -1,0 +1,15 @@
+/* 全站夜空的画布（starfield.tsx）：固定铺满视口，压在所有内容后面，不接收鼠标 */
+.starfield {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* 不支持 WebGL：画布隐藏，首屏用 CSS 渐变代替（home-hero.css） */
+.starfield[data-fallback] {
+  display: none;
+}

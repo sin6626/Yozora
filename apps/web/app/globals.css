@@ -49,7 +49,7 @@
   /* 首屏强调字的光晕：熄灯是月光晕；开灯时白色光晕在浅色天空上看不见，换成和字互补的亮色（深青字配浅青晕），像黄昏里最先亮起的那几个字 */
   --emphasis-halo: light-dark(rgb(153 246 228 / 85%), rgb(246 234 208 / 40%));
   --evening-star: light-dark(#ffffff, #f6ead0);       /*名字旁的小星：开灯时像黄昏最早亮起的长庚星，亮白*/
-  --band-sky: light-dark(#f1d9ea, #1d1533);           /*内页顶部夜空带（开灯时是淡晚霞）*/
+  --band-sky: light-dark(#f1d9ea, #1d1533);           /*手机菜单的夜空（开灯时是淡晚霞）*/
   --band-star: light-dark(rgb(255 255 255 / 90%), rgb(253 246 255 / 85%));
   --sky-fallback-top: light-dark(#9e8cd1, #040310);  /*首屏星空画不出来（不支持 WebGL）时的 CSS 渐变*/
   --sky-fallback-low: light-dark(#ffcdc6, #150e29);
@@ -413,34 +413,11 @@ a:focus-visible,
   min-height: 100dvh;
 }
 
-/* 内页顶部的夜空带：约 16rem 高，往下融进背景；首页第一屏有完整的星空，不用 */
 .site-shell {
   position: relative;
 }
 
-.site-shell:not(:has(.home-hero:not([style*="display: none"])))::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 16rem;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(1.5px 1.5px at 8% 22%, var(--band-star) 50%, transparent 100%),
-    radial-gradient(1px 1px at 17% 58%, var(--band-star) 50%, transparent 100%),
-    radial-gradient(1px 1px at 26% 14%, var(--band-star) 50%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 38% 40%, var(--band-star) 50%, transparent 100%),
-    radial-gradient(1px 1px at 47% 18%, var(--band-star) 50%, transparent 100%),
-    radial-gradient(1px 1px at 59% 52%, var(--band-star) 50%, transparent 100%),
-    radial-gradient(2px 2px at 66% 24%, var(--band-star) 50%, transparent 100%),
-    radial-gradient(1px 1px at 74% 64%, var(--band-star) 50%, transparent 100%),
-    radial-gradient(1px 1px at 83% 30%, var(--band-star) 50%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 92% 12%, var(--band-star) 50%, transparent 100%),
-    radial-gradient(ellipse 60% 80% at 70% 0%, color-mix(in srgb, var(--primary) 14%, transparent), transparent 70%),
-    linear-gradient(to bottom, var(--band-sky), transparent);
-  -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent);
-  mask-image: linear-gradient(to bottom, #000 40%, transparent);
-}
+/* 夜空是全站一张 WebGL 画布（components/starfield.tsx、starfield.css），内页是安静的夜空，不再单独画顶部星带 */
 
 /* 页头（夜航岛）的样式在 components/site-header.css */
 

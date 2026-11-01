@@ -10,9 +10,10 @@ import { join } from "node:path";
 const bin = `${process.env.HOME}/Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-arm64/chrome-headless-shell`;
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export async function openBrowser({ port = 9333 } = {}) {
+// args：额外的启动参数（例如测性能时开显卡）；返回值里的 pid 是浏览器主进程，测 CPU 时要连同子进程一起算
+export async function openBrowser({ port = 9333, args = [] } = {}) {
   const profile = mkdtempSync(join(tmpdir(), `sin-headless-${port}-`));
-  const proc = spawn(bin, [`--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "--hide-scrollbars", "--no-first-run", "about:blank"], { stdio: "ignore" });
+  const proc = spawn(bin, [`--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "--hide-scrollbars", "--no-first-run", ...args, "about:blank"], { stdio: "ignore" });
   const exited = new Promise((resolve) => proc.once("exit", resolve));
   const cleanup = () => exited.then(() => rmSync(profile, { recursive: true, force: true }));
   let targets;
@@ -29,6 +30,7 @@ export async function openBrowser({ port = 9333 } = {}) {
   listeners.push((m) => { if (m.method === "Runtime.exceptionThrown") errors.push(m.params.exceptionDetails.exception?.description?.slice(0, 4000)); if (m.method === "Runtime.consoleAPICalled" && m.params.type === "error") errors.push(m.params.args.map((a) => a.value ?? a.description).join(" ").slice(0, 2000)); });
 
   return {
+    pid: proc.pid,
     send,
     errors,
     listeners,

@@ -10,7 +10,7 @@ import { getLocale, getT } from "../lib/i18n/server";
 import IconifyIcon, { SocialIcon } from "./iconify-icon";
 import ScrollHint from "./scroll-hint";
 import SiteActions from "./site-actions";
-import Starfield from "./starfield";
+import MoonTip from "./moon-tip";
 // 首屏标题与说明用霞鹜文楷（简体版，npm 包已按字符切成小块，浏览器只下载页面上用到的字）；细体、常规，强调词“大三学生”用粗体
 import "lxgw-wenkai-webfont/lxgwwenkai-light.css";
 import "lxgw-wenkai-webfont/lxgwwenkai-regular.css";
@@ -97,7 +97,8 @@ export default async function HomeHero() {
   const t = (await getT()).hero;
   return (
     <section className="home-hero" aria-labelledby="home-hero-title">
-      <Starfield />
+      {/* 夜空本身是全站的画布（starfield.tsx，挂在根布局），这里只放月亮的悬停区域 */}
+      <MoonTip />
       <div className="home-hero-layout">
         <div className="home-hero-half is-text">
           <div className="home-hero-content">

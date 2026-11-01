@@ -1,15 +1,25 @@
 /* 首屏月亮的悬停区域与弹出的月相数据（moon-tip.tsx） */
 .moon-tip {
   position: absolute;
-  /* 位置由画布设置；画出来之前放在屏幕外 */
-  left: -100vw;
-  top: 0;
+  /* 月亮的位置和大小由这里决定，全站夜空画布（starfield.tsx）读这个元素的位置把月亮画在它下面：
+     右上方、直径为首屏短边的 11%（首屏一屏高、最矮 800px）；竖屏（手机）时缩小，放在导航栏和标题之间的右上角，不压住文字 */
+  left: 86%;
+  top: 20%;
+  --moon-size: calc(min(100vw, max(100dvh, 800px)) * 0.11);
   z-index: 1;
   width: var(--moon-size, 0);
   height: var(--moon-size, 0);
   border-radius: var(--radius-full);
   translate: -50% -50%;
   outline: 0;
+}
+
+@media (orientation: portrait) {
+  .moon-tip {
+    left: 84%;
+    top: calc(9vw * 2.1);
+    --moon-size: 9vw;
+  }
 }
 
 .moon-tip-ring {
