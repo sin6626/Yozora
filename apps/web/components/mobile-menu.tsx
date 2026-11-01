@@ -3,17 +3,23 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { Menu, Search } from "lucide-react";
 import Link, { useLocalePathname, useT } from "./locale-provider";
-import { useState, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { OnlineCount } from "./notifications";
 import LanguageMenu from "./language-menu";
 import ThemeToggle from "./theme-switcher";
 import { openSearch } from "./command-search";
 import "./mobile-menu.css";
 
-type MenuLink = { label: string; href: string };
+// 二级链接：icon 是话题的后台图片（null 表示话题没设图片，留空位；其他链接不传）
+type MenuChild = { label: string; href: string; icon?: string | null };
+export type MenuSection = { label: string; href?: string; children: MenuChild[] };
 
-// 手机上的导航：顶部只留站名和菜单按钮，点开后整屏变成夜空，四个角落竖排在中间，开灯/熄灯在底部。
-export default function MobileMenu({ corners, more, account }: { corners: MenuLink[]; more: MenuLink[]; account?: ReactNode }) {
+const pathOf = (href: string) => href.split("?")[0];
+
+// 手机上的导航：顶部只留站名和菜单按钮，点开后整屏变成夜空。和桌面导航一样分级：
+// 一级（首页、文章、手记、时间线、碎碎念、更多）各带一颗星，用一条星座线串起来，当前所在的那颗亮起；二级链接列在一级下面。
+// 打开时星座线从上往下画出，各组依次浮上，最后底部工具淡入（mobile-menu.css）。开灯/熄灯、语言、登录、搜索在底部。
+export default function MobileMenu({ sections, account }: { sections: MenuSection[]; account?: ReactNode }) {
   const pathname = useLocalePathname();
   const t = useT().mobileMenu;
   const nav = useT().nav;
@@ -25,7 +31,8 @@ export default function MobileMenu({ corners, more, account }: { corners: MenuLi
     setLastPathname(pathname);
     setOpen(false);
   }
-  const current = (href: string) => (href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`)) ? "page" : undefined;
+  const isCurrent = (href: string) => (href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`));
+  const current = (href: string) => (pathname === pathOf(href) ? "page" : undefined);
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -38,20 +45,35 @@ export default function MobileMenu({ corners, more, account }: { corners: MenuLi
             <Dialog.Title className="mobile-menu-title">{t.title}</Dialog.Title>
             <Dialog.Close className="btn btn-ghost">{t.close}</Dialog.Close>
           </div>
-          <nav aria-label={nav.label}>
-            <ul className="mobile-menu-corners">
-              {corners.map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} aria-current={current(link.href)} onClick={() => setOpen(false)}>{link.label}</Link>
-                </li>
-              ))}
-            </ul>
-            <ul className="mobile-menu-more">
-              {more.map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} aria-current={current(link.href)} onClick={() => setOpen(false)}>{link.label}</Link>
-                </li>
-              ))}
+          <nav className="mobile-menu-nav" aria-label={nav.label}>
+            <span className="mobile-menu-line" aria-hidden="true" />
+            <ul className="mobile-menu-sections">
+              {sections.map((section, index) => {
+                const here = (section.href !== undefined && isCurrent(section.href)) || section.children.some((child) => pathname === pathOf(child.href));
+                return (
+                  <li key={section.label} className="mobile-menu-section" data-current={here ? "" : undefined} style={{ "--i": index } as CSSProperties}>
+                    <span className="mobile-menu-star" aria-hidden="true" />
+                    {section.href !== undefined
+                      ? <Link className="mobile-menu-heading" href={section.href} aria-current={current(section.href)} onClick={() => setOpen(false)}>{section.label}</Link>
+                      : <span className="mobile-menu-heading">{section.label}</span>}
+                    {section.children.length > 0 && (
+                      <ul className="mobile-menu-children" aria-label={section.label}>
+                        {section.children.map((child) => (
+                          <li key={child.href}>
+                            <Link href={child.href} aria-current={current(child.href)} onClick={() => setOpen(false)}>
+                              {child.icon !== undefined && (child.icon
+                                // eslint-disable-next-line @next/next/no-img-element -- 后台话题图片，任意地址的小图标
+                                ? <img className="mobile-menu-icon" src={child.icon} alt="" width={18} height={18} />
+                                : <span className="mobile-menu-icon" aria-hidden="true" />)}
+                              {child.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </nav>
           <div className="mobile-menu-bottom">

@@ -274,9 +274,16 @@ export default function BlogNavigation({ state, account }: { state: NavigationSt
 
   return (
     <div className="navigation-Area">
+    {/* 手机菜单和桌面导航同样分级：首页 → 后台页面，文章 → 分类，手记 → 话题，时间线 → 文章 / 手记，更多 → 作品等（面板数据读不到时二级为空） */}
     <MobileMenu
-      corners={[{ label: t.home, href: "/" }, { label: t.posts, href: "/posts" }, { label: t.notes, href: "/notes" }, { label: t.timeline, href: "/timeline" }, { label: t.murmurs, href: "/murmurs" }]}
-      more={[...pages, ...moreLinks, ...devLinks]}
+      sections={[
+        { label: t.home, href: "/", children: pages },
+        { label: t.posts, href: "/posts", children: (panels?.categories ?? []).map(({ name, href }) => ({ label: name, href })) },
+        { label: t.notes, href: "/notes", children: (panels?.topics ?? []).map(({ name, href, icon }) => ({ label: name, href, icon: icon ?? null })) },
+        { label: t.timeline, href: "/timeline", children: [{ label: t.posts, href: "/timeline/posts" }, { label: t.notes, href: "/timeline/notes" }] },
+        { label: t.murmurs, href: "/murmurs", children: [] },
+        { label: t.more, children: [...moreLinks, ...devLinks] },
+      ]}
       account={account}
     />
     <NavigationMenu.Root
