@@ -137,13 +137,15 @@
   --island-tone-remove: #deb0b4;
   --island-tone-done: #b2d6c2;
   --island-tone-info: #9a9aa3;
-  --moonlight: light-dark(#111113, #ffffff);
+  /* 月光色（首页强调词、置顶标题等）：原来熄灯纯白、开灯和正文同色，强调词看不出来（2026-11-01 用户反馈，和正文色差 6.7 / 0）。
+     改成黑色天空里真实月亮的颜色——熄灯月白金，开灯古铜；和正文的 Lab 色差 31 / 46（夜紫 19.8 / 36.8），e2e hero-emphasis-color.mjs 检查 */
+  --moonlight: light-dark(#6b3f12, #f0dba5);
   /*墨黑里月光色和强调色都是白（开灯时都是墨黑），星带的两类星分不开：按真实恒星的色温，刷题是暖黄的星、写代码是蓝白的星*/
   --sky-leetcode: light-dark(#8a5a12, #f3c98b);
   --sky-github: light-dark(#2f5ea8, #a9c6ff);
-  --moonlight-glow: light-dark(rgb(17 17 19 / 16%), rgb(255 255 255 / 32%));
-  /* 墨黑没有颜色可用，开灯时强调字靠粗体，再垫一圈纯白光 */
-  --emphasis-halo: light-dark(rgb(255 255 255 / 95%), rgb(255 255 255 / 32%));
+  --moonlight-glow: light-dark(rgb(107 63 18 / 16%), rgb(240 219 165 / 32%));
+  /* 开灯时古铜字垫一圈白光，熄灯时是月白金的光 */
+  --emphasis-halo: light-dark(rgb(255 255 255 / 95%), rgb(240 219 165 / 32%));
   --evening-star: light-dark(#111113, #ffffff);
   --band-sky: light-dark(#e8e8eb, #0a0a0c);
   --band-star: light-dark(rgb(17 17 19 / 45%), rgb(255 255 255 / 90%));
@@ -181,12 +183,14 @@
   --island-muted: #9ea3cf;
   --island-primary: #c4b2ff;
   --island-border: rgb(233 235 255 / 12%);
-  --moonlight: light-dark(#3b2f8f, #f1ecff);
+  /* 月光色：原来熄灯是近白的淡紫、开灯是和强调色同色相的深靛，强调词看不出来（熄灯和正文色差 2.6）。
+     改成和蓝紫天空互补的暖色——熄灯杏色（呼应银河核心那点粉），开灯深赭；和正文色差 39 / 64 */
+  --moonlight: light-dark(#7f3618, #ffc9a3);
   /*银河开灯时月光色和强调色是两种相近的蓝紫，星带里刷题换成暖色*/
   --sky-leetcode: light-dark(#a15c26, #f1ecff);
-  --moonlight-glow: light-dark(rgb(255 255 255 / 60%), rgb(196 178 255 / 38%));
-  /* 深靛字配淡金晕（黎明的颜色），和蓝紫天空互补 */
-  --emphasis-halo: light-dark(rgb(255 233 168 / 85%), rgb(196 178 255 / 38%));
+  --moonlight-glow: light-dark(rgb(255 255 255 / 60%), rgb(255 201 163 / 38%));
+  /* 开灯深赭字配淡金晕（黎明的颜色），熄灯是杏色的光 */
+  --emphasis-halo: light-dark(rgb(255 233 168 / 85%), rgb(255 201 163 / 38%));
   --evening-star: light-dark(#ffffff, #f1ecff);
   --band-sky: light-dark(#e3e2f7, #131943);
   --band-star: light-dark(rgb(255 255 255 / 90%), rgb(235 240 255 / 88%));
