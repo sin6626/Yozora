@@ -261,6 +261,8 @@ const ja: Messages = {
     tagEmpty: "このタグの記事はまだありません。",
     byTag: "タグで探す",
     tags: "タグ",
+    showAllTags: (count: number) => `すべて表示（${count}）`,
+    hideTags: "閉じる",
     tagsFailed: "タグを読み込めませんでした。",
     noTags: "タグはまだありません。",
     neighbors: "前後の記事",

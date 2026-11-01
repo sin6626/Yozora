@@ -3,7 +3,7 @@
 // 现在：① 标签、搜索、话题的结果和普通列表同一种条目（摘要、阅读时长等）；② 文章的分类那一行一直在；
 // ③ 标签和搜索在列表上方显示一枚“当前筛选 ×”，点 × 回到完整列表；④ 分类、标签、搜索同时只生效一个（分类页点标签会离开分类）；
 // ⑤ 手记的话题排成一行（全部手记 / 各话题），当前话题高亮；⑥ 结果多于 10 条时分页且翻页保留筛选；
-// ⑦ 宽屏（≥ 90rem）搜索、分类、标签在列表右边悬浮的筛选栏里，标签直接摊开；窄屏回到列表上方，标签收在抽屉里，抽屉有过渡且最多推开 14rem。
+// ⑦ 宽屏（≥ 90rem）搜索、分类、标签在列表右边悬浮的筛选栏里，标签摊开最常用的 12 个、其余可展开收起；窄屏回到列表上方，标签收在抽屉里，抽屉有过渡且最多推开 14rem。
 // 需要先运行 pnpm dev（默认 http://127.0.0.1:2323，可用 WEB_URL 覆盖）。用法：pnpm e2e
 import assert from "node:assert/strict";
 import { openBrowser, sleep } from "../headless-browser.mjs";
@@ -91,6 +91,32 @@ try {
   const wide = await layout();
   assert.ok(wide.position === "fixed" && wide.asideLeft >= wide.listRight, `宽屏时筛选栏应悬浮在列表右边：${JSON.stringify(wide)}`);
   assert.ok(wide.search && wide.categories > 1 && wide.tags > 0 && !wide.drawer, `宽屏筛选栏里应有搜索、分类和直接摊开的标签：${JSON.stringify(wide)}`);
+
+  // 标签多了不能把右栏拉得很长：只摊开最常用的 12 个，其余收在“展开全部”里，能展开也能收起；
+  // 正在筛的标签就算不常用也直接显示（不用展开才看得到当前筛选）
+  const tagState = () => browser.evaluate(`(() => {
+    const section = [...document.querySelectorAll(".site-content .list-aside-tags")].find((el) => el.checkVisibility());
+    const more = section.querySelector(".tag-more");
+    return {
+      visible: [...section.querySelectorAll(".tag-chip")].filter((el) => el.checkVisibility()).map((el) => el.firstChild.textContent),
+      total: section.querySelectorAll(".tag-chip").length,
+      toggle: more?.querySelector("summary")?.checkVisibility() ?? false,
+      open: more?.open ?? null,
+    };
+  })()`);
+  const collapsed = await tagState();
+  assert.ok(collapsed.total > 12 && collapsed.visible.length === 12 && collapsed.toggle && collapsed.open === false, `标签多于 12 个时默认只显示 12 个并有“展开全部”：${JSON.stringify({ ...collapsed, visible: collapsed.visible.length })}`);
+  await browser.evaluate(`[...document.querySelectorAll(".site-content .tag-more summary")].find((el) => el.checkVisibility()).click()`);
+  await sleep(500);
+  const expanded = await tagState();
+  assert.equal(expanded.visible.length, expanded.total, "展开后显示全部标签");
+  await browser.evaluate(`[...document.querySelectorAll(".site-content .tag-more summary")].find((el) => el.checkVisibility()).click()`);
+  await sleep(500);
+  assert.equal((await tagState()).visible.length, 12, "再点一次收起");
+  const rare = expanded.visible.at(-1);
+  await browser.goto(`${base}/posts?tag=${encodeURIComponent(rare)}`);
+  const withRare = await tagState();
+  assert.ok(withRare.visible.includes(rare), `正在筛的不常用标签“${rare}”应直接显示：${JSON.stringify(withRare.visible)}`);
   await browser.goto(`${base}/notes`);
   const notesWide = await layout();
   assert.ok(notesWide.position === "fixed" && notesWide.search && notesWide.categories > 1, `手记页宽屏也有右侧筛选栏（搜索、话题）：${JSON.stringify(notesWide)}`);

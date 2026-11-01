@@ -261,6 +261,8 @@ const en: Messages = {
     tagEmpty: "No posts with this tag yet.",
     byTag: "By tag",
     tags: "Tags",
+    showAllTags: (count: number) => `Show all ${count}`,
+    hideTags: "Show fewer",
     tagsFailed: "Couldn't load tags.",
     noTags: "No tags yet.",
     neighbors: "Nearby posts",

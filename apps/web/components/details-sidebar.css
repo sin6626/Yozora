@@ -277,6 +277,55 @@
   font-size: var(--text-xs);
 }
 
+/* 宽屏右栏标签的“展开全部 N 个 / 收起”：淡色小字，展开后剩下的标签接在下面（开合动画用全站 <details> 的那套） */
+.tag-more {
+  margin-top: var(--space-2);
+}
+
+.tag-more summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  list-style: none;
+}
+
+.tag-more summary::-webkit-details-marker {
+  display: none;
+}
+
+@media (hover: hover) {
+  .tag-more summary:hover {
+    color: var(--foreground);
+  }
+}
+
+.tag-more summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.tag-more .tag-list {
+  margin-top: var(--space-2);
+}
+
+.tag-more-hide,
+.tag-more[open] .tag-more-show {
+  display: none;
+}
+
+.tag-more[open] .tag-more-hide {
+  display: inline;
+}
+
+.tag-more[open] .tag-drawer-arrow {
+  transform: rotate(180deg);
+}
+
 /* 带小图的话题整条按中线对齐：图片会把文字基线拉到图底，后面的篇数看着偏低 */
 .post-categories a:has(.list-topic) {
   display: inline-flex;

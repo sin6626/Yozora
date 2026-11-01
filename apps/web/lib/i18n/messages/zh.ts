@@ -264,6 +264,8 @@ const zh = {
     tagEmpty: "这个标签下还没有已发布的文章。",
     byTag: "按标签",
     tags: "标签",
+    showAllTags: (count: number) => `展开全部 ${count} 个`,
+    hideTags: "收起",
     tagsFailed: "标签读取失败。",
     noTags: "暂无标签。",
     neighbors: "相邻文章",
