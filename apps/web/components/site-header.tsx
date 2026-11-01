@@ -94,7 +94,7 @@ export default function SiteHeader({ brand, presence, nav, search, account, acti
   useEffect(() => {
     if (!pinned) return;
     const release = (event: PointerEvent) => {
-      if (!(event.target as Element | null)?.closest(".site-header, .navigation-Positioner")) setPinned(false);
+      if (!(event.target as Element | null)?.closest(".site-header, .navigation-Positioner, .presence-card-positioner")) setPinned(false);
     };
     document.addEventListener("pointerdown", release);
     return () => document.removeEventListener("pointerdown", release);
@@ -113,7 +113,8 @@ export default function SiteHeader({ brand, presence, nav, search, account, acti
       const rect = element.getBoundingClientRect();
       return point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
     };
-    setHovered(inside(island) || inside(document.querySelector(".navigation-Positioner")));
+    // 导航面板、站长状态卡片（owner-presence.tsx）都挂在岛外面，鼠标在它们上面也算在岛上，岛不收拢
+    setHovered(inside(island) || inside(document.querySelector(".navigation-Positioner")) || inside(document.querySelector(".presence-card-positioner")));
   }, []);
   // 键盘聚焦只认 Tab 键：鼠标点过链接后切到别的软件再切回，浏览器会把焦点还给那个链接，
   // 而且因为最后一次操作是键盘（⌘+Tab），这次聚焦也算 :focus-visible，不能因此展开

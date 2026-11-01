@@ -214,11 +214,48 @@ try {
   await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: cardBox.x, y: cardBox.y });
   await sleep(300);
   assert.ok(await card(), "鼠标在卡片上时卡片开着");
-  await browser.evaluate("window.scrollTo(0, 900)");
+  // 2026-11-01 第二个 bug（用户录屏）：卡片等图标藏起来才开始淡出，淡出的 0.24 秒里还在按藏起来的图标重新定位，一路飞向左上角。
+  // 逐帧记录：卡片看得见的每一帧都不能离开原来的位置，并且在岛开始变形后很快消失
+  const frames = await browser.evaluate(`(async () => {
+    const frames = [];
+    const t0 = performance.now();
+    window.scrollTo(0, 900);
+    await new Promise((resolve) => {
+      const tick = () => {
+        const popup = document.querySelector(".presence-card");
+        const style = popup && getComputedStyle(popup);
+        const r = popup?.getBoundingClientRect();
+        frames.push({ t: performance.now() - t0, mode: document.querySelector(".site-header").dataset.mode, x: r?.x, y: r?.y, opacity: style ? (style.visibility === "hidden" ? 0 : Number(style.opacity)) : 0 });
+        if (performance.now() - t0 < 900) requestAnimationFrame(tick); else resolve();
+      };
+      requestAnimationFrame(tick);
+    });
+    return frames;
+  })()`);
+  const visible = frames.filter((f) => f.opacity > 0.02);
+  const [x0, y0] = [visible[0]?.x, visible[0]?.y];
+  const drift = Math.max(0, ...visible.map((f) => Math.hypot(f.x - x0, f.y - y0)));
+  assert.ok(drift <= 2, `卡片淡出时原地不动，不飞走（最大位移 ${drift.toFixed(1)}px）`);
+  assert.ok((visible.at(-1)?.t ?? 0) < 250, `岛一开始变形卡片就跟着淡出（最后看得见是第 ${Math.round(visible.at(-1)?.t ?? 0)}ms）`);
   await waitFor(`document.querySelector(".site-header").dataset.mode === "compact"`, "往下读收成阅读胶囊");
-  await sleep(400);
   assert.equal(await card(), null, "收成阅读胶囊时卡片跟着消失");
   assert.equal((await header()).breathing, "brand-avatar-breathe", "阅读胶囊里头像光圈在呼吸（站长在电脑前）");
+  // 往下读时鼠标移到小胶囊上展开，打开卡片再移到卡片上：卡片在岛外，但也算在岛上，岛不收拢、卡片不被关掉
+  const pill = await browser.evaluate(`(() => { const r = document.querySelector(".island").getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
+  await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: pill.x, y: pill.y });
+  await waitFor(`document.querySelector(".site-header").dataset.mode === "expanded"`, "鼠标移上小胶囊展开成导航条");
+  await sleep(500);
+  // 鼠标停在头像上：还在岛上（不收拢），又不压着导航项（导航面板开着时站名区不滚）
+  await hover(".site-header .site-brand-avatar");
+  await waitFor(`${slotOf(".site-header")} === "live"`, "展开后站名区滚到 App + 音频条", 9000);
+  await sleep(700);
+  await hover(".site-header .brand-ticker-trigger");
+  const pinnedBox = await browser.evaluate(`(() => { const r = document.querySelector(".presence-card").getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
+  await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: pinnedBox.x, y: pinnedBox.y });
+  await sleep(800);
+  assert.equal(await browser.evaluate(`document.querySelector(".site-header").dataset.mode`), "expanded", "鼠标在卡片上时岛保持展开");
+  assert.ok(await card(), "鼠标在卡片上时卡片开着");
+  await leave();
   await browser.evaluate("window.scrollTo(0, 0)");
   await waitFor(`document.querySelector(".site-header").dataset.mode === "bar"`, "回到顶部铺开");
   await sleep(600);

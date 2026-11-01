@@ -171,19 +171,29 @@ export default function OwnerPresence({ apiUrl, name, owner, preview }: { apiUrl
   const shown = live ? slot : "name";
   const paused = hovered || focused || cardOpen || navOpen;
 
-  // 站名区被藏起来（读文章收成小胶囊、岛上在播报）时，图标跟着消失但浏览器不会补发“离开”：
-  // 关掉卡片、清掉悬停和聚焦，否则卡片会飘在左上角、回到导航条时又挂回原位，滚动也一直停着（e2e owner-presence.mjs）
+  // 卡片挂在岛上：岛一开始变形（换状态，或收拢、播报前先淡出内容），卡片就跟着在原地淡出（0.09 秒，和岛内容淡出一样快）。
+  // 不能等图标被藏起来才关：那时浏览器不补发“离开”，淡出途中 Base UI 还按藏起来的图标（算在左上角）重新定位，卡片会一路飞走。
+  // 万一图标先被藏起来，卡片立刻隐藏（anchorHidden），并清掉悬停、聚焦，免得滚动一直停着（e2e owner-presence.mjs 逐帧检查）
+  const [anchorHidden, setAnchorHidden] = useState(false);
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
-    const observer = new ResizeObserver(() => {
-      if (element.checkVisibility()) return;
+    const header = element.closest(".site-header");
+    const mutations = new MutationObserver(() => setCardOpen(false));
+    if (header) mutations.observe(header, { attributes: true, attributeFilter: ["data-mode", "data-fading"] });
+    const sizes = new ResizeObserver(() => {
+      const visible = element.checkVisibility();
+      setAnchorHidden(!visible);
+      if (visible) return;
       setCardOpen(false);
       setHovered(false);
       setFocused(false);
     });
-    observer.observe(element);
-    return () => observer.disconnect();
+    sizes.observe(element);
+    return () => {
+      mutations.disconnect();
+      sizes.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -227,7 +237,7 @@ export default function OwnerPresence({ apiUrl, name, owner, preview }: { apiUrl
               </Popover.Trigger>
               <Popover.Portal>
                 <Popover.Positioner className="presence-card-positioner" side="bottom" align="start" sideOffset={14}>
-                  <Popover.Popup className="presence-card">
+                  <Popover.Popup className="presence-card" data-anchor-hidden={anchorHidden ? "" : undefined}>
                     <PresenceCard owner={owner} app={app} media={media} />
                   </Popover.Popup>
                 </Popover.Positioner>

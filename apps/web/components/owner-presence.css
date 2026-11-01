@@ -165,11 +165,22 @@
     filter 240ms var(--ease-out);
 }
 
-.presence-card[data-starting-style],
-.presence-card[data-ending-style] {
+.presence-card[data-starting-style] {
   opacity: 0;
   transform: translateY(-6px) scale(0.97);
   filter: blur(4px);
+}
+
+/* 收起：只在原地变淡，0.09 秒，和岛上内容淡出一样快，不位移（e2e owner-presence.mjs） */
+.presence-card[data-ending-style] {
+  opacity: 0;
+  transition: opacity 90ms ease-in;
+}
+
+/* 挂靠的图标已经被藏起来（岛收拢了）：立刻隐藏，不让它跟着重新定位飞走 */
+.presence-card[data-anchor-hidden] {
+  visibility: hidden;
+  transition: none;
 }
 
 .presence-note {
