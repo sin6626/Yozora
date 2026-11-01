@@ -13,6 +13,7 @@ import {
   type OwnerPresence as Presence,
   type PresenceApp,
 } from "../lib/presence";
+import { appIconSrc } from "../lib/app-icons";
 import Link, { useT } from "./locale-provider";
 import { useSocket } from "./notifications";
 import "./owner-presence.css";
@@ -79,12 +80,16 @@ function useNow(intervalMs: number) {
   return now;
 }
 
+// App 图标：认得的 App 用清晰的矢量图标（lib/app-icons.ts），否则用 Companion 传到图床的 32×32 小图（按原大小显示，不放大），
+// 都没有时用 App 名的首字（写在 CSS 里，不进站名的文字）
 function AppIcon({ app, className }: { app: PresenceApp; className: string }) {
-  // eslint-disable-next-line @next/next/no-img-element -- App 图标由 Companion 传到图床，任意地址
-  if (app.icon) return <img className={className} src={app.icon} alt="" />;
-  // 没有图标时用 App 名的首字（写在 CSS 里，不进站名的文字）
+  const vector = appIconSrc(app.name);
+  // eslint-disable-next-line @next/next/no-img-element -- 图标是本站的 SVG 或图床上的任意地址
+  if (vector) return <img className={className} src={vector} alt="" data-kind="vector" />;
+  // eslint-disable-next-line @next/next/no-img-element -- 同上
+  if (app.icon) return <img className={className} src={app.icon} alt="" data-kind="bitmap" />;
   const letter = JSON.stringify(Array.from(app.name)[0].toUpperCase());
-  return <span className={`${className} presence-monogram`} style={{ "--letter": letter } as CSSProperties} />;
+  return <span className={className} data-kind="letter" style={{ "--letter": letter } as CSSProperties} />;
 }
 
 // 四根音频条：在放歌时上下跳，没放歌时缩成几颗安静的点
@@ -99,57 +104,65 @@ function Bars({ playing }: { playing: boolean }) {
   );
 }
 
+// 唱机：唱片在转（标签上印着一弯月亮和一颗星，转起来看得出来），唱臂搭在唱片上；没放歌时唱片停住、唱臂抬起
+function Turntable({ playing }: { playing: boolean }) {
+  return (
+    <span className="turntable" data-playing={playing ? "" : undefined} aria-hidden="true">
+      <span className="turntable-record">
+        <span className="turntable-label" />
+      </span>
+      <span className="turntable-sheen" />
+      <span className="turntable-arm" />
+    </span>
+  );
+}
+
+// 悬停卡片：两块并排的小卡，左边在用的 App，右边在听的歌；没有在用的 App 时只剩右边
 function PresenceCard({ app, media }: Presence) {
   const t = useT().header.presence;
   const now = useNow(1000);
   const position = media ? mediaPosition(media, now) : undefined;
   const progress = media?.duration && position !== undefined ? position / media.duration : undefined;
+  const player = media?.player && (t.players[media.player] ?? media.player);
+  const playerIcon = player && appIconSrc(media.player ?? "");
   return (
-    <div className="presence-card-body" data-columns={app ? 2 : 1}>
+    <div className="presence-card-body" data-tiles={app ? 2 : 1}>
       {app && (
-        <section className="presence-card-column">
-          <p className="presence-card-eyebrow">
-            <span className="presence-card-live" aria-hidden="true" />
+        <section className="presence-tile">
+          {/* 图标的颜色晕开当背景，像屏幕的光 */}
+          {(appIconSrc(app.name) || app.icon) && (
+            // eslint-disable-next-line @next/next/no-img-element -- 同上
+            <img className="presence-tile-glow" src={appIconSrc(app.name) ?? app.icon} alt="" aria-hidden="true" />
+          )}
+          <p className="presence-tile-eyebrow">
+            <span className="presence-live" aria-hidden="true" />
             {t.usingLabel}
           </p>
-          <div className="presence-card-main">
-            <AppIcon app={app} className="presence-card-icon" />
-            <div className="presence-card-text">
-              <strong>{app.name}</strong>
-              {app.since && <span>{t.forTime(Math.floor((now - app.since) / 60_000))}</span>}
-            </div>
-          </div>
+          <AppIcon app={app} className="presence-app-icon" />
+          <strong className="presence-tile-title">{app.name}</strong>
+          {app.since && <span className="presence-tile-meta">{t.forTime(Math.floor((now - app.since) / 60_000))}</span>}
         </section>
       )}
-      {app && <span className="presence-card-divider" aria-hidden="true" />}
-      <section className="presence-card-column">
-        <p className="presence-card-eyebrow">{t.listeningLabel}</p>
-        {media ? (
-          <>
-            <div className="presence-card-main">
-              <span className="presence-vinyl" aria-hidden="true" />
-              <div className="presence-card-text">
-                <strong className="presence-card-title">{media.title}</strong>
-                {(media.artist || media.player) && <span>{[media.artist, media.player && t.on(media.player)].filter(Boolean).join(" · ")}</span>}
-              </div>
-            </div>
-            {progress !== undefined && position !== undefined && media.duration && (
-              <div className="presence-progress" style={{ "--progress": progress } as CSSProperties}>
-                <span className="presence-progress-track" aria-hidden="true">
-                  <span className="presence-progress-fill" />
-                </span>
-                <span className="presence-progress-time">
-                  <span>{formatClock(position)}</span>
-                  <span>{formatClock(media.duration)}</span>
-                </span>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="presence-card-main presence-card-quiet">
-            <Bars playing={false} />
-            <span>{t.quiet}</span>
-          </div>
+      <section className="presence-tile" data-idle={media ? undefined : ""}>
+        <p className="presence-tile-eyebrow">{t.listeningLabel}</p>
+        {player &&
+          (playerIcon ? (
+            // eslint-disable-next-line @next/next/no-img-element -- 本站的 SVG 图标
+            <img className="presence-tile-player" src={playerIcon} alt={t.on(player)} title={t.on(player)} />
+          ) : (
+            <span className="presence-tile-player presence-tile-player-text">{player}</span>
+          ))}
+        <Turntable playing={Boolean(media)} />
+        <strong className="presence-tile-title">{media ? media.title : t.quiet}</strong>
+        <span className="presence-tile-meta">{media ? (media.artist ?? "") : t.idle}</span>
+        {media && progress !== undefined && position !== undefined && media.duration && (
+          <span className="presence-progress" style={{ "--progress": progress } as CSSProperties}>
+            <span className="presence-progress-time">{formatClock(position)}</span>
+            <span className="presence-progress-track" aria-hidden="true">
+              <span className="presence-progress-fill" />
+            </span>
+            <span className="presence-progress-time">{formatClock(media.duration)}</span>
+          </span>
         )}
       </section>
     </div>

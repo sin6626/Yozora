@@ -34,6 +34,8 @@ const en: Messages = {
       forTime: (minutes: number) => (minutes < 1 ? "Just opened" : minutes < 60 ? `For ${minutes} min` : `For ${Math.floor(minutes / 60)} h${minutes % 60 ? ` ${minutes % 60} min` : ""}`),
       on: (player: string) => `on ${player}`,
       quiet: "All quiet for now",
+      idle: "Nothing playing",
+      players: { NetEaseMusic: "NetEase Cloud Music", QQMusic: "QQ Music", Music: "Apple Music", Spotify: "Spotify" } as Record<string, string>,
     },
   },
   nav: {

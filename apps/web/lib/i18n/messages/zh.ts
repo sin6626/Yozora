@@ -36,6 +36,9 @@ const zh = {
       forTime: (minutes: number) => (minutes < 1 ? "刚刚打开" : minutes < 60 ? `已经 ${minutes} 分钟` : `已经 ${Math.floor(minutes / 60)} 小时${minutes % 60 ? ` ${minutes % 60} 分钟` : ""}`),
       on: (player: string) => `来自 ${player}`,
       quiet: "此刻很安静",
+      idle: "没有在放歌",
+      // Companion 报上来的播放器进程名 → 显示名
+      players: { NetEaseMusic: "网易云音乐", QQMusic: "QQ 音乐", Music: "Apple Music", Spotify: "Spotify" } as Record<string, string>,
     },
   },
   nav: {

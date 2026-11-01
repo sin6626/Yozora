@@ -121,4 +121,20 @@ assert.equal(mediaPosition(media, t0 + 999_000), 261, '不超过时长')
 assert.equal(mediaPosition({ title: 'x' }, t0), undefined, '没有进度时不推算')
 assert.deepEqual([formatClock(7), formatClock(225.9), formatClock(3723)], ['0:07', '3:45', '1:02:03'])
 
+// 常见 App 的矢量图标对照表（apps/web/lib/app-icons.ts）：图标都在已装的图标集里，App 名不重复，查名字不分大小写
+const { appIcons, appIconSrc } = load('../apps/web/lib/app-icons.ts')
+const iconSets = Object.fromEntries(['logos', 'simple-icons', 'mingcute', 'skill-icons'].map((set) => [set, require(`@iconify-json/${set}/icons.json`)]))
+const seen = new Set()
+for (const [key, { icon, names }] of Object.entries(appIcons)) {
+  const [prefix, name] = icon.split(':')
+  assert.ok(iconSets[prefix]?.icons[name] || iconSets[prefix]?.aliases?.[name], `${key} 的图标 ${icon} 应当在已装的图标集里`)
+  for (const n of names) {
+    assert.ok(!seen.has(n.toLowerCase()), `App 名 ${n} 重复`)
+    seen.add(n.toLowerCase())
+  }
+}
+assert.equal(appIconSrc(' google chrome '), '/api/app-icon/chrome?v=1', '查名字不分大小写、去掉首尾空格')
+assert.equal(appIconSrc('微信'), '/api/app-icon/wechat?v=1', '中文名也认')
+assert.equal(appIconSrc('UU远程'), undefined, '认不得的 App 没有矢量图标')
+
 console.log('PASS 站长“正在用 / 在听”：云函数的密钥、清洗、开始时间、进度校准、只在变化时广播、清空，前台解析与进度推算')

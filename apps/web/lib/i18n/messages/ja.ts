@@ -34,6 +34,8 @@ const ja: Messages = {
       forTime: (minutes: number) => (minutes < 1 ? "開いたばかり" : minutes < 60 ? `${minutes} 分前から` : `${Math.floor(minutes / 60)} 時間${minutes % 60 ? ` ${minutes % 60} 分` : ""}前から`),
       on: (player: string) => `${player} で`,
       quiet: "いまは静か",
+      idle: "再生していません",
+      players: { NetEaseMusic: "NetEase Cloud Music", QQMusic: "QQ Music", Music: "Apple Music", Spotify: "Spotify" } as Record<string, string>,
     },
   },
   nav: {

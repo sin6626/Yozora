@@ -14,10 +14,11 @@ export default function BrandTickerPreview({ avatar }: { avatar: string }) {
   const samples = [
     {
       id: "both",
-      note: "在用 App（有图标）+ 在听歌",
-      preview: { app: { name: "Microsoft Edge", icon: avatar, since: now - 23 * 60_000 }, media: { title: "小孩", artist: "罗燕涛", player: "网易云音乐", duration: 245, elapsed: 72, at: now } },
+      note: "在用认得的 App（清晰的矢量图标）+ 在听歌",
+      preview: { app: { name: "Google Chrome", icon: avatar, since: now - 23 * 60_000 }, media: { title: "晚安", artist: "颜人中", player: "NetEaseMusic", duration: 289, elapsed: 72, at: now } },
     },
-    { id: "app", note: "只在用 App，没有图标时显示首字，没放歌时是安静的点", preview: { app: { name: "ghostty", since: now - 95 * 60_000 }, media: null } },
+    { id: "app", note: "只在用认不得的 App（Companion 的小图标），没放歌时是安静的点", preview: { app: { name: "UU远程", icon: avatar, since: now - 95 * 60_000 }, media: null } },
+    { id: "letter", note: "认不得又没有图标时显示首字", preview: { app: { name: "ghostty-nightly", since: now }, media: null } },
     { id: "media", note: "只在听歌", preview: { app: null, media: { title: "下一个天亮", artist: "郭静" } } },
   ];
   return (

@@ -43,3 +43,20 @@ export default function IconifyIcon({ icon, size = 18, className }: { icon: Icon
 export function SocialIcon({ icon, label, size = 18 }: { icon: string; label: string; size?: number }) {
   return isIconName(icon) ? <IconifyIcon icon={icon} size={size} /> : <>{label.slice(0, 1)}</>;
 }
+
+// App 图标（lib/app-icons.ts，/api/app-icon/<key> 用）：标志放在 macOS 风格的圆角白底上，做成一个完整的 SVG 文件。
+// 白底让黑色标志（GitHub、Cursor）在深色卡片上也看得见；单色标志（simple-icons）用 color 上品牌色。
+export function appIconSvg(icon: string, color?: string) {
+  const [prefix, name] = icon.split(":");
+  const data = sets[prefix] && getIconData(sets[prefix], name);
+  if (!data) return null;
+  const { attributes, body } = iconToSVG(data);
+  return [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">',
+    '<defs><linearGradient id="tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e8eaf0"/></linearGradient></defs>',
+    '<rect width="100" height="100" rx="23" fill="url(#tile)"/>',
+    '<rect x="0.5" y="0.5" width="99" height="99" rx="22.5" fill="none" stroke="#000" stroke-opacity="0.08"/>',
+    `<svg x="20" y="20" width="60" height="60" viewBox="${attributes.viewBox}"${color ? ` color="${color}"` : ""}>${body}</svg>`,
+    "</svg>",
+  ].join("");
+}

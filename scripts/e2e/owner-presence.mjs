@@ -23,7 +23,7 @@ const ticker = (selector) => browser.evaluate(`(() => {
   const root = document.querySelector(${JSON.stringify(selector)});
   const el = root.querySelector(".brand-ticker");
   const bar = el.querySelector(".presence-bars i");
-  const monogram = el.querySelector(".brand-ticker-icon.presence-monogram");
+  const monogram = el.querySelector('.brand-ticker-icon[data-kind="letter"]');
   return {
     slot: el.dataset.slot,
     width: Math.round(el.getBoundingClientRect().width),
@@ -46,12 +46,23 @@ const leave = async () => {
   await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: 795 });
   await sleep(600);
 };
-const card = () => browser.evaluate(`(() => {
+const card = () => browser.evaluate(`(async () => {
   const el = document.querySelector(".presence-card");
   if (!el || !el.checkVisibility()) return null;
-  const columns = [...el.querySelectorAll(".presence-card-column")].map((c) => c.innerText.replace(/\\s+/g, " ").trim());
+  const tiles = [...el.querySelectorAll(".presence-tile")].map((c) => c.innerText.replace(/\\s+/g, " ").trim());
   const fill = el.querySelector(".presence-progress-fill");
-  return { columns, divider: Boolean(el.querySelector(".presence-card-divider")), progress: fill ? fill.getBoundingClientRect().width : null, vinyl: Boolean(el.querySelector(".presence-vinyl")) };
+  const icon = el.querySelector(".presence-app-icon");
+  const record = el.querySelector(".turntable-record");
+  const first = getComputedStyle(record).rotate;
+  await new Promise((r) => setTimeout(r, 400));
+  return {
+    tiles,
+    progress: fill ? fill.getBoundingClientRect().width : null,
+    icon: icon && { kind: icon.dataset.kind, src: icon.getAttribute("src"), loaded: icon.tagName === "IMG" ? icon.naturalWidth > 0 : null },
+    player: el.querySelector(".presence-tile-player")?.getAttribute("title") ?? null,
+    spinning: getComputedStyle(record).animationPlayState === "running" && getComputedStyle(record).rotate !== first,
+    arm: getComputedStyle(el.querySelector(".turntable-arm")).rotate,
+  };
 })()`);
 
 let fake = {
@@ -65,6 +76,11 @@ try {
   await browser.goto(`${base}/debug`);
   await browser.evaluate(`window.scrollTo(0, document.querySelector("#debug-brand-ticker").getBoundingClientRect().top + scrollY - 120)`);
   const ids = ["#debug-brand-ticker-both", "#debug-brand-ticker-app", "#debug-brand-ticker-media"];
+  for (const [path, status] of [["/api/app-icon/chrome", 200], ["/api/app-icon/nope", 404]]) {
+    const response = await fetch(`${base}${path}`);
+    assert.equal(response.status, status, `${path} 应当是 ${status}`);
+    if (status === 200) assert.match(response.headers.get("content-type"), /image\/svg\+xml/);
+  }
   const before = await Promise.all(ids.map(ticker));
   assert.deepEqual(before.map((t) => t.slot), ["name", "name", "name"], "一开始显示站名");
   assert.ok(before.every((t) => t.text === "Sin’s Yozora"), "站名元素的文字只有站名（首字写在 CSS 里）");
@@ -75,19 +91,23 @@ try {
   assert.deepEqual([both.width, appOnly.width, mediaOnly.width], before.map((t) => t.width), "滚动前后宽度不变（导航不会挪）");
   assert.ok(both.icon && both.playing && both.barAnimation === "presence-bar", "有图标时显示图标，放歌时音频条在跳");
   assert.equal(both.liveText, "", "不写 App 名和歌名");
-  assert.ok(!appOnly.icon && appOnly.letter === '"G"', "没有图标时是首字方块");
+  assert.ok(appOnly.icon, "认不得的 App 用 Companion 的小图标");
   assert.ok(appOnly.playing === false && appOnly.barAnimation === "presence-rest", "没放歌时是几颗安静的点（只亮暗起伏）");
   assert.ok(!mediaOnly.icon && mediaOnly.letter === null && mediaOnly.playing, "只在听歌时只有音频条");
+  assert.equal((await ticker("#debug-brand-ticker-letter")).letter, '"G"', "认不得又没有图标时是首字方块");
 
   await hover(`${ids[0]} .brand-ticker-trigger`);
   const hovered = await ticker(ids[0]);
   assert.equal(hovered.avatarShadow, both.avatarShadow, "悬停右边的图标不会点亮左边的头像");
   const full = await card();
   assert.ok(full, "悬停弹出卡片");
-  assert.ok(full.divider && full.columns.length === 2, "左右两栏，中间一道竖线");
-  assert.match(full.columns[0], /Microsoft Edge 已经 23 分钟/, "左边：在用的 App 和用了多久");
-  assert.match(full.columns[1], /小孩 罗燕涛 · 来自 网易云音乐 1:1\d 4:05/, "右边：歌名、歌手、播放器、播放进度");
-  assert.ok(full.vinyl && full.progress > 0, "右边有唱片和进度条");
+  assert.equal(full.tiles.length, 2, "左右两块小卡");
+  assert.match(full.tiles[0], /在用 Google Chrome 已经 23 分钟/, "左边：在用的 App 和用了多久");
+  assert.ok(full.icon.kind === "vector" && full.icon.src.startsWith("/api/app-icon/chrome") && full.icon.loaded, "认得的 App 用清晰的矢量图标");
+  assert.match(full.tiles[1], /在听 晚安 颜人中 1:1\d 4:49/, "右边：歌名、歌手、播放进度");
+  assert.equal(full.player, "来自 网易云音乐", "右上角是播放器图标，鼠标停上去看名字");
+  assert.ok(full.spinning && full.progress > 0, "唱片在转（角度在变），进度条有长度");
+  assert.equal(full.arm, "28deg", "唱臂搭在唱片上");
   await sleep(2500);
   assert.equal(await browser.evaluate(slotOf(ids[0])), "live", "卡片开着时不滚");
   await leave();
@@ -95,7 +115,9 @@ try {
 
   await hover(`${ids[1]} .brand-ticker-trigger`);
   const quiet = await card();
-  assert.match(quiet.columns[1], /此刻很安静/, "没放歌时右边是“此刻很安静”");
+  assert.match(quiet.tiles[1], /此刻很安静 没有在放歌/, "没放歌时右边是“此刻很安静”");
+  assert.ok(!quiet.spinning && quiet.arm === "4deg", "没放歌时唱片停住、唱臂抬起");
+  assert.ok(quiet.icon.kind === "bitmap" && quiet.icon.loaded, "认不得的 App 用 Companion 的小图标（按原大小）");
   await leave();
 
   const nameAt = await waitFor(`${slotOf(ids[2])} === "name"`, "约 14 秒后滚回站名", 17000);
@@ -146,7 +168,8 @@ try {
   assert.deepEqual([rolled.width, rolled.navX], [top.width, top.navX], "页头这一格宽度不变、导航没有挪");
   await hover(".site-header .brand-ticker-trigger");
   const headerCard = await card();
-  assert.ok(headerCard && /E2E 测试 App 已经 5 分钟/.test(headerCard.columns[0]) && /测试歌/.test(headerCard.columns[1]), "页头悬停弹出卡片");
+  assert.ok(headerCard && /E2E 测试 App 已经 5 分钟/.test(headerCard.tiles[0]) && /测试歌/.test(headerCard.tiles[1]), "页头悬停弹出卡片");
+  assert.equal(headerCard.icon.kind, "letter", "认不得又没有图标时显示首字");
   await leave();
 
   const article = await browser.evaluate(`[...document.querySelectorAll('a[href*="/posts/"]')].map((a) => a.getAttribute("href")).find((href) => href.split("/").length >= 4)`);
