@@ -4,10 +4,10 @@
 //   清洗后存进 Redis，有变化才广播给访客（fn#ps-update / fn#media-update）；
 // - GET：前台夜航岛读当前状态；
 // - DELETE：带密钥手动清空（也给测试收尾用）。
-// App 记下开始用的时间（since，换 App 才重新计），歌记下时长、进度和采样时间（at），前台悬停卡片据此显示“用了多久”和播放进度。
+// 歌记下时长、进度和采样时间（at），前台悬停卡片据此画播放进度。不记 App 用了多久（站长明确不要被计时）。
 // Companion 只在音乐正在播放时才发 media，所以有 media 就是在放，进度可以按 at 往前推算。
 
-type Process = { name: string; iconUrl?: string; since: number }
+type Process = { name: string; iconUrl?: string }
 type Media = { title: string; artist?: string; player?: string; duration?: number; elapsed?: number; at?: number }
 type Context = {
   req: { method: string; body?: unknown }
@@ -41,13 +41,12 @@ function seconds(value: unknown, max: number) {
 
 // 这些数据会广播给每个访客：只留 App 名和 https 图标。窗口标题（description）、iconBase64 一律不存不播。
 // 旧版 ProcessReporterMac 把 process 发成字符串，也认。
-function toProcess(value: unknown, before: Process | null, now: number): Process | null {
+function toProcess(value: unknown): Process | null {
   const raw = (typeof value === 'string' ? { name: value } : value ?? {}) as Record<string, unknown>
   const name = text(raw.name, 64)
   if (!name) return null
-  const since = before?.name === name && before.since ? before.since : now
   const iconUrl = text(raw.iconUrl, 512)
-  return iconUrl && /^https:\/\//i.test(iconUrl) ? { name, iconUrl, since } : { name, since }
+  return iconUrl && /^https:\/\//i.test(iconUrl) ? { name, iconUrl } : { name }
 }
 
 // Companion 没在放歌时也会发 media，只是没有标题
@@ -91,7 +90,7 @@ async function save(ctx: Context, key: string, value: Process | Media | null) {
 async function update(ctx: Context, body: Record<string, unknown> | null) {
   const now = Date.now()
   const before = await read(ctx)
-  const process = body ? toProcess(body.process, before.processInfo, now) : null
+  const process = body ? toProcess(body.process) : null
   const media = body ? toMedia(body.media, now) : null
   if (!sameApp(before.processInfo, process)) {
     ctx.broadcast?.('ps-update', { processInfo: process, process: process?.name ?? null, ts: now })

@@ -2,7 +2,7 @@
 // 页面打开时 GET 一次当前状态，之后听 WebSocket 广播的 fn#ps-update / fn#media-update。
 // 数据从网络来，这里只认需要的字段；图标只放行 https。时间都是毫秒时间戳（服务器时间），时长和进度是秒。
 
-export type PresenceApp = { name: string; icon?: string; since?: number };
+export type PresenceApp = { name: string; icon?: string };
 export type PresenceMedia = { title: string; artist?: string; player?: string; duration?: number; elapsed?: number; at?: number };
 export type OwnerPresence = { app: PresenceApp | null; media: PresenceMedia | null };
 
@@ -18,8 +18,6 @@ function toApp(value: unknown): PresenceApp | null {
   const app: PresenceApp = { name };
   const icon = text(raw.iconUrl);
   if (icon && /^https:\/\//i.test(icon)) app.icon = icon;
-  const since = number(raw.since);
-  if (since) app.since = since;
   return app;
 }
 

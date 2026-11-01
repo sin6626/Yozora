@@ -65,7 +65,7 @@
 
 /* 没有图标时：写着 App 名首字的小方块；Companion 的 32×32 小图标不放大 */
 .brand-ticker-icon[data-kind="letter"],
-.presence-app-icon[data-kind="letter"] {
+.presence-note-icon[data-kind="letter"] {
   display: grid;
   place-items: center;
   border-radius: 0.3125rem;
@@ -74,7 +74,7 @@
   font-weight: 700;
 }
 
-:is(.brand-ticker-icon, .presence-app-icon)[data-kind="letter"]::before {
+:is(.brand-ticker-icon, .presence-note-icon)[data-kind="letter"]::before {
   content: var(--letter);
 }
 
@@ -137,265 +137,115 @@
   }
 }
 
-/* ---------- 悬停卡片：和夜航岛的胶囊一样，浅色深色主题下都是深色，像从岛上垂下来的一扇夜窗 ---------- */
+/* ---------- 悬停卡片：一张字条。和夜航岛的胶囊一样，浅色深色主题下都是深色；
+   用首屏的霞鹜文楷写一句话，放歌时下面一行是很小的、在转的唱片 + 进度线 + 时间 ---------- */
 .presence-card-positioner {
   z-index: var(--z-popup);
 }
 
 .presence-card {
-  --card-fg: var(--island-fg);
   --card-muted: var(--island-muted);
   --card-accent: var(--island-primary);
   --moonlight: var(--island-fg);
-  padding: 0.5rem;
+  padding: 0.875rem 1.125rem 0.8125rem;
   border: 1px solid var(--island-border);
-  border-radius: 1.5rem;
+  border-radius: 1.125rem;
   background: var(--island-bg);
   backdrop-filter: blur(18px) saturate(150%);
-  color: var(--card-fg);
+  color: var(--island-fg);
   box-shadow:
-    0 22px 48px -18px color-mix(in srgb, var(--island-bg) 95%, transparent),
-    0 0 34px -14px color-mix(in srgb, var(--island-primary) 50%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--island-fg) 9%, transparent);
+    0 18px 40px -16px color-mix(in srgb, var(--island-bg) 95%, transparent),
+    0 0 30px -14px color-mix(in srgb, var(--island-primary) 45%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--island-fg) 8%, transparent);
   outline: 0;
   transform-origin: var(--transform-origin);
   transition:
     opacity 180ms var(--ease-out),
-    transform 260ms var(--ease-out),
-    filter 260ms var(--ease-out);
+    transform 240ms var(--ease-out),
+    filter 240ms var(--ease-out);
 }
 
 .presence-card[data-starting-style],
 .presence-card[data-ending-style] {
   opacity: 0;
-  transform: translateY(-8px) scale(0.96);
+  transform: translateY(-6px) scale(0.97);
   filter: blur(4px);
 }
 
-/* 两块并排的小卡（左边 App，右边音乐），一样高；没有 App 时只剩音乐那块 */
-.presence-card-body {
+.presence-note {
   display: grid;
-  grid-auto-columns: 9.75rem;
-  grid-auto-flow: column;
+  gap: 0.625rem;
+  width: max-content;
+  max-width: min(18.5rem, calc(100vw - 3rem));
+}
+
+.presence-note-text {
+  margin: 0;
+  color: color-mix(in srgb, var(--island-fg) 78%, transparent);
+  font-family: "LXGW WenKai", "PingFang SC", var(--font-cjk-sans), "Microsoft YaHei", sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 300;
+  line-height: 1.8;
+  /* 中日文只在标点和空格处换行（不把“此刻很 / 安静”从中间断开），实在太长才强制断 */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.presence-note-text strong {
+  color: var(--island-fg);
+  font-weight: 400;
+}
+
+/* 句子里的 App：小图标 + 名字，不在中间断行 */
+.presence-note-app {
+  white-space: nowrap;
+}
+
+.presence-note-icon {
+  display: inline-block;
+  width: 1.05em;
+  height: 1.05em;
+  margin: 0 0.25em 0 0.1em;
+  vertical-align: -0.16em;
+  border-radius: 0.25em;
+}
+
+.presence-note-icon[data-kind="letter"] {
+  display: inline-grid;
+  font-family: var(--font-sans);
+  font-size: 0.7em;
+  width: 1.5em;
+  height: 1.5em;
+  vertical-align: 0.05em;
+}
+
+/* 唱片 | 进度线 | 时间 */
+.presence-note-track {
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
 }
 
-.presence-tile {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  min-width: 0;
-  min-height: 11rem;
-  padding: 1.75rem 0.75rem 0.875rem;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--island-fg) 7%, transparent);
-  border-radius: 1.125rem;
-  background: color-mix(in srgb, var(--island-fg) 4%, transparent);
-  text-align: center;
-}
-
-/* App 图标的颜色晕开当背景，像夜里屏幕映出来的光 */
-.presence-tile-glow {
-  position: absolute;
-  top: 0.75rem;
-  left: 50%;
-  width: 6rem;
-  height: 6rem;
-  translate: -50% 0;
-  opacity: 0.32;
-  filter: blur(26px) saturate(1.6);
-  pointer-events: none;
-}
-
-.presence-tile-eyebrow {
-  position: absolute;
-  top: 0.625rem;
-  left: 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.3125rem;
-  margin: 0;
-  color: var(--card-muted);
-  font-size: 0.6875rem;
-  letter-spacing: 0.08em;
-}
-
-/* “在用”前的一颗小绿灯：此刻在线 */
-.presence-live {
-  width: 0.375rem;
-  height: 0.375rem;
-  border-radius: var(--radius-full);
-  background: var(--island-tone-done);
-  box-shadow: 0 0 6px var(--island-tone-done);
-  animation: presence-rest 2.4s ease-in-out infinite;
-}
-
-/* 右上角：放歌的播放器（认得的用图标，鼠标停上去看名字） */
-.presence-tile-player {
-  position: absolute;
-  top: 0.5625rem;
-  right: 0.625rem;
-  width: 1rem;
-  height: 1rem;
-}
-
-.presence-tile-player-text {
-  width: auto;
-  max-width: 5rem;
-  overflow: hidden;
-  color: var(--card-muted);
-  font-size: 0.625rem;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.presence-app-icon {
-  position: relative;
+/* 很小的唱片：纹路 + 强调色标签，标签上偏一边有个小白点，转起来看得出来 */
+.presence-disc {
   flex: none;
-  width: 3.5rem;
-  height: 3.5rem;
-  margin-bottom: 0.5rem;
-  filter: drop-shadow(0 8px 14px color-mix(in srgb, var(--island-bg) 75%, transparent));
-}
-
-/* Companion 的小图标只有 32×32，按原大小放在同样大的玻璃底上，不拉大 */
-.presence-app-icon[data-kind="bitmap"] {
-  padding: 0.75rem;
-  border-radius: 0.875rem;
-  background: color-mix(in srgb, var(--island-fg) 10%, transparent);
-}
-
-.presence-app-icon[data-kind="letter"] {
-  border-radius: 0.875rem;
-  background: color-mix(in srgb, var(--island-fg) 12%, transparent);
-  font-size: var(--text-xl);
-}
-
-.presence-tile-title,
-.presence-tile-meta {
-  position: relative;
-  max-width: 100%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.presence-tile-title {
-  font-size: var(--text-sm);
-  font-weight: 600;
-}
-
-.presence-tile-meta {
-  min-height: 1.2em;
-  color: var(--card-muted);
-  font-size: var(--text-xs);
-}
-
-/* ---------- 唱机：唱片在转，标签上印着一弯月亮和一颗星（纯同心圆转起来看不出来）；表面的反光不跟着转；唱臂搭在唱片上 ---------- */
-.turntable {
-  position: relative;
-  flex: none;
-  width: 3.5rem;
-  height: 3.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.turntable-record {
-  position: absolute;
-  inset: 0;
+  width: 1.125rem;
+  height: 1.125rem;
   border-radius: var(--radius-full);
   background:
-    conic-gradient(from 0deg, transparent 0 20%, color-mix(in srgb, var(--island-fg) 6%, transparent) 25%, transparent 30% 70%, color-mix(in srgb, var(--island-fg) 4%, transparent) 75%, transparent 80%),
-    repeating-radial-gradient(circle, var(--island-bg) 0 1.25px, color-mix(in srgb, var(--island-fg) 10%, var(--island-bg)) 1.25px 2.25px);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--island-fg) 14%, transparent),
-    0 10px 20px -10px color-mix(in srgb, var(--island-bg) 95%, transparent);
+    radial-gradient(circle, var(--island-bg) 0 8%, transparent 9%),
+    radial-gradient(circle at 63% 37%, var(--island-fg) 0 6%, transparent 7%),
+    radial-gradient(circle, var(--card-accent) 0 30%, transparent 31%),
+    repeating-radial-gradient(circle, var(--island-bg) 0 0.75px, color-mix(in srgb, var(--island-fg) 16%, var(--island-bg)) 0.75px 1.5px);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--island-fg) 16%, transparent);
   animation: presence-spin 3s linear infinite;
-  animation-play-state: paused;
 }
 
-.turntable[data-playing] .turntable-record {
-  animation-play-state: running;
-}
-
-/* 标签：强调色圆片，中间是轴孔，偏一边印一弯月亮，另一边一颗小星 */
-.turntable-label {
-  position: absolute;
-  inset: 31%;
-  border-radius: var(--radius-full);
-  background:
-    radial-gradient(circle at 50% 50%, var(--island-bg) 0 10%, transparent 11%),
-    radial-gradient(circle at 39% 30%, var(--card-accent) 0 15%, transparent 16%),
-    radial-gradient(circle at 31% 36%, var(--island-fg) 0 17%, transparent 18%),
-    radial-gradient(circle at 72% 70%, var(--island-fg) 0 5%, transparent 6%),
-    var(--card-accent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--island-bg) 30%, transparent);
-}
-
-/* 反光：两道斜的亮带，固定不动 */
-.turntable-sheen {
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-full);
-  background: conic-gradient(
-    from 30deg,
-    transparent 0 6%,
-    color-mix(in srgb, var(--island-fg) 18%, transparent) 10%,
-    transparent 15% 56%,
-    color-mix(in srgb, var(--island-fg) 12%, transparent) 60%,
-    transparent 65%
-  );
-  pointer-events: none;
-}
-
-/* 唱臂：从右上角的轴伸到唱片上；没放歌时抬起移开 */
-.turntable-arm {
-  position: absolute;
-  top: -0.125rem;
-  right: -0.625rem;
-  width: 2px;
-  height: 2.375rem;
-  border-radius: 1px;
-  background: linear-gradient(var(--island-fg), color-mix(in srgb, var(--island-fg) 60%, transparent));
-  transform-origin: 50% 0.25rem;
-  rotate: 28deg;
-  transition: rotate 700ms var(--ease-out);
-}
-
-.turntable-arm::before {
-  content: "";
-  position: absolute;
-  top: -0.125rem;
-  left: 50%;
-  width: 0.5rem;
-  height: 0.5rem;
-  translate: -50% 0;
-  border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--island-fg) 70%, var(--island-bg));
-  box-shadow: 0 0 0 2px var(--island-bg);
-}
-
-.turntable-arm::after {
-  content: "";
-  position: absolute;
-  bottom: -0.25rem;
-  left: 50%;
-  width: 0.3125rem;
-  height: 0.5rem;
-  translate: -50% 0;
-  border-radius: 1px;
-  background: var(--island-fg);
-}
-
-.turntable:not([data-playing]) .turntable-arm {
-  rotate: 4deg;
-}
-
-.turntable:not([data-playing]) :is(.turntable-record, .turntable-sheen) {
-  opacity: 0.55;
+.presence-disc-inline {
+  display: inline-block;
+  margin-left: 0.4em;
+  vertical-align: -0.2em;
 }
 
 @keyframes presence-spin {
@@ -404,63 +254,36 @@
   }
 }
 
-/* 播放进度：时间 | 细线（线头一颗星）| 时长 */
-.presence-progress {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  width: 100%;
-  margin-top: 0.5rem;
-}
-
-.presence-progress-time {
-  flex: none;
-  color: var(--card-muted);
-  font-size: 0.625rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.presence-progress-track {
+.presence-note-line {
   position: relative;
   flex: 1;
-  height: 3px;
-  border-radius: 2px;
+  min-width: 4rem;
+  height: 2px;
+  border-radius: 1px;
   background: color-mix(in srgb, var(--island-fg) 14%, transparent);
 }
 
-.presence-progress-fill {
+.presence-note-line > span {
   position: absolute;
   inset: 0 auto 0 0;
   width: calc(var(--progress) * 100%);
   border-radius: inherit;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--card-accent) 35%, transparent), var(--card-accent));
+  background: var(--card-accent);
 }
 
-.presence-progress-fill::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  right: -3px;
-  width: 6px;
-  height: 6px;
-  translate: 0 -50%;
-  border-radius: var(--radius-full);
-  background: var(--island-fg);
-  box-shadow: 0 0 8px var(--card-accent);
+.presence-note-time {
+  flex: none;
+  color: var(--card-muted);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .presence-bars i,
   .presence-bars[data-playing] i,
-  .presence-live,
-  .turntable-record,
+  .presence-disc,
   .site-header[data-mode="compact"] .island-brand:has(.brand-ticker[data-live]) .site-brand-avatar {
     animation: none;
-  }
-
-  .turntable-arm {
-    transition: none;
   }
 
   .presence-bars[data-playing] i:nth-child(1) { transform: scaleY(0.5); }

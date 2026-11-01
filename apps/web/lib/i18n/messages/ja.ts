@@ -29,13 +29,10 @@ const ja: Messages = {
       using: (app: string) => `${app} を使用中`,
       listening: (title: string, artist?: string) => `${artist ? `${title} – ${artist}` : title} を再生中`,
       label: "管理人がいましていること",
-      usingLabel: "使用中",
-      listeningLabel: "再生中",
-      forTime: (minutes: number) => (minutes < 1 ? "開いたばかり" : minutes < 60 ? `${minutes} 分前から` : `${Math.floor(minutes / 60)} 時間${minutes % 60 ? ` ${minutes % 60} 分` : ""}前から`),
-      on: (player: string) => `${player} で`,
-      quiet: "いまは静か",
-      idle: "再生していません",
-      players: { NetEaseMusic: "NetEase Cloud Music", QQMusic: "QQ Music", Music: "Apple Music", Spotify: "Spotify" } as Record<string, string>,
+      note: ({ app, media, artist }: { app: boolean; media: boolean; artist: boolean }) =>
+        app && media ? `{owner} は {app} を開いていて、イヤホンからは${artist ? "{artist}の" : ""}「{title}」。`
+        : app ? "{owner} は {app} を開いていて、いまは静か。"
+        : `{owner} のイヤホンからは${artist ? "{artist}の" : ""}「{title}」。`,
     },
   },
   nav: {

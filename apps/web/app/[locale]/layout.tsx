@@ -3,7 +3,7 @@ import { ViewTransition } from "react";
 import { Cormorant_Garamond, Geist_Mono, Noto_Sans_SC, Noto_Serif_SC, Nunito } from "next/font/google";
 import Notifications from "@/components/notifications";
 import { getApiUrl } from "@/lib/config";
-import { getSiteDescription, getSiteSettings, siteName } from "@/lib/blog-data";
+import { getSiteDescription, getSiteSettings, siteName, siteOwnerName } from "@/lib/blog-data";
 import { Suspense } from "react";
 import HeaderAccount from "@/components/header-account";
 import { islandIcons } from "@/components/island-icons";
@@ -95,7 +95,7 @@ async function SiteAvatar() {
 // 头像右边的站名区：站长在电脑前时滚动显示在用的 App 和音频条，悬停看卡片（owner-presence.tsx）
 async function SiteName() {
   const settings = await getSiteSettings().catch(() => null);
-  return <OwnerPresence apiUrl={getApiUrl()} name={settings?.name ?? siteName} />;
+  return <OwnerPresence apiUrl={getApiUrl()} name={settings?.name ?? siteName} owner={settings?.ownerName ?? siteOwnerName} />;
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/[locale]">) {

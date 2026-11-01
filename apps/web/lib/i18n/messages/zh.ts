@@ -24,21 +24,17 @@ const zh = {
     kinds: { post: "文章", note: "手记", page: "页面" },
     reading: (kind: string, title: string, percent: number) => `正在读${kind}：${title}，已读 ${percent}%，展开导航`,
     goSee: "去看看",
-    // 站长此刻在用的 App、在听的歌（components/owner-presence.tsx），显示在页头站名下面
+    // 站长此刻在用的 App、在听的歌（components/owner-presence.tsx）：prefix/using/listening 给读屏，label 是图标按钮的名字
     presence: {
       prefix: "站长此刻：",
       using: (app: string) => `在用 ${app}`,
       listening: (title: string, artist?: string) => `在听 ${artist ? `${title} – ${artist}` : title}`,
-      // 悬停卡片（左边在用的 App，右边在听的歌）
       label: "站长此刻在做什么",
-      usingLabel: "在用",
-      listeningLabel: "在听",
-      forTime: (minutes: number) => (minutes < 1 ? "刚刚打开" : minutes < 60 ? `已经 ${minutes} 分钟` : `已经 ${Math.floor(minutes / 60)} 小时${minutes % 60 ? ` ${minutes % 60} 分钟` : ""}`),
-      on: (player: string) => `来自 ${player}`,
-      quiet: "此刻很安静",
-      idle: "没有在放歌",
-      // Companion 报上来的播放器进程名 → 显示名
-      players: { NetEaseMusic: "网易云音乐", QQMusic: "QQ 音乐", Music: "Apple Music", Spotify: "Spotify" } as Record<string, string>,
+      // 悬停卡片的一句话：{owner}、{app}、{title}、{artist} 会换成名字（App 带图标，歌名、App 名加重）
+      note: ({ app, media, artist }: { app: boolean; media: boolean; artist: boolean }) =>
+        app && media ? `{owner} 正开着 {app}，耳机里${artist ? "是{artist}的" : "在放"}《{title}》。`
+        : app ? "{owner} 正开着 {app}，此刻很安静。"
+        : `{owner} 的耳机里${artist ? "是{artist}的" : "在放"}《{title}》。`,
     },
   },
   nav: {

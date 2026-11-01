@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
 // 检查站长“正在用 / 在听”的云函数（scripts/functions/ps-update.ts）：密钥校验、第一次调用不报错、只在变化时广播、
-// 不存窗口标题和非 https 图标、App 记开始时间（换 App 才重计）、歌记时长和进度、拖动进度时广播校准、没在放歌时清掉、DELETE 清空；
+// 不存窗口标题和非 https 图标、不记 App 用了多久、歌记时长和进度、拖动进度时广播校准、没在放歌时清掉、DELETE 清空；
 // 以及前台 apps/web/lib/presence.ts 解析 GET 与广播、推算播放进度、时长格式。用假的 ctx 和时钟直接调用，不需要启动服务。
 // 用法：node scripts/verify-presence.mjs（pnpm verify）
 const require = createRequire(new URL('../apps/web/package.json', import.meta.url))
@@ -58,9 +58,9 @@ await assert.rejects(call('PUT', { key: 'secret-key' }), { status: 405 })
 assert.deepEqual(take(), [], '被拒绝的请求不广播')
 
 assert.equal((await post(vscode, song(30))).ok, 1, '第一次写入（缓存还是空的）不报错')
-const app = { name: 'Code', iconUrl: 'https://s3.example.com/icons/code.png', since: t0 }
+const app = { name: 'Code', iconUrl: 'https://s3.example.com/icons/code.png' }
 const media = { title: '夜に駆ける', artist: 'YOASOBI', player: 'Music', duration: 261, elapsed: 30, at: t0 }
-assert.deepEqual(await get(), { processName: 'Code', processInfo: app, mediaInfo: media }, '只留 App 名、https 图标、开始时间，歌名、歌手、播放器、时长、进度；窗口标题、iconBase64 不存')
+assert.deepEqual(await get(), { processName: 'Code', processInfo: app, mediaInfo: media }, '只留 App 名、https 图标，歌名、歌手、播放器、时长、进度；窗口标题、iconBase64、开始用的时间都不存')
 assert.equal(store.get('ps').ttl, 120, 'App 两分钟没续上就过期')
 assert.deepEqual(take(), [['ps-update', app], ['media-update', media]], '第一次两样都广播，广播里同样没有窗口标题')
 
@@ -68,7 +68,6 @@ later(10)
 await post(vscode, song(40))
 assert.deepEqual(take(), [], '心跳（同一个 App、同一首歌按时往前走）不广播')
 const beat = await get()
-assert.equal(beat.processInfo.since, t0, '同一个 App 保留开始时间')
 assert.deepEqual([beat.mediaInfo.elapsed, beat.mediaInfo.at], [40, t0 + 10_000], '进度和采样时间跟着心跳更新')
 
 later(10)
@@ -77,7 +76,7 @@ assert.deepEqual(take().map(([type]) => type), ['media-update'], '进度比推�
 
 later(10)
 await post({ name: 'Safari', iconUrl: 'javascript:alert(1)' }, song(130))
-assert.deepEqual(take(), [['ps-update', { name: 'Safari', since: t0 + 30_000 }]], '换 App 只广播 App，重新计开始时间，非 https 图标丢掉')
+assert.deepEqual(take(), [['ps-update', { name: 'Safari' }]], '换 App 只广播 App，非 https 图标丢掉')
 
 await post({ name: 'Safari' }, { artist: 'YOASOBI', title: null })
 assert.deepEqual(take(), [['media-update', null]], '没在放歌（没有标题）时广播 null')
@@ -108,11 +107,11 @@ assert.deepEqual(take(), [['ps-update', null]], '清空时广播（歌本来就�
 // 前台（apps/web/lib/presence.ts）
 const { presenceFromSnapshot, applyPresenceEvent, emptyPresence, mediaPosition, formatClock } = load('../apps/web/lib/presence.ts')
 const parsed = plain(presenceFromSnapshot({ processInfo: app, mediaInfo: media }))
-assert.deepEqual(parsed, { app: { name: 'Code', icon: 'https://s3.example.com/icons/code.png', since: t0 }, media }, '前台读 GET 响应')
+assert.deepEqual(parsed, { app: { name: 'Code', icon: 'https://s3.example.com/icons/code.png' }, media }, '前台读 GET 响应')
 assert.deepEqual(plain(presenceFromSnapshot({ ok: 0, code: 11017, message: '函数不存在' })), { app: null, media: null }, '云函数没装时是空状态')
 assert.deepEqual(plain(presenceFromSnapshot(null)), { app: null, media: null })
 assert.equal(applyPresenceEvent(emptyPresence, { type: 'POST_CREATE', data: {} }), null, '别的消息不处理')
-assert.deepEqual(plain(applyPresenceEvent(parsed, { type: 'fn#ps-update', data: { processInfo: { name: 'Safari', iconUrl: 'http://x/a.png', since: 5 } } })).app, { name: 'Safari', since: 5 }, '换 App 只改 App，非 https 图标丢掉')
+assert.deepEqual(plain(applyPresenceEvent(parsed, { type: 'fn#ps-update', data: { processInfo: { name: 'Safari', iconUrl: 'http://x/a.png', since: 5 } } })).app, { name: 'Safari' }, '换 App 只改 App，非 https 图标和多余字段丢掉')
 assert.equal(plain(applyPresenceEvent(parsed, { type: 'fn#ps-update', data: { processInfo: null } })).app, null, 'App 清空')
 assert.equal(plain(applyPresenceEvent(parsed, { type: 'fn#media-update', data: null })).media, null, '歌清空')
 assert.deepEqual(plain(applyPresenceEvent(emptyPresence, { type: 'fn#media-update', data: { title: '晴る', duration: 'x' } })).media, { title: '晴る' }, '没有歌手、时长不是数字也行')
@@ -137,4 +136,4 @@ assert.equal(appIconSrc(' google chrome '), '/api/app-icon/chrome?v=1', '查名�
 assert.equal(appIconSrc('微信'), '/api/app-icon/wechat?v=1', '中文名也认')
 assert.equal(appIconSrc('UU远程'), undefined, '认不得的 App 没有矢量图标')
 
-console.log('PASS 站长“正在用 / 在听”：云函数的密钥、清洗、开始时间、进度校准、只在变化时广播、清空，前台解析与进度推算')
+console.log('PASS 站长“正在用 / 在听”：云函数的密钥、清洗（不记用了多久）、进度校准、只在变化时广播、清空，前台解析与进度推算、App 图标对照表')

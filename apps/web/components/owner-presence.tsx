@@ -16,11 +16,13 @@ import {
 import { appIconSrc } from "../lib/app-icons";
 import Link, { useT } from "./locale-provider";
 import { useSocket } from "./notifications";
+import "lxgw-wenkai-webfont/lxgwwenkai-light.css";
+import "lxgw-wenkai-webfont/lxgwwenkai-regular.css";
 import "./owner-presence.css";
 
 // 页头头像右边的站名区（样式在 owner-presence.css）：平时是站名；站长在电脑前时（Mac 上的 Yohaku Companion 在报），
 // 站名停 6 秒后向上滚成“正在用的 App 图标 + 音频条”停 14 秒（一个周期里占七成），再向上滚回站名。
-// 在放歌时音频条在跳，没放歌时是几颗安静的点。鼠标移上去（或键盘聚焦、触屏点一下）弹出卡片：左边在用的 App，右边在听的歌。
+// 在放歌时音频条在跳，没放歌时是几颗安静的点。鼠标移上去（或键盘聚焦、触屏点一下）弹出卡片：一句话说站长在用什么、在听什么。
 // 站名一直占着位置（滚走时只是移开、变透明），所以这一格始终是站名的宽度，导航不会跟着挪。这一格在头像的首页链接外面，
 // 悬停它不会点亮头像。数据见 lib/presence.ts：打开页面时从浏览器 GET Core 的 /fn/ps/update，之后听 WebSocket 广播；
 // Core 那边两分钟过期但不广播，所以标签页可见时每分钟再读一次。preview 给调试页用，不读网络。
@@ -104,72 +106,55 @@ function Bars({ playing }: { playing: boolean }) {
   );
 }
 
-// 唱机：唱片在转（标签上印着一弯月亮和一颗星，转起来看得出来），唱臂搭在唱片上；没放歌时唱片停住、唱臂抬起
-function Turntable({ playing }: { playing: boolean }) {
-  return (
-    <span className="turntable" data-playing={playing ? "" : undefined} aria-hidden="true">
-      <span className="turntable-record">
-        <span className="turntable-label" />
-      </span>
-      <span className="turntable-sheen" />
-      <span className="turntable-arm" />
-    </span>
-  );
+// 一句话里的名字：{owner}、{app}（带图标）、{title}、{artist}；App 名和歌名加重
+function Sentence({ template, owner, app, media }: { template: string; owner: string; app: PresenceApp | null; media: Presence["media"] }) {
+  return template.split(/(\{(?:owner|app|title|artist)\})/).map((part, index) => {
+    if (part === "{owner}") return <span key={index}>{owner}</span>;
+    if (part === "{app}" && app)
+      return (
+        <strong key={index} className="presence-note-app">
+          <AppIcon app={app} className="presence-note-icon" />
+          {app.name}
+        </strong>
+      );
+    if (part === "{title}" && media) return <strong key={index}>{media.title}</strong>;
+    if (part === "{artist}" && media?.artist) return <span key={index}>{media.artist}</span>;
+    return part;
+  });
 }
 
-// 悬停卡片：两块并排的小卡，左边在用的 App，右边在听的歌；没有在用的 App 时只剩右边
-function PresenceCard({ app, media }: Presence) {
+// 悬停卡片：用首屏的霞鹜文楷写一句话（“Sin 正开着 Chrome，耳机里是颜人中的《晚安》。”），像随手留的一张字条；
+// 在放歌时下面一行：一张很小的、在转的唱片 + 进度线 + 时间
+function PresenceCard({ owner, app, media }: Presence & { owner: string }) {
   const t = useT().header.presence;
   const now = useNow(1000);
   const position = media ? mediaPosition(media, now) : undefined;
   const progress = media?.duration && position !== undefined ? position / media.duration : undefined;
-  const player = media?.player && (t.players[media.player] ?? media.player);
-  const playerIcon = player && appIconSrc(media.player ?? "");
+  const template = t.note({ app: Boolean(app), media: Boolean(media), artist: Boolean(media?.artist) });
   return (
-    <div className="presence-card-body" data-tiles={app ? 2 : 1}>
-      {app && (
-        <section className="presence-tile">
-          {/* 图标的颜色晕开当背景，像屏幕的光 */}
-          {(appIconSrc(app.name) || app.icon) && (
-            // eslint-disable-next-line @next/next/no-img-element -- 同上
-            <img className="presence-tile-glow" src={appIconSrc(app.name) ?? app.icon} alt="" aria-hidden="true" />
-          )}
-          <p className="presence-tile-eyebrow">
-            <span className="presence-live" aria-hidden="true" />
-            {t.usingLabel}
-          </p>
-          <AppIcon app={app} className="presence-app-icon" />
-          <strong className="presence-tile-title">{app.name}</strong>
-          {app.since && <span className="presence-tile-meta">{t.forTime(Math.floor((now - app.since) / 60_000))}</span>}
-        </section>
-      )}
-      <section className="presence-tile" data-idle={media ? undefined : ""}>
-        <p className="presence-tile-eyebrow">{t.listeningLabel}</p>
-        {player &&
-          (playerIcon ? (
-            // eslint-disable-next-line @next/next/no-img-element -- 本站的 SVG 图标
-            <img className="presence-tile-player" src={playerIcon} alt={t.on(player)} title={t.on(player)} />
-          ) : (
-            <span className="presence-tile-player presence-tile-player-text">{player}</span>
-          ))}
-        <Turntable playing={Boolean(media)} />
-        <strong className="presence-tile-title">{media ? media.title : t.quiet}</strong>
-        <span className="presence-tile-meta">{media ? (media.artist ?? "") : t.idle}</span>
-        {media && progress !== undefined && position !== undefined && media.duration && (
-          <span className="presence-progress" style={{ "--progress": progress } as CSSProperties}>
-            <span className="presence-progress-time">{formatClock(position)}</span>
-            <span className="presence-progress-track" aria-hidden="true">
-              <span className="presence-progress-fill" />
-            </span>
-            <span className="presence-progress-time">{formatClock(media.duration)}</span>
+    <div className="presence-note">
+      <p className="presence-note-text">
+        <Sentence template={template} owner={owner} app={app} media={media} />
+        {/* 播放器没给进度时，小唱片跟在句子后面 */}
+        {media && progress === undefined && <span className="presence-disc presence-disc-inline" aria-hidden="true" />}
+      </p>
+      {media && progress !== undefined && position !== undefined && media.duration && (
+        <div className="presence-note-track" style={{ "--progress": progress } as CSSProperties}>
+          <span className="presence-disc" aria-hidden="true" />
+          <span className="presence-note-line" aria-hidden="true">
+            <span />
           </span>
-        )}
-      </section>
+          <span className="presence-note-time">
+            {formatClock(position)} / {formatClock(media.duration)}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
 
-export default function OwnerPresence({ apiUrl, name, preview }: { apiUrl: string; name: string; preview?: Presence }) {
+// name：站名；owner：站长名字（卡片那句话的主语）
+export default function OwnerPresence({ apiUrl, name, owner, preview }: { apiUrl: string; name: string; owner: string; preview?: Presence }) {
   const t = useT().header.presence;
   const presence = usePresence(apiUrl, preview);
   const { app, media } = presence;
@@ -225,7 +210,7 @@ export default function OwnerPresence({ apiUrl, name, preview }: { apiUrl: strin
               <Popover.Portal>
                 <Popover.Positioner className="presence-card-positioner" side="bottom" align="start" sideOffset={14}>
                   <Popover.Popup className="presence-card">
-                    <PresenceCard app={app} media={media} />
+                    <PresenceCard owner={owner} app={app} media={media} />
                   </Popover.Popup>
                 </Popover.Positioner>
               </Popover.Portal>

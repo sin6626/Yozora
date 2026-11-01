@@ -29,13 +29,10 @@ const en: Messages = {
       using: (app: string) => `Using ${app}`,
       listening: (title: string, artist?: string) => `Listening to ${artist ? `${title} – ${artist}` : title}`,
       label: "What the owner is up to",
-      usingLabel: "Using",
-      listeningLabel: "Listening",
-      forTime: (minutes: number) => (minutes < 1 ? "Just opened" : minutes < 60 ? `For ${minutes} min` : `For ${Math.floor(minutes / 60)} h${minutes % 60 ? ` ${minutes % 60} min` : ""}`),
-      on: (player: string) => `on ${player}`,
-      quiet: "All quiet for now",
-      idle: "Nothing playing",
-      players: { NetEaseMusic: "NetEase Cloud Music", QQMusic: "QQ Music", Music: "Apple Music", Spotify: "Spotify" } as Record<string, string>,
+      note: ({ app, media, artist }: { app: boolean; media: boolean; artist: boolean }) =>
+        app && media ? `{owner} has {app} open, with “{title}”${artist ? " by {artist}" : ""} in the headphones.`
+        : app ? "{owner} has {app} open. All quiet for now."
+        : `{owner} is listening to “{title}”${artist ? " by {artist}" : ""}.`,
     },
   },
   nav: {
