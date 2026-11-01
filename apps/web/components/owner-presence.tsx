@@ -124,23 +124,26 @@ function Sentence({ template, owner, app, media }: { template: string; owner: st
 }
 
 // 悬停卡片：用首屏的霞鹜文楷写一句话（“Sin 正开着 Chrome，耳机里是颜人中的《晚安》。”），像随手留的一张字条；
-// 在放歌时下面一行：一张很小的、在转的唱片 + 进度线 + 时间
+// 在放歌时下面一行：放歌软件的图标（认不得时是一张很小的、在转的唱片）+ 进度线 + 时间
 function PresenceCard({ owner, app, media }: Presence & { owner: string }) {
   const t = useT().header.presence;
   const now = useNow(1000);
   const position = media ? mediaPosition(media, now) : undefined;
   const progress = media?.duration && position !== undefined ? position / media.duration : undefined;
   const template = t.note({ app: Boolean(app), media: Boolean(media), artist: Boolean(media?.artist) });
+  const playerIcon = media?.player ? appIconSrc(media.player) : undefined;
+  // eslint-disable-next-line @next/next/no-img-element -- 本站的 SVG 图标
+  const player = (inline: boolean) => playerIcon ? <img className={`presence-note-player${inline ? " presence-note-inline" : ""}`} src={playerIcon} alt="" aria-hidden="true" /> : <span className={`presence-disc${inline ? " presence-note-inline" : ""}`} aria-hidden="true" />;
   return (
     <div className="presence-note">
       <p className="presence-note-text">
         <Sentence template={template} owner={owner} app={app} media={media} />
-        {/* 播放器没给进度时，小唱片跟在句子后面 */}
-        {media && progress === undefined && <span className="presence-disc presence-disc-inline" aria-hidden="true" />}
+        {/* 播放器没给进度时，图标跟在句子后面 */}
+        {media && progress === undefined && player(true)}
       </p>
       {media && progress !== undefined && position !== undefined && media.duration && (
         <div className="presence-note-track" style={{ "--progress": progress } as CSSProperties}>
-          <span className="presence-disc" aria-hidden="true" />
+          {player(false)}
           <span className="presence-note-line" aria-hidden="true">
             <span />
           </span>
@@ -167,6 +170,21 @@ export default function OwnerPresence({ apiUrl, name, owner, preview }: { apiUrl
   const ref = useRef<HTMLSpanElement>(null);
   const shown = live ? slot : "name";
   const paused = hovered || focused || cardOpen || navOpen;
+
+  // 站名区被藏起来（读文章收成小胶囊、岛上在播报）时，图标跟着消失但浏览器不会补发“离开”：
+  // 关掉卡片、清掉悬停和聚焦，否则卡片会飘在左上角、回到导航条时又挂回原位，滚动也一直停着（e2e owner-presence.mjs）
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => {
+      if (element.checkVisibility()) return;
+      setCardOpen(false);
+      setHovered(false);
+      setFocused(false);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!live || paused) return;

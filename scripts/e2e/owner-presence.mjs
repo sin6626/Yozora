@@ -1,7 +1,8 @@
 // 浏览器回归测试：页头头像右边的站名区（components/owner-presence.tsx）。
 // 一、调试页的写死示例：站名停 6 秒后向上滚成“App 图标 + 音频条”，再停 14 秒（一个周期七成）滚回；宽度不变（导航不挪）；
 //     没图标时是首字方块；放歌时音频条在跳，没放歌时是安静的点；悬停图标弹出卡片：用霞鹜文楷写的一句话（App 带清晰图标、
-//     不写用了多久），放歌时下面是在转的小唱片和进度线，没进度时小唱片跟在句尾，没放歌时“此刻很安静”且不从中间断行；
+//     不写用了多久），放歌时下面是放歌软件的图标（认不得时是在转的小唱片）和进度线，没进度时图标跟在句尾，没放歌时“此刻很安静”且不从中间断行；
+//     收成阅读胶囊时卡片跟着消失、回到导航条也不会自己冒出来；
 //     悬停期间不滚；悬停右边不会点亮左边的头像；减少动态效果时音频条不跳。
 // 二、真实页头：浏览器里拦截 GET /fn/ps/update 换成测试数据，并让 Core 的 WebSocket 连不上（站长自己的 Companion 正在实时上报，
 //     不能让它的广播干扰测试，也不往 Core 写东西）：滚动且导航不挪、读屏描述、头像和站名区分开、卡片、阅读胶囊里头像光圈呼吸、离开后停止。
@@ -56,6 +57,7 @@ const card = () => browser.evaluate(`(async () => {
   await new Promise((r) => setTimeout(r, 400));
   const icon = el.querySelector(".presence-note-icon");
   const fill = el.querySelector(".presence-note-line > span");
+  const player = el.querySelector(".presence-note-player");
   // “此刻很安静。”这几个字在不在同一行（中文只在标点处换行）
   const quietLines = (() => {
     const node = [...text.childNodes].find((n) => n.nodeType === 3 && n.textContent.includes("此刻很安静"));
@@ -73,6 +75,7 @@ const card = () => browser.evaluate(`(async () => {
     disc: Boolean(disc),
     spinning: Boolean(disc) && getComputedStyle(disc).rotate !== first,
     progress: fill ? fill.getBoundingClientRect().width : null,
+    player: player && { src: player.getAttribute("src"), loaded: player.naturalWidth > 0 },
     quietLines,
   };
 })()`);
@@ -117,7 +120,8 @@ try {
   assert.ok(!/分钟|刚刚/.test(full.text), "不显示用了多久");
   assert.equal(full.font, "LXGW WenKai", "用首屏的霞鹜文楷");
   assert.ok(full.icon.kind === "vector" && full.icon.src.startsWith("/api/app-icon/chrome") && full.icon.loaded, "认得的 App 用清晰的矢量图标");
-  assert.ok(full.spinning && full.progress > 0, "小唱片在转（角度在变），进度线有长度");
+  assert.ok(full.player?.src.startsWith("/api/app-icon/netease") && full.player.loaded && !full.disc, "进度线前是放歌软件（网易云音乐）的图标，不是唱片");
+  assert.ok(full.progress > 0, "进度线有长度");
   await sleep(2500);
   assert.equal(await browser.evaluate(slotOf(ids[0])), "live", "卡片开着时不滚");
   await leave();
@@ -146,7 +150,7 @@ try {
   await hover(`${ids[2]} .brand-ticker-trigger`);
   const music = await card();
   assert.equal(music.text, "Sin 的耳机里是郭静的《下一个天亮》。", "只在听歌");
-  assert.ok(music.spinning && music.progress === null, "没有进度时小唱片跟在句子后面转");
+  assert.ok(music.spinning && music.player === null && music.progress === null, "认不得放歌软件、也没有进度时，小唱片跟在句子后面转");
   await leave();
 
 
@@ -200,9 +204,27 @@ try {
   const article = await browser.evaluate(`[...document.querySelectorAll('a[href*="/posts/"]')].map((a) => a.getAttribute("href")).find((href) => href.split("/").length >= 4)`);
   assert.ok(article, "文章列表里有文章链接");
   await browser.goto(`${base}${article}`);
+  // 2026-11-01 的 bug：在顶部打开卡片后往下读，页头收成阅读胶囊，图标藏起来了，卡片却还开着、飘到左上角；回到顶部它又挂回原位
+  await waitFor(`${slotOf(".site-header")} === "live"`, "文章页顶部滚到 App + 音频条");
+  await sleep(700);
+  await hover(".site-header .brand-ticker-trigger");
+  assert.ok(await card(), "文章页顶部悬停打开卡片");
+  // 像真人一样把鼠标移到卡片上（卡片在岛外面，岛不再算悬停，往下读会收拢）
+  const cardBox = await browser.evaluate(`(() => { const r = document.querySelector(".presence-card").getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
+  await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: cardBox.x, y: cardBox.y });
+  await sleep(300);
+  assert.ok(await card(), "鼠标在卡片上时卡片开着");
   await browser.evaluate("window.scrollTo(0, 900)");
   await waitFor(`document.querySelector(".site-header").dataset.mode === "compact"`, "往下读收成阅读胶囊");
+  await sleep(400);
+  assert.equal(await card(), null, "收成阅读胶囊时卡片跟着消失");
   assert.equal((await header()).breathing, "brand-avatar-breathe", "阅读胶囊里头像光圈在呼吸（站长在电脑前）");
+  await browser.evaluate("window.scrollTo(0, 0)");
+  await waitFor(`document.querySelector(".site-header").dataset.mode === "bar"`, "回到顶部铺开");
+  await sleep(600);
+  assert.equal(await card(), null, "回到导航条时卡片不会自己冒出来");
+  await browser.evaluate("window.scrollTo(0, 900)");
+  await waitFor(`document.querySelector(".site-header").dataset.mode === "compact"`, "再往下读收成阅读胶囊");
 
   fake = { processInfo: null, mediaInfo: null };
   await browser.evaluate(`document.dispatchEvent(new Event("visibilitychange"))`);
@@ -212,7 +234,7 @@ try {
   assert.equal(away.described, null, "没有状态描述");
 
   assert.deepEqual(browser.errors, [], "页面不应当有报错");
-  console.log(`PASS 站名区：示例 6 秒站名、${liveSeconds.toFixed(1)} 秒 App 与音频条，宽度不变，图标/首字/跳动音频条/安静的点，悬停卡片（一句话、文楷、矢量图标、小唱片和进度、此刻很安静不断行）且不点亮头像、卡片开着不滚、减少动态效果；页头读状态、导航不挪、读屏描述、头像与站名区分开、阅读胶囊光圈呼吸、离开后停止`);
+  console.log(`PASS 站名区：示例 6 秒站名、${liveSeconds.toFixed(1)} 秒 App 与音频条，宽度不变，图标/首字/跳动音频条/安静的点，悬停卡片（一句话、文楷、矢量图标、放歌软件图标或小唱片、进度、此刻很安静不断行、阅读胶囊时消失）且不点亮头像、卡片开着不滚、减少动态效果；页头读状态、导航不挪、读屏描述、头像与站名区分开、阅读胶囊光圈呼吸、离开后停止`);
 } finally {
   await browser.close();
 }

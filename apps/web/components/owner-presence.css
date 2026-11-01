@@ -242,7 +242,16 @@
   animation: presence-spin 3s linear infinite;
 }
 
-.presence-disc-inline {
+/* 放歌软件的图标（lib/app-icons.ts 认得的，圆角白底） */
+.presence-note-player {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 0.3125rem;
+}
+
+/* 没有进度时，图标或小唱片跟在句尾 */
+.presence-note-inline {
   display: inline-block;
   margin-left: 0.4em;
   vertical-align: -0.2em;
