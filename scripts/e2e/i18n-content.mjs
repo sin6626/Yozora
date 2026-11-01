@@ -57,7 +57,8 @@ try {
   assert.deepEqual(failures, [], "英文页面上有没标语言的中文");
   // 几样有代表性的内容确实换成了译文（不是被删掉）
   await browser.goto(`${base}/en/posts`, 4500);
-  const posts = await browser.evaluate(`[...document.querySelectorAll("main .post-categories a")].filter((a) => a.checkVisibility()).map((a) => a.textContent.trim())`);
+  // 分类链接后面跟着篇数（<span class="tag-count">），只取前面的名字
+  const posts = await browser.evaluate(`[...document.querySelectorAll("main .post-categories a")].filter((a) => a.checkVisibility()).map((a) => a.firstChild.textContent.trim())`);
   assert.ok(posts.includes("Ramblings") && posts.includes("Technology"), `分类名应是译文：${posts.join(", ")}`);
   const footerMotto = await browser.evaluate(`document.querySelector(".site-footer-motto").textContent.trim()`);
   assert.equal(footerMotto, "The stars overhead are the stars within.", "页脚那句话应是英文");

@@ -97,7 +97,7 @@
 
   /* 尺寸与层级 */
   --layout-max-width: 72rem;  /*顶部导航*/
-  --article-max-width: 56rem; /*单栏正文与列表（2026-10-28 由 48rem 加宽，正文约 53 字一行）；改它要同步下面 .site-details 和 article-toc.css 的 90rem 断点*/
+  --article-max-width: 56rem; /*单栏正文与列表（2026-10-28 由 48rem 加宽，正文约 53 字一行）；改它要同步下面 .site-details、article-toc.css 和 details-sidebar.css（列表筛选栏）的 90rem 断点*/
   --header-height: 4.25rem; /*导航胶囊 44px + 上下留白*/
   --font-serif: var(--font-note-serif), "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", STSong, serif; /*只用于手记，字体在 layout.tsx 加载*/
   --z-header: 2;
@@ -1022,10 +1022,11 @@ details::details-content {
   overflow: clip;
   overflow-clip-margin: var(--space-1);
   opacity: 0;
+  /* 0.28 秒、两头都缓：原来 0.18 秒的减速曲线把下面的内容一下推开，看着像卡了一下（2026-11-01 用户录屏） */
   transition:
-    height var(--duration-base) var(--ease-out),
-    opacity var(--duration-base) var(--ease-out),
-    content-visibility var(--duration-base) allow-discrete;
+    height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    content-visibility 0.28s allow-discrete;
 }
 
 details[open]::details-content {

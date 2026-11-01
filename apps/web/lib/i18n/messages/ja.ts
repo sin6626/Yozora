@@ -226,6 +226,7 @@ const ja: Messages = {
     older: "古い",
     clearFilter: "もう一度押すと絞り込みを解除",
     removeFilter: "絞り込みを解除して一覧に戻る",
+    filters: "絞り込み",
     searchQuery: (keyword: string) => `「${keyword}」を検索`,
   },
   entry: {
@@ -249,6 +250,7 @@ const ja: Messages = {
     tag: (name: string) => `タグ：${name}`,
     tagEmpty: "このタグの記事はまだありません。",
     byTag: "タグで探す",
+    tags: "タグ",
     tagsFailed: "タグを読み込めませんでした。",
     noTags: "タグはまだありません。",
     neighbors: "前後の記事",

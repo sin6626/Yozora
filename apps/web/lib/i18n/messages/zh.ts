@@ -227,6 +227,7 @@ const zh = {
     older: "较早",
     clearFilter: "再次点击取消筛选",
     removeFilter: "取消筛选，回到完整列表",
+    filters: "筛选",
     searchQuery: (keyword: string) => `搜索“${keyword}”`,
   },
   entry: {
@@ -250,6 +251,7 @@ const zh = {
     tag: (name: string) => `标签：${name}`,
     tagEmpty: "这个标签下还没有已发布的文章。",
     byTag: "按标签",
+    tags: "标签",
     tagsFailed: "标签读取失败。",
     noTags: "暂无标签。",
     neighbors: "相邻文章",

@@ -80,22 +80,26 @@ export default async function NoteList({ searchParams }: { searchParams: Promise
           <h1>{t.title}</h1>
           <p className="post-meta">{t.count(pagination.total)}</p>
         </div>
-        <SidebarSearch action="/notes" label={t.search} defaultValue={filter.kind === "search" ? filter.keyword : ""} />
       </header>
       <div className="post-list-content">
-        <div className="list-filters">
-          {topics && topics.length > 0 && (
-            <nav className="post-categories" aria-label={t.topics}>
-              <Link href="/notes" aria-current={filter.kind === "all" ? "page" : undefined}>{t.all}</Link>
-              {topics.map((item) => (
-                <Link key={item.id} href={`/notes?topic=${encodeURIComponent(item.slug)}`} aria-current={filter.kind === "topic" && item.slug === filter.slug ? "page" : undefined}>
-                  {item.name}
-                </Link>
-              ))}
-            </nav>
-          )}
+        {/* 筛选栏：宽屏（≥ 90rem）悬浮在列表右边，窄屏在列表上方（details-sidebar.css 的 .list-aside） */}
+        <aside className="list-filters list-aside" aria-label={list.filters}>
+          <SidebarSearch action="/notes" label={t.search} defaultValue={filter.kind === "search" ? filter.keyword : ""} />
           {filter.kind === "search" && <ActiveFilter label={list.searchQuery(filter.keyword)} clearHref="/notes" />}
-        </div>
+          {topics && topics.length > 0 && (
+            <section className="list-aside-section" aria-label={t.topics}>
+              <h2>{t.topics}</h2>
+              <nav className="post-categories" aria-label={t.topics}>
+                <Link href="/notes" aria-current={filter.kind === "all" ? "page" : undefined}>{t.all}</Link>
+                {topics.map((item) => (
+                  <Link key={item.id} href={`/notes?topic=${encodeURIComponent(item.slug)}`} aria-current={filter.kind === "topic" && item.slug === filter.slug ? "page" : undefined}>
+                    {item.name}<span className="tag-count">{item.count}</span>
+                  </Link>
+                ))}
+              </nav>
+            </section>
+          )}
+        </aside>
         {notes.length ? (
           <ul className="note-list">
             {notes.map((note) => (

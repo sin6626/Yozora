@@ -226,6 +226,7 @@ const en: Messages = {
     older: "Older",
     clearFilter: "Click again to clear the filter",
     removeFilter: "Clear filter and show everything",
+    filters: "Filters",
     searchQuery: (keyword: string) => `Searching “${keyword}”`,
   },
   entry: {
@@ -249,6 +250,7 @@ const en: Messages = {
     tag: (name: string) => `Tag: ${name}`,
     tagEmpty: "No posts with this tag yet.",
     byTag: "By tag",
+    tags: "Tags",
     tagsFailed: "Couldn't load tags.",
     noTags: "No tags yet.",
     neighbors: "Nearby posts",
