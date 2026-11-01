@@ -131,60 +131,114 @@
   letter-spacing: 0.01em;
 }
 
-/* 站长此刻在用的 App、在听的歌（owner-presence.tsx）：只在顶部铺开时挂在站名下面。
-   绝对定位，出现、消失、换歌都不改变页头排版（导航不会跟着左右挪），太长用省略号，鼠标停留看全文 */
-.island-brand {
-  position: relative;
+/* 站名区（owner-presence.tsx）：站长在电脑前时每隔几秒向上滚一格，换成“App 图标 + 跳动的音频条”，再滚回站名。
+   站名一直占着位置（滚走时只是移开、变透明），所以这一格始终是站名的宽度，导航不会跟着挪；上下滚出去的部分裁掉 */
+.brand-ticker {
+  display: inline-grid;
+  align-items: center;
+  overflow-x: visible;
+  overflow-y: clip;
 }
 
-.owner-presence {
-  position: absolute;
-  top: calc(100% + 0.375rem);
-  left: calc(2rem + var(--space-3));
-  max-width: min(26rem, calc(100vw - 5rem));
-  margin: 0;
-  overflow: hidden;
-  font-size: var(--text-xs);
-  line-height: 1.4;
-  color: var(--muted-foreground);
-  white-space: nowrap;
-  text-overflow: ellipsis;
+.brand-ticker-name,
+.brand-ticker-live {
+  grid-area: 1 / 1;
 }
 
-.site-header:not([data-mode="bar"]) .owner-presence {
-  display: none;
+.brand-ticker-live {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  /* 不参与撑宽，宽度跟着站名 */
+  width: 0;
+  min-width: 100%;
+  opacity: 0;
 }
 
-.owner-presence :is(img, svg) {
-  display: inline-block;
-  width: 0.875rem;
+.brand-ticker-icon {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* 没有 App 图标时：写着 App 名首字的小方块 */
+.brand-ticker-monogram {
+  display: grid;
+  place-items: center;
+  border-radius: 0.3125rem;
+  background: color-mix(in srgb, var(--foreground) 14%, transparent);
+  color: var(--foreground);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.brand-ticker-monogram::before {
+  content: var(--letter);
+}
+
+/* 在听歌：四根高低跳动的音频条，不写歌名 */
+.brand-ticker-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
   height: 0.875rem;
-  margin-right: 0.3em;
-  vertical-align: -0.15em;
-  border-radius: 0.1875rem;
 }
 
-/* 没有 App 图标时：一盏慢慢呼吸的小灯，表示“还在电脑前” */
-.owner-presence-dot {
-  display: inline-block;
-  width: 0.375rem;
-  height: 0.375rem;
-  margin-right: 0.45em;
-  vertical-align: 0.1em;
-  border-radius: var(--radius-full);
+.brand-ticker-bars i {
+  width: 3px;
+  height: 100%;
+  border-radius: 1px;
   background: var(--moonlight);
-  box-shadow: 0 0 6px var(--moonlight);
-  animation: owner-presence-glow 2.4s ease-in-out infinite;
+  transform-origin: bottom;
+  animation: brand-ticker-bar 0.9s ease-in-out infinite alternate;
 }
 
-@keyframes owner-presence-glow {
+.brand-ticker-bars i:nth-child(2) {
+  animation-duration: 0.7s;
+  animation-delay: -0.35s;
+}
+
+.brand-ticker-bars i:nth-child(3) {
+  animation-duration: 1.05s;
+  animation-delay: -0.6s;
+}
+
+.brand-ticker-bars i:nth-child(4) {
+  animation-duration: 0.8s;
+  animation-delay: -0.2s;
+}
+
+@keyframes brand-ticker-bar {
+  from {
+    transform: scaleY(0.25);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+/* 读文章收成小胶囊时站名区不显示，改成头像外圈的月光慢慢呼吸，表示站长此刻在电脑前 */
+.site-header[data-mode="compact"] .site-brand:has(.brand-ticker[data-live]) .site-brand-avatar {
+  animation: brand-avatar-breathe 3.2s ease-in-out infinite;
+}
+
+@keyframes brand-avatar-breathe {
   50% {
-    opacity: 0.45;
+    box-shadow: 0 0 0 1px var(--moonlight), 0 0 16px 1px color-mix(in srgb, var(--moonlight) 70%, transparent);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .owner-presence-dot {
+  .brand-ticker-bars i {
+    animation: none;
+  }
+
+  .brand-ticker-bars i:nth-child(1) { transform: scaleY(0.5); }
+  .brand-ticker-bars i:nth-child(2) { transform: scaleY(0.9); }
+  .brand-ticker-bars i:nth-child(3) { transform: scaleY(0.65); }
+  .brand-ticker-bars i:nth-child(4) { transform: scaleY(0.4); }
+
+  .site-header[data-mode="compact"] .site-brand:has(.brand-ticker[data-live]) .site-brand-avatar {
     animation: none;
   }
 }

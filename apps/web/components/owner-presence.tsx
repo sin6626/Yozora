@@ -1,23 +1,32 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
-import { Music2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { applyPresenceEvent, emptyPresence, presenceFromSnapshot } from "../lib/presence";
+import { motion } from "motion/react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useIsland } from "../lib/island-store";
+import { applyPresenceEvent, emptyPresence, presenceFromSnapshot, type OwnerPresence as Presence } from "../lib/presence";
 import { useT } from "./locale-provider";
 import { useSocket } from "./notifications";
 
-// 站长此刻在用的 App、在听的歌，显示在页头站名下面（样式在 site-header.css）。数据见 lib/presence.ts：
-// 打开页面时从浏览器直接 GET Core 的 /fn/ps/update，之后听 WebSocket 广播即时更新。
-// Mac 睡眠或断网后 Core 那边两分钟过期但不会广播，所以标签页可见时每分钟再读一次，切回标签页时也读一次。
+// 页头头像右边的站名区（样式在 site-header.css 的 .brand-ticker）：平时是站名；站长在电脑前时（Mac 上的 Yohaku Companion 在报），
+// 每隔几秒向上滚一格，换成“正在用的 App 图标 + 跳动的音频条”，再向上滚回站名。站名一直占着位置（滚走时只是移开、变透明），
+// 所以这一格始终是站名的宽度，导航不会跟着左右挪。
+// 数据见 lib/presence.ts：打开页面时从浏览器 GET Core 的 /fn/ps/update，之后听 WebSocket 广播；Core 那边两分钟过期但不广播，
+// 所以标签页可见时每分钟再读一次。preview 给调试页用，不读网络。
 const refreshMs = 60_000;
+// 每格停多久。只算看得见、没被打断的时间：读文章收成小胶囊、播报、标签页在后台、鼠标停在上面、导航面板开着时都不走
+const dwellMs = { name: 6000, live: 4000 };
+const tickMs = 250;
+const spring = { type: "spring", stiffness: 260, damping: 28 } as const;
+// 进场从下面滚上来，离场往上滚走
+const shownState = { y: ["100%", "0%"], opacity: [0, 1] };
+const hiddenState = { y: "-100%", opacity: 0 };
 
-export default function OwnerPresence({ apiUrl }: { apiUrl: string }) {
-  const t = useT().header.presence;
+function usePresence(apiUrl: string, preview?: Presence) {
   const socket = useSocket();
   const [presence, setPresence] = useState(emptyPresence);
 
   useEffect(() => {
+    if (preview) return;
     let stopped = false;
     const load = async () => {
       if (document.hidden) return;
@@ -35,48 +44,88 @@ export default function OwnerPresence({ apiUrl }: { apiUrl: string }) {
       clearInterval(timer);
       document.removeEventListener("visibilitychange", load);
     };
-  }, [apiUrl]);
+  }, [apiUrl, preview]);
 
   useEffect(() => {
-    if (!socket) return;
+    if (preview || !socket) return;
     const onMessage = (message: unknown) => setPresence((state) => applyPresenceEvent(state, message) ?? state);
     socket.on("message", onMessage);
     return () => {
       socket.off("message", onMessage);
     };
-  }, [socket]);
+  }, [socket, preview]);
 
-  const { app, media } = presence;
+  return preview ?? presence;
+}
+
+export default function OwnerPresence({ apiUrl, name, preview }: { apiUrl: string; name: string; preview?: Presence }) {
+  const t = useT().header.presence;
+  const { app, media } = usePresence(apiUrl, preview);
+  const live = Boolean(app || media);
+  const [slot, setSlot] = useState<"name" | "live">("name");
+  const [hovered, setHovered] = useState(false);
+  const navOpen = useIsland((state) => state.navOpen);
+  const ref = useRef<HTMLSpanElement>(null);
+  const shown = live ? slot : "name";
+  const paused = hovered || navOpen;
+
+  useEffect(() => {
+    if (!live || paused) return;
+    let elapsed = 0;
+    const timer = setInterval(() => {
+      if (document.hidden || !ref.current?.checkVisibility()) return;
+      elapsed += tickMs;
+      if (elapsed >= dwellMs[shown]) setSlot(shown === "name" ? "live" : "name");
+    }, tickMs);
+    return () => clearInterval(timer);
+  }, [live, paused, shown]);
+
   const parts = [app && t.using(app.name), media && t.listening(media.title, media.artist)].filter(Boolean).join(" · ");
   return (
-    <AnimatePresence initial={false}>
-      {parts && (
-        <motion.p
-          key="presence"
-          className="owner-presence"
-          title={parts}
-          initial={{ opacity: 0, y: -3, filter: "blur(3px)" }}
-          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          exit={{ opacity: 0, filter: "blur(3px)" }}
-          transition={{ duration: 0.3 }}
+    <>
+      <span
+        ref={ref}
+        className="site-brand-name brand-ticker"
+        data-live={live ? "" : undefined}
+        data-slot={shown}
+        onPointerEnter={() => setHovered(true)}
+        onPointerLeave={() => setHovered(false)}
+      >
+        <motion.span className="brand-ticker-name" initial={false} animate={shown === "name" ? shownState : hiddenState} transition={spring}>
+          {name}
+        </motion.span>
+        <motion.span
+          className="brand-ticker-live"
+          aria-hidden="true"
+          title={parts || undefined}
+          initial={false}
+          animate={shown === "live" ? shownState : hiddenState}
+          transition={spring}
         >
-          <span className="sr-only">{t.prefix}</span>
-          {app && (
-            <span className="owner-presence-app">
-              {/* eslint-disable-next-line @next/next/no-img-element -- App 图标来自 Companion 配置的图床，任意地址 */}
-              {app.icon ? <img src={app.icon} alt="" width={14} height={14} /> : <span className="owner-presence-dot" aria-hidden="true" />}
-              {t.using(app.name)}
-            </span>
-          )}
-          {app && media && <span aria-hidden="true"> · </span>}
+          {app &&
+            (app.icon ? (
+              // eslint-disable-next-line @next/next/no-img-element -- App 图标由 Companion 传到图床，任意地址
+              <img className="brand-ticker-icon" src={app.icon} alt="" width={18} height={18} />
+            ) : (
+              // 没有图标时用 App 名的首字（写在 CSS 里，不进站名的文字）
+              <span className="brand-ticker-icon brand-ticker-monogram" style={{ "--letter": JSON.stringify(Array.from(app.name)[0].toUpperCase()) } as CSSProperties} />
+            ))}
           {media && (
-            <span className="owner-presence-media">
-              <Music2 aria-hidden="true" />
-              {t.listening(media.title, media.artist)}
+            <span className="brand-ticker-bars">
+              <i />
+              <i />
+              <i />
+              <i />
             </span>
           )}
-        </motion.p>
+        </motion.span>
+      </span>
+      {live && !preview && (
+        <span id="owner-presence" className="sr-only">
+          {t.prefix}
+          {parts}
+        </span>
       )}
-    </AnimatePresence>
+    </>
   );
 }

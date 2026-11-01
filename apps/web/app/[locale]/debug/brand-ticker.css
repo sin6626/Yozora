@@ -1,0 +1,11 @@
+/* 调试页“页头站名滚动”：三个示例并排 */
+.debug-brand-tickers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6) var(--space-12);
+  margin-top: var(--space-3);
+}
+
+.debug-brand-tickers .post-meta {
+  margin-top: var(--space-2);
+}

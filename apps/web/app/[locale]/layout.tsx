@@ -84,14 +84,14 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-// 页头的站点标识：后台头像 + 站名（头像读不到时只显示站名）
+// 页头的站点标识：后台头像 + 站名（头像读不到时只显示站名）；站长在电脑前时站名区会滚动显示在用的 App 和音频条
 async function SiteBrand() {
   const [settings, owner] = await Promise.all([getSiteSettings().catch(() => null), getOwner().catch(() => null)]);
   return (
     <>
       {/* eslint-disable-next-line @next/next/no-img-element -- 头像来自后台任意地址，不走 Next 图片优化 */}
       {owner?.avatar && <img className="site-brand-avatar" src={owner.avatar} alt="" width={32} height={32} />}
-      <span className="site-brand-name">{settings?.name ?? siteName}</span>
+      <OwnerPresence apiUrl={getApiUrl()} name={settings?.name ?? siteName} />
     </>
   );
 }
@@ -125,7 +125,6 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
               nav={<Navigation account={<Suspense fallback={null}><HeaderAccount side="top" /></Suspense>} />}
               search={<Suspense fallback={<span className="icon-button" aria-hidden="true" />}><HeaderSearch /></Suspense>}
               account={<Suspense fallback={<span className="account-trigger" aria-hidden="true" />}><HeaderAccount host /></Suspense>}
-              presence={<OwnerPresence apiUrl={getApiUrl()} />}
               activityIcons={islandIcons}
             />
             {/* 视图过渡套在铺满整行的 .site-page 上，而不是宽度随页面变化的 main：

@@ -19,6 +19,7 @@ import { OpenSearchButton } from "@/components/command-search";
 import { ActiveFilter } from "@/components/list-filters";
 import StyleGuide from "./style-guide";
 import IslandButtons from "./island-buttons";
+import BrandTickerPreview from "./brand-ticker";
 import ToastButtons from "./toast-buttons";
 
 // 评论悬浮窗的示例消息（不读库）
@@ -207,6 +208,11 @@ export default function DebugPage() {
             <h2>页头夜航岛</h2>
             <p className="post-meta">site-header.tsx：往下滚动后普通页面保持深色导航条，阅读页收成“标题 + 进度环”的胶囊、悬停展开；下面的按钮在岛上播报示例活动（文章发布、修改、删除的通知走这里），连点会排队</p>
             <IslandButtons />
+          </li>
+          <li id="debug-brand-ticker">
+            <h2>页头站名滚动</h2>
+            <p className="post-meta">owner-presence.tsx：站长在电脑前时，头像右边的站名停 6 秒后向上滚成“正在用的 App 图标 + 跳动的音频条”，4 秒后滚回站名；鼠标停在上面时暂停，提示框里有 App 名和歌名。下面是写死的示例数据，不读 Core</p>
+            <BrandTickerPreview />
           </li>
           <li>
             <h2>文章正文</h2>
