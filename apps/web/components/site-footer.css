@@ -69,6 +69,7 @@
 }
 
 .site-footer-about .site-footer-sign,
+.site-footer-icp,
 .site-footer-side .site-online {
   color: var(--muted-foreground);
   font-size: var(--text-xs);
@@ -100,4 +101,23 @@
   color: var(--love);
   fill: currentColor;
   stroke: none;
+}
+
+/* 萌备号：落款下面一行小字，和落款同色，悬停变亮 */
+.site-footer-icp {
+  justify-self: start;
+  letter-spacing: 0.04em;
+  transition: color var(--duration-fast);
+}
+
+@media (hover: hover) {
+  .site-footer-icp:hover {
+    color: var(--primary);
+  }
+}
+
+@media (max-width: 639px) {
+  .site-footer-icp {
+    justify-self: center;
+  }
 }

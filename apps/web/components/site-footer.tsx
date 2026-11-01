@@ -9,6 +9,8 @@ import { OnlineCount } from "./notifications";
 import "./site-footer.css";
 
 const sourceRepo = "https://github.com/sin6626/Yozora";
+// 萌备（萌 ICP 备案，2026-11-01 申请）：审核要求页脚放这个链接，电脑和手机都要显示
+const moeIcp = { href: "https://icp.gov.moe/?keyword=20265334", label: "萌ICP备20265334号" };
 
 // 页脚：最上面一条星带（每天刷题和写代码的记录，读取失败时不显示），下面左边是一弯小月亮加“头顶的星空，是心里的星空”
 // （化用康德，站长 2026-10-31 定；后台那句站点描述只留在首屏底部，不在页脚重复）、细字的英文落款，
@@ -27,6 +29,7 @@ export default async function SiteFooter() {
           <p className="site-footer-sign">
             © 2026 <Suspense fallback={siteOwnerName}><OwnerName /></Suspense> · Made with <Heart size={12} aria-label="love" /> under the stars
           </p>
+          <a className="site-footer-icp" href={moeIcp.href} target="_blank" rel="noopener noreferrer">{moeIcp.label}</a>
         </div>
         <div className="site-footer-side">
           <nav className="site-footer-links" aria-label={t.links}>
