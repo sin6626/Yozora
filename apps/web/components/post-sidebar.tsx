@@ -3,13 +3,14 @@ import Link from "./locale-provider";
 import { unstable_rethrow } from "next/navigation";
 import { getTags } from "../lib/blog-data";
 import { getLocale, getT } from "../lib/i18n/server";
+import TagFold from "./tag-fold";
 import "./details-sidebar.css";
 
 // 宽屏右栏直接摊开的标签数，其余收在“展开全部”里
 const popularTags = 12;
 
 // 文章列表的标签，两种样子各渲染一份、CSS 只显示其中一种（details-sidebar.css）：
-// 宽屏（≥ 90rem）在右侧筛选栏里摊开最常用的 12 个、其余可展开；窄屏收在抽屉里，默认收起（选中的标签另有一枚“标签：xx ×”）。
+// 宽屏（≥ 90rem）在右侧筛选栏里摊开最常用的 12 个、其余收在下面、最后一个“展开全部 / 收起”按钮（tag-fold.tsx）；窄屏收在抽屉里，默认收起（选中的标签另有一枚“标签：xx ×”）。
 // 不用“宽屏强制展开同一个 <details>”：那样读屏仍会念“已收起”。筛选状态只存在地址栏里。
 export default async function PostTagDrawer({ activeTag }: { activeTag?: string }) {
   const [{ posts: t, list: listCopy }, locale] = await Promise.all([getT(), getLocale()]);
@@ -52,17 +53,9 @@ export default async function PostTagDrawer({ activeTag }: { activeTag?: string 
     <>
       <section className="list-aside-section list-aside-tags" aria-label={t.tags}>
         <h2>{t.tags}{tags?.length ? <span className="tag-count">{tags.length}</span> : null}</h2>
-        {tags?.length ? renderChips(shown) : message}
-        {rest.length > 0 && (
-          <details className="tag-more">
-            <summary>
-              <span className="tag-more-show">{t.showAllTags(tags?.length ?? 0)}</span>
-              <span className="tag-more-hide">{t.hideTags}</span>
-              <ChevronDown className="tag-drawer-arrow" size={14} aria-hidden="true" />
-            </summary>
-            {renderChips(rest)}
-          </details>
-        )}
+        {!tags?.length ? message : rest.length > 0 ? (
+          <TagFold rest={renderChips(rest)} showLabel={t.showAllTags(tags.length)} hideLabel={t.hideTags}>{renderChips(shown)}</TagFold>
+        ) : renderChips(shown)}
       </section>
       <details className="tag-drawer">
         <summary><Hash size={14} aria-hidden="true" />{t.byTag}{tags?.length ? <span className="tag-count">{tags.length}</span> : null}<ChevronDown className="tag-drawer-arrow" size={14} aria-hidden="true" /></summary>

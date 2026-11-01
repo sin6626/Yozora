@@ -92,26 +92,47 @@ try {
   assert.ok(wide.position === "fixed" && wide.asideLeft >= wide.listRight, `宽屏时筛选栏应悬浮在列表右边：${JSON.stringify(wide)}`);
   assert.ok(wide.search && wide.categories > 1 && wide.tags > 0 && !wide.drawer, `宽屏筛选栏里应有搜索、分类和直接摊开的标签：${JSON.stringify(wide)}`);
 
-  // 标签多了不能把右栏拉得很长：只摊开最常用的 12 个，其余收在“展开全部”里，能展开也能收起；
+  // 标签多了不能把右栏拉得很长：只摊开最常用的 12 个，其余收起，最下面一个“展开全部 / 收起”按钮（曾经是 <details>，展开后“收起”夹在两组标签中间）；
+  // 展开时上面 12 个标签一点都不能动（曾经展开到右栏放不下、滚动条一出来占掉宽度，上面的标签整片重新换行，收完又跳回去）；
   // 正在筛的标签就算不常用也直接显示（不用展开才看得到当前筛选）
   const tagState = () => browser.evaluate(`(() => {
     const section = [...document.querySelectorAll(".site-content .list-aside-tags")].find((el) => el.checkVisibility());
-    const more = section.querySelector(".tag-more");
+    const chips = [...section.querySelectorAll(".tag-chip")];
+    const visible = chips.filter((el) => el.checkVisibility({ opacityProperty: true }));
+    const toggle = section.querySelector(".tag-fold-toggle");
     return {
-      visible: [...section.querySelectorAll(".tag-chip")].filter((el) => el.checkVisibility()).map((el) => el.firstChild.textContent),
-      total: section.querySelectorAll(".tag-chip").length,
-      toggle: more?.querySelector("summary")?.checkVisibility() ?? false,
-      open: more?.open ?? null,
+      visible: visible.map((el) => el.firstChild.textContent),
+      total: chips.length,
+      expanded: toggle?.getAttribute("aria-expanded") ?? null,
+      toggleBelowAll: toggle ? visible.every((el) => el.getBoundingClientRect().bottom <= toggle.getBoundingClientRect().top + 1) : false,
     };
   })()`);
   const collapsed = await tagState();
-  assert.ok(collapsed.total > 12 && collapsed.visible.length === 12 && collapsed.toggle && collapsed.open === false, `标签多于 12 个时默认只显示 12 个并有“展开全部”：${JSON.stringify({ ...collapsed, visible: collapsed.visible.length })}`);
-  await browser.evaluate(`[...document.querySelectorAll(".site-content .tag-more summary")].find((el) => el.checkVisibility()).click()`);
-  await sleep(500);
+  assert.ok(collapsed.total > 12 && collapsed.visible.length === 12 && collapsed.expanded === "false" && collapsed.toggleBelowAll, `标签多于 12 个时默认只显示 12 个，按钮在最下面：${JSON.stringify({ ...collapsed, visible: collapsed.visible.length })}`);
+  const steady = await browser.evaluate(`(async () => {
+    const section = [...document.querySelectorAll(".site-content .list-aside-tags")].find((el) => el.checkVisibility());
+    const first = [...section.querySelectorAll(".tag-chip")].slice(0, 12);
+    // 右栏内容宽度也记进去：滚动条出现时如果占宽度，标签就会重新换行（这台机器上行尾有余量时位置不一定变，宽度一定变）
+    const aside = section.closest(".list-aside");
+    const where = () => aside.clientWidth + " | " + first.map((el) => { const r = el.getBoundingClientRect(); return Math.round(r.left) + "," + Math.round(r.top); }).join(" ");
+    const before = where();
+    section.querySelector(".tag-fold-toggle").click();
+    const moved = [];
+    const end = performance.now() + 600;
+    while (performance.now() < end) {
+      await new Promise((r) => requestAnimationFrame(r));
+      if (where() !== before) moved.push(where());
+    }
+    return { before, moved: moved.length };
+  })()`);
+  assert.equal(steady.moved, 0, `展开时右栏宽度和上面 12 个标签都不能变（有 ${steady.moved} 帧变了）`);
+  // 用户的 Chrome 是会占宽度的经典滚动条：右栏展开到放不下、滚动条一出现，宽度少 11px，上面的标签整片重新换行。
+  // 这台机器的无头浏览器只有不占宽度的悬浮滚动条，复现不出来，所以直接检查右栏一直给滚动条留着位置
+  assert.equal(await browser.evaluate(`getComputedStyle([...document.querySelectorAll(".list-aside")].find((el) => el.checkVisibility())).scrollbarGutter`), "stable", "右栏要一直留着滚动条的位置");
   const expanded = await tagState();
-  assert.equal(expanded.visible.length, expanded.total, "展开后显示全部标签");
-  await browser.evaluate(`[...document.querySelectorAll(".site-content .tag-more summary")].find((el) => el.checkVisibility()).click()`);
-  await sleep(500);
+  assert.ok(expanded.visible.length === expanded.total && expanded.expanded === "true" && expanded.toggleBelowAll, `展开后显示全部标签，“收起”仍在最下面：${JSON.stringify({ ...expanded, visible: expanded.visible.length })}`);
+  await browser.evaluate(`[...document.querySelectorAll(".site-content .tag-fold-toggle")].find((el) => el.checkVisibility()).click()`);
+  await sleep(600);
   assert.equal((await tagState()).visible.length, 12, "再点一次收起");
   const rare = expanded.visible.at(-1);
   await browser.goto(`${base}/posts?tag=${encodeURIComponent(rare)}`);

@@ -103,6 +103,8 @@
     gap: var(--space-6);
     overscroll-behavior: contain;
     scrollbar-width: thin;
+    /* 滚动条的位置一直留着：内容长到放不下、滚动条出现时右栏宽度不变，标签不会整片重新换行（2026-11-01 用户录屏） */
+    scrollbar-gutter: stable;
   }
 
   .list-aside .list-search {
@@ -277,53 +279,63 @@
   font-size: var(--text-xs);
 }
 
-/* 宽屏右栏标签的“展开全部 N 个 / 收起”：淡色小字，展开后剩下的标签接在下面（开合动画用全站 <details> 的那套） */
-.tag-more {
-  margin-top: var(--space-2);
+/* 宽屏右栏标签（tag-fold.tsx）：最常用的一组在上，其余收在 .tag-fold 里，最下面是“展开全部 N 个 / 收起”按钮。
+   展开、收起只动 .tag-fold 自己的行高（0fr ↔ 1fr）和透明度，上面那组和按钮左右都不动；0.28 秒、两头都缓，和全站折叠栏一致。 */
+.tag-fold {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.tag-more summary {
+.tag-fold[data-open] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.tag-fold-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tag-fold-inner > .tag-list {
+  padding: var(--space-2) 2px 2px;
+}
+
+.tag-fold-toggle {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
+  margin-top: var(--space-2);
   padding: var(--space-1) var(--space-2);
+  border: 0;
   border-radius: var(--radius-sm);
+  background: none;
   color: var(--muted-foreground);
+  font: inherit;
   font-size: var(--text-xs);
   cursor: pointer;
-  list-style: none;
-}
-
-.tag-more summary::-webkit-details-marker {
-  display: none;
 }
 
 @media (hover: hover) {
-  .tag-more summary:hover {
+  .tag-fold-toggle:hover {
     color: var(--foreground);
   }
 }
 
-.tag-more summary:focus-visible {
+.tag-fold-toggle:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
-.tag-more .tag-list {
-  margin-top: var(--space-2);
-}
-
-.tag-more-hide,
-.tag-more[open] .tag-more-show {
-  display: none;
-}
-
-.tag-more[open] .tag-more-hide {
-  display: inline;
-}
-
-.tag-more[open] .tag-drawer-arrow {
+.tag-fold-toggle[aria-expanded="true"] .tag-drawer-arrow {
   transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tag-fold {
+    transition: none;
+  }
 }
 
 /* 带小图的话题整条按中线对齐：图片会把文字基线拉到图底，后面的篇数看着偏低 */
