@@ -11,7 +11,8 @@ import { openSearch } from "./command-search";
 import "./mobile-menu.css";
 
 // 二级链接：icon 是话题的后台图片（null 表示话题没设图片，留空位；其他链接不传）
-type MenuChild = { label: string; href: string; icon?: string | null };
+// external：去别人的站（串门），在新标签页打开、不预取
+type MenuChild = { label: string; href: string; icon?: string | null; external?: boolean };
 export type MenuSection = { label: string; href?: string; children: MenuChild[] };
 
 const pathOf = (href: string) => href.split("?")[0];
@@ -60,7 +61,7 @@ export default function MobileMenu({ sections, account }: { sections: MenuSectio
                       <ul className="mobile-menu-children" aria-label={section.label}>
                         {section.children.map((child) => (
                           <li key={child.href}>
-                            <Link href={child.href} aria-current={current(child.href)} onClick={() => setOpen(false)}>
+                            <Link href={child.href} aria-current={current(child.href)} onClick={() => setOpen(false)} {...(child.external ? { target: "_blank", rel: "noopener noreferrer", prefetch: false } : {})}>
                               {child.icon !== undefined && (child.icon
                                 // eslint-disable-next-line @next/next/no-img-element -- 后台话题图片，任意地址的小图标
                                 ? <img className="mobile-menu-icon" src={child.icon} alt="" width={18} height={18} />

@@ -309,7 +309,11 @@
 .nav-panel.is-posts { width: 38rem; }
 .nav-panel.is-notes { width: 36rem; }
 .nav-panel.is-timeline { width: 36rem; }
-.nav-panel.is-more { width: 22rem; }
+/* 更多：两列小格子自带内边距，面板本身少留一点 */
+.nav-panel.is-more {
+  width: 27rem;
+  padding: 0.625rem;
+}
 
 .nav-panel-body {
   display: grid;
@@ -720,41 +724,72 @@ li[data-highlighted] > .nav-category .nav-category-name::before,
   letter-spacing: 0.04em;
 }
 
-/* 更多：名字 …… 一句说明 */
+/* 更多：两列小格子，每格一个图标 + 名字 + 一句说明；串门（去朋友家）占满一行 */
 .nav-more {
   display: grid;
-  gap: 2px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+.nav-more-wide {
+  grid-column: 1 / -1;
+}
+
 .nav-more-link {
-  gap: var(--space-3);
-  padding: 0.5rem 0;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--radius-md);
+  transition: color var(--duration-fast), background-color var(--duration-fast);
+
+  @media (hover: hover) {
+    &:hover {
+      background: var(--accent);
+    }
+  }
+}
+
+.nav-more-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+  transition: box-shadow var(--duration-fast);
+}
+
+@media (hover: hover) {
+  .nav-more-link:hover .nav-more-icon {
+    box-shadow: 0 0 14px var(--star-glow);
+  }
+}
+
+.nav-more-text {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
 }
 
 .nav-more-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   color: var(--foreground);
   font-size: var(--text-sm);
+  font-weight: 500;
   letter-spacing: 0.04em;
-  white-space: nowrap;
-}
-
-.nav-more-leader {
-  flex: 1;
-  min-width: 1.5rem;
-  border-bottom: 1px dotted color-mix(in srgb, var(--foreground) 22%, transparent);
-  translate: 0 -0.2em;
 }
 
 .nav-more-note {
-  color: var(--muted-foreground);
   font-size: var(--text-xs);
-  white-space: nowrap;
+  line-height: 1.5;
 }
 
-.nav-more-link:hover .nav-more-name,
 .nav-more-link[data-active] .nav-more-name {
   color: var(--primary);
 }

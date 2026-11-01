@@ -46,11 +46,13 @@ const zh = {
     murmurs: "碎碎念",
     more: "更多",
     debug: "调试",
+    // “更多”面板里每一项的说明用自己的话写（原来那几句和 Innei 的站重了）；串门随机去一位朋友的站，在新标签页打开
     moreLinks: {
-      projects: { label: "作品", note: "开源项目与作品集" },
-      friends: { label: "友链", note: "互联网上的朋友们" },
-      says: { label: "一言", note: "言语的碎片" },
-      thinking: { label: "思考", note: "读到的、看到的和我的看法" },
+      projects: { label: "作品", note: "夜里敲出来的小东西" },
+      friends: { label: "友链", note: "夜空里的邻居们" },
+      says: { label: "一言", note: "朋友们说过的好句子" },
+      thinking: { label: "思考", note: "读到什么，想到什么" },
+      visit: { label: "串门", note: "随机敲开一位朋友的门" },
     },
     // 首页面板左栏的字数、篇数：[数字, 单位]，数字用旧式数字显示
     words: (words: number): [string, string] => (words >= 10000 ? [(words / 10000).toFixed(1), "万字"] : [String(words), "字"]),

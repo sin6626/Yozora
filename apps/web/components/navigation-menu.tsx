@@ -1,7 +1,7 @@
 "use client";
 
 import { NavigationMenu } from "@base-ui/react/navigation-menu";
-import { ArrowRight, ChevronDown } from "lucide-react";
+import { ArrowRight, ArrowUpRight, ChevronDown, DoorOpen, Lightbulb, Orbit, Quote, Shapes, type LucideIcon } from "lucide-react";
 import { LayoutGroup, MotionConfig, motion } from "motion/react";
 import type { Messages } from "../lib/i18n/messages";
 import Link, { useLocalePathname, useT } from "./locale-provider";
@@ -34,11 +34,13 @@ export type NavigationState =
 // 首页、文章、手记、时间线本身是链接（点击跳转），悬停或聚焦时展开各自的面板；碎碎念只是链接；更多只展开。
 // 文案在 lib/i18n/messages 的 nav 里（按当前语言取）
 type NavCopy = Messages["nav"];
-const moreLinksOf = (t: NavCopy) => [
-  { ...t.moreLinks.projects, href: "/projects" },
-  { ...t.moreLinks.friends, href: "/friends" },
-  { ...t.moreLinks.says, href: "/says" },
-  { ...t.moreLinks.thinking, href: "/thinking" },
+// “更多”：两列小格子（图标 + 名字 + 一句说明），串门是去朋友家（app/[locale]/visit 随机跳转），占满一行、在新标签页打开
+const moreLinksOf = (t: NavCopy): { label: string; note: string; href: string; Icon: LucideIcon; external?: boolean }[] => [
+  { ...t.moreLinks.projects, href: "/projects", Icon: Shapes },
+  { ...t.moreLinks.friends, href: "/friends", Icon: Orbit },
+  { ...t.moreLinks.says, href: "/says", Icon: Quote },
+  { ...t.moreLinks.thinking, href: "/thinking", Icon: Lightbulb },
+  { ...t.moreLinks.visit, href: "/visit", Icon: DoorOpen, external: true },
 ];
 
 const isCurrent = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
@@ -63,9 +65,10 @@ function Star({ active }: { active: boolean }) {
 }
 
 // 面板里的链接：点了就收起面板，交给 Next 的 Link 跳转
-function PanelLink({ href, className, children, current }: { href: string; className: string; children: ReactNode; current?: boolean }) {
+// external：去别人的站（串门），在新标签页打开、不预取
+function PanelLink({ href, className, children, current, external }: { href: string; className: string; children: ReactNode; current?: boolean; external?: boolean }) {
   return (
-    <NavigationMenu.Link className={className} active={current} closeOnClick render={<Link href={href} />}>
+    <NavigationMenu.Link className={className} active={current} closeOnClick render={external ? <Link href={href} target="_blank" rel="noopener noreferrer" prefetch={false} /> : <Link href={href} />}>
       {children}
     </NavigationMenu.Link>
   );
@@ -287,7 +290,7 @@ export default function BlogNavigation({ state, account }: { state: NavigationSt
         { label: t.notes, href: "/notes", children: (panels?.topics ?? []).map(({ name, href, icon }) => ({ label: name, href, icon: icon ?? null })) },
         { label: t.timeline, href: "/timeline", children: [{ label: t.posts, href: "/timeline/posts" }, { label: t.notes, href: "/timeline/notes" }] },
         { label: t.murmurs, href: "/murmurs", children: [] },
-        { label: t.more, children: [...moreLinks, ...devLinks] },
+        { label: t.more, children: [...moreLinks.map(({ label, href, external }) => ({ label, href, external })), ...devLinks] },
       ]}
       account={account}
     />
@@ -336,12 +339,14 @@ export default function BlogNavigation({ state, account }: { state: NavigationSt
           <NavigationMenu.Content className="navigation-Content">
             <div className="nav-panel is-more">
               <ul className="nav-more">
-                {moreLinks.map((link) => (
-                  <li key={link.href}>
-                    <PanelLink href={link.href} className="nav-more-link" current={isCurrent(pathname, link.href)}>
-                      <span className="nav-more-name">{link.label}</span>
-                      <span className="nav-more-leader" aria-hidden="true" />
-                      <span className="nav-more-note">{link.note}</span>
+                {moreLinks.map(({ Icon, ...link }) => (
+                  <li key={link.href} className={link.external ? "nav-more-wide" : undefined}>
+                    <PanelLink href={link.href} className="nav-more-link" current={isCurrent(pathname, link.href)} external={link.external}>
+                      <span className="nav-more-icon" aria-hidden="true"><Icon size={16} /></span>
+                      <span className="nav-more-text">
+                        <span className="nav-more-name">{link.label}{link.external && <ArrowUpRight size={13} aria-hidden="true" />}</span>
+                        <span className="nav-more-note">{link.note}</span>
+                      </span>
                     </PanelLink>
                   </li>
                 ))}
