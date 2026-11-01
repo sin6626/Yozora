@@ -85,16 +85,17 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-// 页头的站点标识：后台头像 + 站名（头像读不到时只显示站名）；站长在电脑前时站名区会滚动显示在用的 App 和音频条
-async function SiteBrand() {
-  const [settings, owner] = await Promise.all([getSiteSettings().catch(() => null), getOwner().catch(() => null)]);
-  return (
-    <>
-      {/* eslint-disable-next-line @next/next/no-img-element -- 头像来自后台任意地址，不走 Next 图片优化 */}
-      {owner?.avatar && <img className="site-brand-avatar" src={owner.avatar} alt="" width={32} height={32} />}
-      <OwnerPresence apiUrl={getApiUrl()} name={settings?.name ?? siteName} />
-    </>
-  );
+// 页头左边的后台头像（首页链接），读不到时留一个空的月光圆
+async function SiteAvatar() {
+  const owner = await getOwner().catch(() => null);
+  // eslint-disable-next-line @next/next/no-img-element -- 头像来自后台任意地址，不走 Next 图片优化
+  return owner?.avatar ? <img className="site-brand-avatar" src={owner.avatar} alt="" width={32} height={32} /> : <span className="site-brand-avatar" />;
+}
+
+// 头像右边的站名区：站长在电脑前时滚动显示在用的 App 和音频条，悬停看卡片（owner-presence.tsx）
+async function SiteName() {
+  const settings = await getSiteSettings().catch(() => null);
+  return <OwnerPresence apiUrl={getApiUrl()} name={settings?.name ?? siteName} />;
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/[locale]">) {
@@ -124,7 +125,8 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
           <Starfield />
           <div className="site-shell">
             <SiteHeader
-              brand={<Suspense fallback={<span className="site-brand-name">{siteName}</span>}><SiteBrand /></Suspense>}
+              brand={<Suspense fallback={<span className="site-brand-avatar" />}><SiteAvatar /></Suspense>}
+              presence={<Suspense fallback={<span className="site-brand-name">{siteName}</span>}><SiteName /></Suspense>}
               nav={<Navigation account={<Suspense fallback={null}><HeaderAccount side="top" /></Suspense>} />}
               search={<Suspense fallback={<span className="icon-button" aria-hidden="true" />}><HeaderSearch /></Suspense>}
               account={<Suspense fallback={<span className="account-trigger" aria-hidden="true" />}><HeaderAccount host /></Suspense>}

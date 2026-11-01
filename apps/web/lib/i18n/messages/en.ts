@@ -28,6 +28,12 @@ const en: Messages = {
       prefix: "The owner right now: ",
       using: (app: string) => `Using ${app}`,
       listening: (title: string, artist?: string) => `Listening to ${artist ? `${title} – ${artist}` : title}`,
+      label: "What the owner is up to",
+      usingLabel: "Using",
+      listeningLabel: "Listening",
+      forTime: (minutes: number) => (minutes < 1 ? "Just opened" : minutes < 60 ? `For ${minutes} min` : `For ${Math.floor(minutes / 60)} h${minutes % 60 ? ` ${minutes % 60} min` : ""}`),
+      on: (player: string) => `on ${player}`,
+      quiet: "All quiet for now",
     },
   },
   nav: {

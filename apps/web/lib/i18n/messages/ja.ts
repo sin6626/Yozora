@@ -28,6 +28,12 @@ const ja: Messages = {
       prefix: "管理人はいま：",
       using: (app: string) => `${app} を使用中`,
       listening: (title: string, artist?: string) => `${artist ? `${title} – ${artist}` : title} を再生中`,
+      label: "管理人がいましていること",
+      usingLabel: "使用中",
+      listeningLabel: "再生中",
+      forTime: (minutes: number) => (minutes < 1 ? "開いたばかり" : minutes < 60 ? `${minutes} 分前から` : `${Math.floor(minutes / 60)} 時間${minutes % 60 ? ` ${minutes % 60} 分` : ""}前から`),
+      on: (player: string) => `${player} で`,
+      quiet: "いまは静か",
     },
   },
   nav: {

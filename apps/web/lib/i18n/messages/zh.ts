@@ -29,6 +29,13 @@ const zh = {
       prefix: "站长此刻：",
       using: (app: string) => `在用 ${app}`,
       listening: (title: string, artist?: string) => `在听 ${artist ? `${title} – ${artist}` : title}`,
+      // 悬停卡片（左边在用的 App，右边在听的歌）
+      label: "站长此刻在做什么",
+      usingLabel: "在用",
+      listeningLabel: "在听",
+      forTime: (minutes: number) => (minutes < 1 ? "刚刚打开" : minutes < 60 ? `已经 ${minutes} 分钟` : `已经 ${Math.floor(minutes / 60)} 小时${minutes % 60 ? ` ${minutes % 60} 分钟` : ""}`),
+      on: (player: string) => `来自 ${player}`,
+      quiet: "此刻很安静",
     },
   },
   nav: {

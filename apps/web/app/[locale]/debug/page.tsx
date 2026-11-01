@@ -211,8 +211,8 @@ export default function DebugPage() {
           </li>
           <li id="debug-brand-ticker">
             <h2>页头站名滚动</h2>
-            <p className="post-meta">owner-presence.tsx：站长在电脑前时，头像右边的站名停 6 秒后向上滚成“正在用的 App 图标 + 跳动的音频条”，4 秒后滚回站名；鼠标停在上面时暂停，提示框里有 App 名和歌名。下面是写死的示例数据，不读 Core</p>
-            <BrandTickerPreview />
+            <p className="post-meta">owner-presence.tsx：站长在电脑前时，头像右边的站名停 6 秒后向上滚成“正在用的 App 图标 + 音频条”（没放歌时是几颗安静的点），14 秒后滚回站名；鼠标移到图标上暂停滚动并弹出卡片（左边在用的 App，右边在听的歌）。下面是写死的示例数据，不读 Core</p>
+            <BrandTickerPreview avatar={`${getApiUrl()}/objects/avatar/Sin.jpg`} />
           </li>
           <li>
             <h2>文章正文</h2>

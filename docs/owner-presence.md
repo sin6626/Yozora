@@ -1,12 +1,16 @@
 # 站长“正在用 / 在听”
 
-页头头像右边的站名区：站长在电脑前时，站名停 6 秒后向上滚成“正在用的 App 图标 + 跳动的音频条”，4 秒后滚回站名，如此轮流。不写 App 名和歌名，鼠标停在上面时暂停，提示框里能看到“在用 Microsoft Edge · 在听 小孩 – 罗燕涛”。这一格始终是站名的宽度，导航不会跟着挪。顶部铺开和往下滚后的深色导航条里都会滚；读文章收成小胶囊时不滚，改成头像外圈的月光慢慢呼吸。没有图标时显示 App 名首字的小方块。调试页“页头站名滚动”有三个写死数据的示例。
+页头左边是头像（首页链接），右边是站名区。站长在电脑前时，站名停 6 秒后向上滚成“正在用的 App 图标 + 音频条”，停 14 秒（一个周期里占七成）再滚回站名，如此轮流。放歌时音频条舒缓地跳，没放歌时是几颗安静的点。这一格始终是站名的宽度，导航不会跟着挪。
+
+鼠标移到图标上（键盘聚焦、触屏点一下也行）弹出卡片：左边是在用的 App（大图标、名字、“已经 23 分钟”），中间一道两头渐隐的竖线和一颗四角星，右边是在听的歌（慢慢转的唱片、歌名、歌手、“来自 网易云音乐”、带一颗星走动的进度条），没放歌时是安静的点和“此刻很安静”。卡片和夜航岛胶囊一样，浅色深色主题下都是深色。站名区在头像链接外面，悬停它不会点亮头像。
+
+顶部铺开和往下滚后的深色导航条里都会滚；读文章收成小胶囊时不滚，改成头像外圈的月光慢慢呼吸。没有图标时显示 App 名首字的小方块。调试页“页头站名滚动”有三个写死数据的示例。
 
 ## 链路
 
 1. 站长 Mac 上的 [Yohaku Companion](https://github.com/Innei/YohakuCompanion)（菜单栏小工具，Apple Silicon、macOS 15 以上）读系统的“最前面的 App”和“正在播放”，按它自己的隐私规则过滤后，每隔几秒（默认 10 秒）用“MixSpace 兼容通道”POST 给 Core。
-2. Core 的云函数 `/fn/ps/update`（源码 `scripts/functions/ps-update.ts`）校验密钥，只留 App 名、https 图标、歌名和歌手，存进 Redis（两分钟过期），有变化时通过 WebSocket 广播 `fn#ps-update` / `fn#media-update`。窗口标题不存不播。
-3. 前台 `components/owner-presence.tsx`（由根布局的站名 SiteBrand 渲染，样式在 `site-header.css` 的 `.brand-ticker`）打开页面时 GET 一次，之后听广播即时更新；标签页可见时每分钟再读一次（过期不会广播）。停留时间只算看得见、没被打断的时间：小胶囊、播报、后台标签页、鼠标悬停、导航面板展开时都不走。读屏把“站长此刻：……”作为首页链接的描述（aria-describedby）。
+2. Core 的云函数 `/fn/ps/update`（源码 `scripts/functions/ps-update.ts`）校验密钥，只留 App 名、https 图标、开始用的时间（换 App 才重计），以及歌名、歌手、播放器、时长、进度和采样时间，存进 Redis（两分钟过期）。换了 App、换了歌或进度比推算的差 5 秒以上（拖动了进度）时通过 WebSocket 广播 `fn#ps-update` / `fn#media-update`。窗口标题不存不播。Companion 只在音乐正在播放时才发歌曲信息，所以有歌就是在放，前台按采样时间往前推算进度。
+3. 前台 `components/owner-presence.tsx`（根布局的 SiteName 渲染，作为 SiteHeader 的 presence 放在头像链接后面；样式在 `owner-presence.css`）打开页面时 GET 一次，之后听广播即时更新；标签页可见时每分钟再读一次（过期不会广播）。停留时间只算看得见、没被打断的时间：小胶囊、播报、后台标签页、鼠标悬停、键盘聚焦、卡片或导航面板开着时都不走。读屏把“站长此刻：……”作为首页链接的描述（aria-describedby）。
 
 Mac 睡眠、锁屏、关机或 Companion 退出后，最多约三分钟从网站上消失。
 
@@ -39,5 +43,6 @@ App 图标由 Companion 传到图床（Destinations → Application Icon Hosting
 ## 测试
 
 - `node scripts/verify-presence.mjs`：云函数的密钥、清洗、只在变化时广播、清空，前台解析（pnpm verify）
-- `node scripts/e2e/owner-presence.mjs`：调试页示例的滚动节奏、宽度不变、图标/首字/音频条、悬停暂停、减少动态效果；真实页头在浏览器里拦截 GET、断开 WebSocket（不受站长实时上报干扰，也不写 Core）检查滚动、导航不挪、读屏描述、胶囊里光圈呼吸（pnpm e2e，需要 pnpm dev）
+- `node scripts/e2e/owner-presence.mjs`：调试页示例的 6/14 秒节奏、宽度不变、图标/首字/跳动音频条/安静的点、悬停卡片内容、悬停不点亮头像、卡片开着不滚、减少动态效果；真实页头在浏览器里拦截 GET、断开 WebSocket（不受站长实时上报干扰，也不写 Core）检查滚动、导航不挪、读屏描述、胶囊里光圈呼吸（pnpm e2e，需要 pnpm dev）
 - Core：`apps/core/test/src/modules/serverless/serverless.service.spec.ts` 里 `throws` 保留状态码、`cache.del` 真的删除两条
+- `node scripts/e2e/header-smooth.mjs`：夜航岛切换时头像大小不变、外框不冲过头（pnpm e2e）

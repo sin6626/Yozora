@@ -4,9 +4,11 @@
 //   清洗后存进 Redis，有变化才广播给访客（fn#ps-update / fn#media-update）；
 // - GET：前台夜航岛读当前状态；
 // - DELETE：带密钥手动清空（也给测试收尾用）。
+// App 记下开始用的时间（since，换 App 才重新计），歌记下时长、进度和采样时间（at），前台悬停卡片据此显示“用了多久”和播放进度。
+// Companion 只在音乐正在播放时才发 media，所以有 media 就是在放，进度可以按 at 往前推算。
 
-type Process = { name: string; iconUrl?: string }
-type Media = { title: string; artist?: string }
+type Process = { name: string; iconUrl?: string; since: number }
+type Media = { title: string; artist?: string; player?: string; duration?: number; elapsed?: number; at?: number }
 type Context = {
   req: { method: string; body?: unknown }
   isAuthenticated: boolean
@@ -24,6 +26,8 @@ type Context = {
 
 // Companion 默认 10 秒发一次（最慢 1 分钟）；两分钟没收到就当站长离开了，Mac 睡眠、锁屏、关机后自然消失
 const ttl = 120
+// 进度和按上次推算的差超过这么多秒，当作拖动了进度或重新播放，广播一次让访客那边校准
+const seekTolerance = 5
 
 function text(value: unknown, max: number) {
   if (typeof value !== 'string') return undefined
@@ -31,23 +35,36 @@ function text(value: unknown, max: number) {
   return trimmed ? trimmed.slice(0, max) : undefined
 }
 
+function seconds(value: unknown, max: number) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= max ? value : undefined
+}
+
 // 这些数据会广播给每个访客：只留 App 名和 https 图标。窗口标题（description）、iconBase64 一律不存不播。
 // 旧版 ProcessReporterMac 把 process 发成字符串，也认。
-function toProcess(value: unknown): Process | null {
+function toProcess(value: unknown, before: Process | null, now: number): Process | null {
   const raw = (typeof value === 'string' ? { name: value } : value ?? {}) as Record<string, unknown>
   const name = text(raw.name, 64)
   if (!name) return null
+  const since = before?.name === name && before.since ? before.since : now
   const iconUrl = text(raw.iconUrl, 512)
-  return iconUrl && /^https:\/\//i.test(iconUrl) ? { name, iconUrl } : { name }
+  return iconUrl && /^https:\/\//i.test(iconUrl) ? { name, iconUrl, since } : { name, since }
 }
 
 // Companion 没在放歌时也会发 media，只是没有标题
-function toMedia(value: unknown): Media | null {
+function toMedia(value: unknown, now: number): Media | null {
   const raw = (value ?? {}) as Record<string, unknown>
   const title = text(raw.title, 128)
   if (!title) return null
+  const media: Media = { title }
   const artist = text(raw.artist, 128)
-  return artist ? { title, artist } : { title }
+  const player = text(raw.processName, 64)
+  const duration = seconds(raw.duration, 24 * 3600)
+  const elapsed = seconds(raw.elapsedTime, duration ?? 24 * 3600)
+  if (artist) media.artist = artist
+  if (player) media.player = player
+  if (duration) media.duration = duration
+  if (elapsed !== undefined) Object.assign(media, { elapsed, at: now })
+  return media
 }
 
 async function read(ctx: Context) {
@@ -58,19 +75,28 @@ async function read(ctx: Context) {
   return { processName: processInfo?.name ?? null, processInfo: processInfo ?? null, mediaInfo: mediaInfo ?? null }
 }
 
-const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+const sameApp = (a: Process | null, b: Process | null) => a?.name === b?.name && a?.iconUrl === b?.iconUrl
+const songOf = (media: Media | null) => JSON.stringify(media ? [media.title, media.artist, media.player] : null)
+function sameSong(before: Media | null, media: Media | null, now: number) {
+  if (songOf(before) !== songOf(media)) return false
+  if (before?.elapsed === undefined || !before.at || media?.elapsed === undefined) return true
+  return Math.abs(before.elapsed + (now - before.at) / 1000 - media.elapsed) <= seekTolerance
+}
 
 async function save(ctx: Context, key: string, value: Process | Media | null) {
   if (value) await ctx.storage.cache.set(key, value, ttl)
   else await ctx.storage.cache.del(key)
 }
 
-async function update(ctx: Context, process: Process | null, media: Media | null) {
+async function update(ctx: Context, body: Record<string, unknown> | null) {
+  const now = Date.now()
   const before = await read(ctx)
-  if (!same(before.processInfo, process)) {
-    ctx.broadcast?.('ps-update', { processInfo: process, process: process?.name ?? null, ts: Date.now() })
+  const process = body ? toProcess(body.process, before.processInfo, now) : null
+  const media = body ? toMedia(body.media, now) : null
+  if (!sameApp(before.processInfo, process)) {
+    ctx.broadcast?.('ps-update', { processInfo: process, process: process?.name ?? null, ts: now })
   }
-  if (!same(before.mediaInfo, media)) ctx.broadcast?.('media-update', media)
+  if (!sameSong(before.mediaInfo, media, now)) ctx.broadcast?.('media-update', media)
   await Promise.all([save(ctx, 'ps', process), save(ctx, 'media', media)])
   return { ok: 1, processName: process?.name ?? null, processInfo: process, mediaInfo: media }
 }
@@ -82,5 +108,5 @@ export default async function handler(ctx: Context) {
   const body = (ctx.req.body ?? {}) as Record<string, unknown>
   const key = ctx.secret?.key
   if (!ctx.isAuthenticated && (typeof key !== 'string' || !key || body.key !== key)) ctx.throws(401, 'Unauthorized')
-  return method === 'DELETE' ? update(ctx, null, null) : update(ctx, toProcess(body.process), toMedia(body.media))
+  return update(ctx, method === 'DELETE' ? null : body)
 }

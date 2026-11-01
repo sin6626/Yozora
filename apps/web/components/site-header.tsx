@@ -83,7 +83,8 @@ function useScrolled() {
 // account：读者登录入口（header-account.tsx），放在主题按钮左边
 // activityIcons：播报用的图标（island-icons.tsx，服务端渲染好传进来）
 // search：⌘K 搜索（header-search.tsx），放在最左边
-export default function SiteHeader({ brand, nav, search, account, activityIcons }: { brand: ReactNode; nav: ReactNode; search?: ReactNode; account?: ReactNode; activityIcons: Record<IslandActivityIcon, ReactNode> }) {
+// brand：头像（首页链接）；presence：头像右边的站名区（owner-presence.tsx），在链接外面，悬停它不会点亮头像
+export default function SiteHeader({ brand, presence, nav, search, account, activityIcons }: { brand: ReactNode; presence: ReactNode; nav: ReactNode; search?: ReactNode; account?: ReactNode; activityIcons: Record<IslandActivityIcon, ReactNode> }) {
   const t = useT().header;
   const scrolled = useScrolled();
   const [hovered, setHovered] = useState(false);
@@ -198,8 +199,9 @@ export default function SiteHeader({ brand, nav, search, account, activityIcons 
           onBlur={onBlur}
         >
           <motion.div layout="position" transition={spring} className="island-brand">
-            {/* 站长此刻在用的 App、在听的歌（站名区滚动，owner-presence.tsx）作为链接的描述给读屏念，在线时才有这个元素 */}
+            {/* 站长此刻在用的 App、在听的歌作为首页链接的描述给读屏念（#owner-presence 由 owner-presence.tsx 在站长在线时渲染） */}
             <Link className="site-brand" href="/" aria-label={t.home} aria-describedby="owner-presence">{brand}</Link>
+            {presence}
           </motion.div>
 
           <motion.div layout="position" transition={spring} className="island-nav">{nav}</motion.div>

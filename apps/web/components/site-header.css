@@ -75,7 +75,11 @@
   backdrop-filter: none;
 }
 
+/* 左边头像（首页链接），右边站名区（owner-presence.tsx），两者是兄弟元素：悬停站名区不会点亮头像 */
 .island-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   justify-self: start;
   min-width: 0;
 }
@@ -131,117 +135,7 @@
   letter-spacing: 0.01em;
 }
 
-/* 站名区（owner-presence.tsx）：站长在电脑前时每隔几秒向上滚一格，换成“App 图标 + 跳动的音频条”，再滚回站名。
-   站名一直占着位置（滚走时只是移开、变透明），所以这一格始终是站名的宽度，导航不会跟着挪；上下滚出去的部分裁掉 */
-.brand-ticker {
-  display: inline-grid;
-  align-items: center;
-  overflow-x: visible;
-  overflow-y: clip;
-}
-
-.brand-ticker-name,
-.brand-ticker-live {
-  grid-area: 1 / 1;
-}
-
-.brand-ticker-live {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  /* 不参与撑宽，宽度跟着站名 */
-  width: 0;
-  min-width: 100%;
-  opacity: 0;
-}
-
-.brand-ticker-icon {
-  flex: none;
-  width: 1.125rem;
-  height: 1.125rem;
-}
-
-/* 没有 App 图标时：写着 App 名首字的小方块 */
-.brand-ticker-monogram {
-  display: grid;
-  place-items: center;
-  border-radius: 0.3125rem;
-  background: color-mix(in srgb, var(--foreground) 14%, transparent);
-  color: var(--foreground);
-  font-size: 0.6875rem;
-  font-weight: 700;
-}
-
-.brand-ticker-monogram::before {
-  content: var(--letter);
-}
-
-/* 在听歌：四根高低跳动的音频条，不写歌名 */
-.brand-ticker-bars {
-  display: inline-flex;
-  align-items: flex-end;
-  gap: 2px;
-  height: 0.875rem;
-}
-
-.brand-ticker-bars i {
-  width: 3px;
-  height: 100%;
-  border-radius: 1px;
-  background: var(--moonlight);
-  transform-origin: bottom;
-  animation: brand-ticker-bar 0.9s ease-in-out infinite alternate;
-}
-
-.brand-ticker-bars i:nth-child(2) {
-  animation-duration: 0.7s;
-  animation-delay: -0.35s;
-}
-
-.brand-ticker-bars i:nth-child(3) {
-  animation-duration: 1.05s;
-  animation-delay: -0.6s;
-}
-
-.brand-ticker-bars i:nth-child(4) {
-  animation-duration: 0.8s;
-  animation-delay: -0.2s;
-}
-
-@keyframes brand-ticker-bar {
-  from {
-    transform: scaleY(0.25);
-  }
-  to {
-    transform: scaleY(1);
-  }
-}
-
-/* 读文章收成小胶囊时站名区不显示，改成头像外圈的月光慢慢呼吸，表示站长此刻在电脑前 */
-.site-header[data-mode="compact"] .site-brand:has(.brand-ticker[data-live]) .site-brand-avatar {
-  animation: brand-avatar-breathe 3.2s ease-in-out infinite;
-}
-
-@keyframes brand-avatar-breathe {
-  50% {
-    box-shadow: 0 0 0 1px var(--moonlight), 0 0 16px 1px color-mix(in srgb, var(--moonlight) 70%, transparent);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .brand-ticker-bars i {
-    animation: none;
-  }
-
-  .brand-ticker-bars i:nth-child(1) { transform: scaleY(0.5); }
-  .brand-ticker-bars i:nth-child(2) { transform: scaleY(0.9); }
-  .brand-ticker-bars i:nth-child(3) { transform: scaleY(0.65); }
-  .brand-ticker-bars i:nth-child(4) { transform: scaleY(0.4); }
-
-  .site-header[data-mode="compact"] .site-brand:has(.brand-ticker[data-live]) .site-brand-avatar {
-    animation: none;
-  }
-}
+/* 头像右边的站名区（滚动、音频条、悬停卡片）的样式在 owner-presence.css */
 
 /* ---------- 胶囊（compact / expanded / activity）：浅色深色主题下都是深色，内部的颜色变量换成深底浅字 ---------- */
 .site-header:not([data-mode="bar"]) .island {
