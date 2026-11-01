@@ -1,0 +1,207 @@
+/* 一言页（say-list.tsx、say-tools.tsx）：工具栏（按人看 + 抽一句）、抽到的那句、每张引文卡片的“做成卡片”按钮和卡片弹窗 */
+.say-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.say-authors {
+  min-width: 0;
+}
+
+.say-draw-button {
+  margin-left: auto;
+}
+
+/* 抽到的那句：像翻开一张签，从上沿翻下来；用首屏的霞鹜文楷写大字 */
+.say-drawn {
+  position: relative;
+  margin-bottom: var(--space-8);
+  padding: var(--space-8) var(--space-8) var(--space-6);
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
+  border-radius: var(--radius-md);
+  background: linear-gradient(160deg, var(--primary-soft), transparent 70%), var(--muted);
+  box-shadow: 0 0 44px -20px var(--star-glow);
+  transform-origin: top center;
+  animation: say-draw-in 0.6s var(--ease-out) both;
+}
+
+@keyframes say-draw-in {
+  from {
+    opacity: 0;
+    transform: perspective(900px) rotateX(-70deg);
+    filter: blur(6px);
+  }
+}
+
+.say-drawn-label {
+  margin: 0 0 var(--space-3);
+  color: var(--primary);
+  font-size: var(--text-xs);
+  letter-spacing: 0.2em;
+}
+
+.say-drawn blockquote > p {
+  margin: 0;
+  font-family: "LXGW WenKai", "PingFang SC", var(--font-cjk-sans), sans-serif;
+  font-size: var(--text-xl);
+  font-weight: 300;
+  line-height: 1.6;
+}
+
+.say-drawn footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.say-drawn cite {
+  font-style: normal;
+}
+
+.say-drawn cite::before {
+  content: "《";
+}
+
+.say-drawn cite::after {
+  content: "》";
+}
+
+.say-drawn-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+}
+
+.say-drawn-close {
+  margin-left: auto;
+}
+
+/* 每张引文卡片右上角“做成卡片”：平时藏着，悬停卡片或键盘聚焦时出现；触屏一直显示 */
+.say-card-button {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--duration-fast), background-color var(--duration-fast), color var(--duration-fast);
+}
+
+.say-card:hover .say-card-button,
+.say-card-button:focus-visible,
+.say-card-button[data-popup-open] {
+  opacity: 1;
+}
+
+.say-card-button:hover {
+  background: var(--accent);
+  color: var(--primary);
+}
+
+.say-card-button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (hover: none) {
+  .say-card-button {
+    opacity: 1;
+  }
+}
+
+/* 卡片弹窗：居中一张 4:5 的预览图，下面保存、分享、收起 */
+.say-card-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-popup);
+  background: color-mix(in srgb, var(--island-bg) 70%, transparent);
+  backdrop-filter: blur(6px);
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.say-card-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: var(--z-popup);
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  width: min(24rem, calc(100vw - 2rem));
+  translate: -50% -50%;
+  outline: 0;
+  transition: opacity var(--duration-base) var(--ease-out), scale var(--duration-base) var(--ease-out);
+}
+
+.say-card-backdrop[data-starting-style],
+.say-card-backdrop[data-ending-style],
+.say-card-dialog[data-starting-style],
+.say-card-dialog[data-ending-style] {
+  opacity: 0;
+}
+
+.say-card-dialog[data-starting-style],
+.say-card-dialog[data-ending-style] {
+  scale: 0.96;
+}
+
+.say-card-preview {
+  width: 100%;
+}
+
+.say-card-preview img,
+.say-card-preview p {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 72vh;
+  aspect-ratio: 4 / 5;
+  margin: 0;
+  border-radius: var(--radius-md);
+  object-fit: contain;
+}
+
+.say-card-preview img {
+  box-shadow: var(--shadow-popup);
+}
+
+.say-card-preview p {
+  display: grid;
+  place-items: center;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+}
+
+.say-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .say-drawn {
+    animation-name: say-draw-fade;
+  }
+}
+
+@keyframes say-draw-fade {
+  from {
+    opacity: 0;
+  }
+}

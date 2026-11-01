@@ -478,15 +478,13 @@ export async function getLinkApplyOpen() {
   return Boolean(await getApiClient().link.canApplyLink());
 }
 
-export async function getSays(page: number) {
+// 一言：一次读全部（条数不多），按人看、抽一句都要用到全部；页面上再按 20 条分页
+export async function getAllSays() {
   "use cache";
   cacheLife({ stale: 60, revalidate: 300, expire: 3600 });
   cacheTag("blog:says");
-  const { data, pagination } = await getApiClient().say.getAllPaginated(page, 20);
-  return {
-    data: data.map(({ id, text, author, source, created }) => ({ id, text, author, source, created })),
-    pagination: { ...pagination },
-  };
+  const { data } = await getApiClient().say.getAll();
+  return data.map(({ id, text, author, source, created }) => ({ id, text, author: author || undefined, source: source || undefined, created: String(created) }));
 }
 
 // 碎碎念：站长随手记的闲话（Core /murmurs），按页读，每页 20 条，从新到旧。

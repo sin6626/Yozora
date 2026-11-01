@@ -1,38 +1,79 @@
 import Link from "./locale-provider";
 import "./corners.css";
+import "./details-sidebar.css";
+import "./says.css";
 import { notFound, unstable_rethrow } from "next/navigation";
-import { getSays } from "../lib/blog-data";
+import { getAllSays, getSiteSettings, getSiteUrl } from "../lib/blog-data";
 import { formatDate } from "../lib/date";
 import { getT } from "../lib/i18n/server";
+import { authorsOf } from "../lib/says";
+import { listHref, Pagination } from "./list-filters";
 import LoadError from "./load-error";
+import { SayCardButton, SayDraw } from "./say-tools";
 
-export default async function SayList({ searchParams }: { searchParams: Promise<{ page?: string | string[] }> }) {
-  const { page: rawPage = "1" } = await searchParams;
-  if (typeof rawPage !== "string" || !/^[1-9]\d*$/.test(rawPage)) notFound();
+const pageSize = 20;
+
+// 一言：朋友们说过的好句子。上面一排“按人看”的胶囊（?author=名字，名字原样匹配），右边“抽一句”；
+// 每张引文卡片右上角可以“做成卡片”（金句卡片图）。抽一句、卡片在 say-tools.tsx，纯逻辑在 lib/says.ts。
+export default async function SayList({ searchParams }: { searchParams: Promise<{ page?: string | string[]; author?: string | string[] }> }) {
+  const { page: rawPage = "1", author: rawAuthor } = await searchParams;
+  if (typeof rawPage !== "string" || !/^[1-9]\d*$/.test(rawPage) || Array.isArray(rawAuthor)) notFound();
   const page = Number(rawPage);
   if (!Number.isSafeInteger(page)) notFound();
-  const pageHref = (number: number) => number === 1 ? "/says" : `/says?page=${number}`;
-  const { says: t, list } = await getT();
-  let result: Awaited<ReturnType<typeof getSays>>;
+  const author = rawAuthor?.trim() || undefined;
+  const filter: Record<string, string> = author ? { author } : {};
+  const href = (number: number) => listHref("/says", filter, number);
+  const { says: t } = await getT();
+
+  let says: Awaited<ReturnType<typeof getAllSays>>;
+  let site: string;
   try {
-    result = await getSays(page);
-    if (page > Math.max(1, result.pagination.totalPage)) notFound();
+    const [all, settings, siteUrl] = await Promise.all([getAllSays(), getSiteSettings().catch(() => null), getSiteUrl().catch(() => "")]);
+    says = all;
+    site = [settings?.name, siteUrl && new URL(siteUrl).host].filter(Boolean).join(" · ");
   } catch (error) {
     unstable_rethrow(error);
-    return <LoadError what={t.title} href={pageHref(page)} />;
+    return <LoadError what={t.title} href={href(page)} />;
   }
-  const { data: says, pagination } = result;
+  const authors = authorsOf(says);
+  if (author && !authors.some(({ name }) => name === author)) notFound();
+  const shown = author ? says.filter((say) => say.author?.trim() === author) : says;
+  const totalPage = Math.max(1, Math.ceil(shown.length / pageSize));
+  if (page > totalPage) notFound();
+  const pageSays = shown.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <>
       <header className="page-heading">
         <h1>{t.title}</h1>
-        <p className="post-meta">{t.count(pagination.total)}</p>
+        <p className="post-meta">{t.count(shown.length)}</p>
       </header>
       <div className="post-list-content">
-        {says.length ? (
+        <SayDraw says={shown} site={site}>
+          {authors.length > 1 && (
+            <nav className="say-authors" aria-label={t.byAuthor}>
+              <ul className="tag-list">
+                <li>
+                  <Link className="tag-chip" href="/says" aria-current={author ? undefined : "page"}>
+                    {t.all}
+                    <span className="tag-count">{says.length}</span>
+                  </Link>
+                </li>
+                {authors.map(({ name, count }) => (
+                  <li key={name}>
+                    <Link className="tag-chip" href={listHref("/says", { author: name }, 1)} aria-current={name === author ? "page" : undefined}>
+                      <span lang="zh-CN">{name}</span>
+                      <span className="tag-count">{count}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          )}
+        </SayDraw>
+        {pageSays.length ? (
           <ul className="say-list">
-            {says.map((say) => (
+            {pageSays.map((say) => (
               <li key={say.id} className="say-card">
                 <blockquote lang="zh-CN">
                   <p>{say.text}</p>
@@ -44,17 +85,12 @@ export default async function SayList({ searchParams }: { searchParams: Promise<
                   )}
                 </blockquote>
                 <time className="say-date" dateTime={say.created}>{formatDate(say.created)}</time>
+                <SayCardButton say={say} site={site} />
               </li>
             ))}
           </ul>
         ) : <p className="post-empty">{t.empty}</p>}
-        {pagination.totalPage > 1 && (
-          <nav className="post-pagination" aria-label={list.pagination(t.title)}>
-            {pagination.hasPrevPage ? <Link href={pageHref(page - 1)} rel="prev">{list.prev}</Link> : <span>{list.prev}</span>}
-            <span>{list.page(page, pagination.totalPage)}</span>
-            {pagination.hasNextPage ? <Link href={pageHref(page + 1)} rel="next">{list.next}</Link> : <span>{list.next}</span>}
-          </nav>
-        )}
+        <Pagination label={t.title} page={page} totalPage={totalPage} href={href} />
       </div>
     </>
   );
