@@ -158,6 +158,41 @@ describe('test serverless function service', () => {
         }),
       ).rejects.toThrow()
     })
+
+    test('throws keeps the HTTP status the function asked for', async () => {
+      const model = new SnippetModel()
+      Object.assign<SnippetModel, Partial<SnippetModel>>(model, {
+        type: SnippetType.Function,
+        raw: `async function handler(context) { return context.throws(401, 'Unauthorized') }`,
+      })
+      const error = await service
+        .injectContextIntoServerlessFunctionAndCall(model, {
+          req: {} as any,
+          res: createMockedContextResponse({} as any),
+          isAuthenticated: false,
+        })
+        .catch((error) => error)
+      expect(error.getStatus()).toBe(401)
+      expect(error.getResponse()).toMatchObject({ message: 'Unauthorized' })
+    })
+
+    test('storage cache del removes what set wrote', async () => {
+      const model = new SnippetModel()
+      Object.assign<SnippetModel, Partial<SnippetModel>>(model, {
+        type: SnippetType.Function,
+        raw: `async function handler(context) {
+          await context.storage.cache.set('cache-del-case', { a: 1 }, 60)
+          const before = await context.storage.cache.get('cache-del-case')
+          await context.storage.cache.del('cache-del-case')
+          return [before, await context.storage.cache.get('cache-del-case')]
+        }`,
+      })
+      const data = await service.injectContextIntoServerlessFunctionAndCall(
+        model,
+        { req: {} as any, res: {} as any, isAuthenticated: false },
+      )
+      expect(data).toEqual([{ a: 1 }, null])
+    })
   })
 
   test('case-7: esm default import', async () => {

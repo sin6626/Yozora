@@ -5,6 +5,7 @@ import { parseAsync, transformAsync } from '@babel/core'
 import * as t from '@babel/types'
 import type { OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import {
+  HttpException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -176,7 +177,7 @@ export class ServerlessService implements OnModuleInit, OnModuleDestroy {
     },
     del: async (key: string) => {
       const client = this.redisService.getClient()
-      return client.hdel(getRedisKey(RedisKeys.ServerlessStorage), key)
+      return client.del(getRedisKey(RedisKeys.ServerlessStorage, key))
     },
   })
   private async mockGetOwner() {
@@ -387,6 +388,14 @@ export class ServerlessService implements OnModuleInit, OnModuleDestroy {
     })
 
     if (!result.success) {
+      // context.throws(4xx, message) 是函数主动拒绝请求（如密钥不对），按它给的状态码返回，不记错误日志
+      const status = result.error?.status
+      if (status && status >= 400 && status < 500) {
+        throw new HttpException(
+          HttpException.createBody({ message: result.error?.message }),
+          status,
+        )
+      }
       this.logger.error(
         `Serverless function error [${scope}]: ${result.error?.message}`,
         result.error?.stack,

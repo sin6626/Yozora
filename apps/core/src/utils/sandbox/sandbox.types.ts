@@ -30,6 +30,8 @@ export interface SandboxResult<T = unknown> {
     name: string
     message: string
     stack?: string
+    /** 函数用 context.throws(status, message) 抛出时带上的 HTTP 状态码 */
+    status?: number
   }
   executionTime: number
   logs?: SandboxLogEntry[]

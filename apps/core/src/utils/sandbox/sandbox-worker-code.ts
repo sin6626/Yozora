@@ -468,7 +468,7 @@ async function executeCode(payload) {
   } catch (error) {
     return {
       success: false,
-      error: { name: error.name || 'Error', message: error.message || 'Unknown error', stack: error.stack },
+      error: { name: error.name || 'Error', message: error.message || 'Unknown error', stack: error.stack, status: Number.isInteger(error.status) ? error.status : undefined },
       executionTime: Date.now() - startTime,
       logs: getLogs(),
     };
