@@ -184,6 +184,89 @@ a.entry-tag:focus-visible {
   -webkit-line-clamp: 2;
 }
 
+/* 北极星卡片（2026-11-01）：置顶文章、标记过的手记（后台“回忆项”）。整条变成一张带星光的卡片——淡淡的描边，
+   左上角像被星光照亮；左栏的大号日换成一颗会呼吸、带十字星芒的北极星，日期变成小字放在它下面；标签前缀一颗小星。
+   文章用强调色，手记用月光色（和首页时间线的小星一致）。手记不挪位置，仍按时间排。 */
+.entry.is-featured {
+  --entry-glow: var(--primary);
+  margin-block: var(--space-2);
+  border: 1px solid color-mix(in srgb, var(--entry-glow) 24%, transparent);
+  background:
+    radial-gradient(110% 120% at 0% 0%, color-mix(in srgb, var(--entry-glow) 14%, transparent), transparent 55%),
+    color-mix(in srgb, var(--surface) 60%, transparent);
+  box-shadow: var(--shadow-soft);
+}
+
+.entry.is-featured.is-serif {
+  --entry-glow: var(--moonlight);
+}
+
+@media (hover: hover) {
+  .entry.is-featured:has(.card-link:hover) {
+    background:
+      radial-gradient(110% 120% at 0% 0%, color-mix(in srgb, var(--entry-glow) 20%, transparent), transparent 60%),
+      var(--muted);
+  }
+}
+
+.entry-star {
+  position: relative;
+  width: 9px;
+  height: 9px;
+  margin: 0.55rem 0 var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--entry-glow);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--entry-glow) 14%, transparent), 0 0 18px 2px color-mix(in srgb, var(--entry-glow) 55%, transparent);
+  animation: entry-star-breathe 3.6s ease-in-out infinite;
+}
+
+.entry-star::before,
+.entry-star::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+}
+
+.entry-star::before {
+  width: 30px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--entry-glow), transparent);
+}
+
+.entry-star::after {
+  width: 1px;
+  height: 26px;
+  background: linear-gradient(to bottom, transparent, var(--entry-glow), transparent);
+}
+
+.entry.is-featured .entry-month {
+  margin-top: 0;
+  white-space: nowrap;
+}
+
+@keyframes entry-star-breathe {
+  0%, 100% { opacity: 0.75; scale: 0.9; }
+  50% { opacity: 1; scale: 1.1; }
+}
+
+/* 标签前缀的小星；“回忆”是月光色 */
+.badge svg {
+  margin-right: 3px;
+}
+
+.badge.is-memory {
+  background: color-mix(in srgb, var(--moonlight) 16%, transparent);
+  color: var(--moonlight);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entry-star {
+    animation: none;
+  }
+}
+
 /* 作品：卡片网格 */
 .project-grid {
   display: grid;

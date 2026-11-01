@@ -228,6 +228,7 @@ const en: Messages = {
     pagination: (what: string) => `${what} pages`,
     loadingComments: "Loading comments…",
     pinned: "Pinned",
+    memory: "Memory",
     reads: (count: number) => `${count} ${count === 1 ? "read" : "reads"}`,
     mood: (value: string) => `Mood · ${value}`,
     weather: (value: string) => `Weather · ${value}`,

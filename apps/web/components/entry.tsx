@@ -12,7 +12,8 @@ export type EntryStats = { minutes: number; reads: number; likes: number };
 // 然后最多两行摘要（AI 摘要前面有一枚小星标记），最后一行信息：手记的心情天气、阅读时长、阅读数、喜欢数、文章标签。
 // 整条可点（标题链接铺满），标签链接单独可点。serif：手记的标题和摘录用衬线字体。
 // lang：外文页面上这篇还没有译文时传 "zh-CN"，标题和摘录标明是中文原文。
-export default async function Entry({ href, title, created, tags, meta, excerpt, stats, hashtags, serif, headingLevel = 2, lang }: {
+// featured：置顶文章、标记过的手记（后台“回忆项”）——“北极星卡片”：带星光的卡片，左栏的大号日换成会呼吸的北极星、下面小字日期。
+export default async function Entry({ href, title, created, tags, meta, excerpt, stats, hashtags, serif, featured, headingLevel = 2, lang }: {
   href: string | null;
   title: string;
   created: string;
@@ -22,6 +23,7 @@ export default async function Entry({ href, title, created, tags, meta, excerpt,
   stats?: EntryStats;
   hashtags?: string[];
   serif?: boolean;
+  featured?: boolean;
   headingLevel?: 2 | 3;
   lang?: string;
 }) {
@@ -30,10 +32,15 @@ export default async function Entry({ href, title, created, tags, meta, excerpt,
   const [year, month, day] = formatDate(created).split("/");
   const summary = typeof excerpt === "string" ? (excerpt ? { text: excerpt, source: "summary" as const } : null) : excerpt;
   return (
-    <article className={serif ? "entry is-serif" : "entry"}>
+    <article className={["entry", serif && "is-serif", featured && "is-featured"].filter(Boolean).join(" ")}>
       <time className="entry-date" dateTime={created}>
-        <span className="entry-day">{day}</span>
-        <span className="entry-month">{year}.{month}</span>
+        {featured ? <>
+          <span className="entry-star" aria-hidden="true" />
+          <span className="entry-month">{year}.{month}.{day}</span>
+        </> : <>
+          <span className="entry-day">{day}</span>
+          <span className="entry-month">{year}.{month}</span>
+        </>}
       </time>
       <div className="entry-body">
         <div className="entry-heading">

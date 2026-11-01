@@ -264,6 +264,8 @@ async function noteEntry(note: ListedNote, lang: ContentLang) {
     mood: note.mood,
     weather: note.weather,
     topic: note.topic?.name ?? null,
+    // 后台“回忆项”：列表里用和置顶文章一样的北极星卡片，但不挪位置
+    bookmark: Boolean(note.bookmark),
     original: lang !== "zh" && !(note as { isTranslated?: boolean }).isTranslated,
     excerpt: await listExcerpt(note.id, null, note.text, lang),
     stats: { minutes: readingMinutes(note.text), reads: note.count?.read ?? 0, likes: note.count?.like ?? 0 },

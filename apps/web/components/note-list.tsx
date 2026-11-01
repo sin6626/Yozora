@@ -1,3 +1,4 @@
+import { Sparkle } from "lucide-react";
 import Link from "./locale-provider";
 import { notFound, unstable_rethrow } from "next/navigation";
 import { getMatchedNotes, getNotes, getTopics } from "../lib/blog-data";
@@ -26,7 +27,11 @@ export async function NoteEntry({ note, headingLevel = 2 }: { note: NoteEntryDat
       serif
       excerpt={note.excerpt}
       stats={note.stats}
-      tags={note.topic ? <EntryTag>{note.topic}</EntryTag> : undefined}
+      featured={note.bookmark}
+      tags={note.topic || note.bookmark ? <>
+        {note.topic && <EntryTag>{note.topic}</EntryTag>}
+        {note.bookmark && <span className="badge is-memory"><Sparkle size={11} aria-hidden="true" />{list.memory}</span>}
+      </> : undefined}
       meta={note.mood || note.weather ? <>
         {note.mood && <span>{list.mood(note.mood)}</span>}
         {note.weather && <span>{list.weather(note.weather)}</span>}

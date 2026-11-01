@@ -228,6 +228,7 @@ const ja: Messages = {
     pagination: (what: string) => `${what}のページ`,
     loadingComments: "コメントを読み込み中…",
     pinned: "固定",
+    memory: "思い出",
     reads: (count: number) => `閲覧 ${count}`,
     mood: (value: string) => `気分 · ${value}`,
     weather: (value: string) => `天気 · ${value}`,

@@ -1,4 +1,5 @@
 import type { CategoryModel } from "@mx-space/api-client";
+import { Sparkle } from "lucide-react";
 import Link from "./locale-provider";
 import { notFound, unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
@@ -38,6 +39,7 @@ export async function PostCard({ post, headingLevel = 2 }: { post: PostCardData;
   const { posts: t, list } = await getT();
   return (
     <Entry
+      featured={post.pinned}
       href={post.href}
       title={post.title}
       created={post.created}
@@ -50,7 +52,7 @@ export async function PostCard({ post, headingLevel = 2 }: { post: PostCardData;
         {post.category
           ? <EntryTag href={`/categories/${encodeURIComponent(post.category.slug)}`}>{post.category.name}</EntryTag>
           : <EntryTag>{t.uncategorized}</EntryTag>}
-        {post.pinned && <span className="badge">{list.pinned}</span>}
+        {post.pinned && <span className="badge"><Sparkle size={11} aria-hidden="true" />{list.pinned}</span>}
       </>}
     />
   );

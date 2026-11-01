@@ -82,8 +82,10 @@ export default function StyleGuide() {
       </div>
 
       <h3 className="guide-heading">四个角落的卡片</h3>
-      <PostCard post={{ id: "a", href: "#post", title: "文章卡片：标题、摘要、日期和分类", summary: "整张卡片可点，悬停有淡底，标题变成强调色；分类链接还能单独点。", excerpt: { text: "AI 摘要优先显示（前面一枚小星标记），没有就用自己写的摘要，再没有就截正文开头。", source: "ai" }, stats: { minutes: 5, reads: 21, likes: 2 }, tags: ["学习心得", "React"], created, pinned: true, category: { name: "学习与感悟", slug: "study" } }} headingLevel={3} />
-      <NoteEntry note={{ id: "n", nid: 1, title: "手记：熄灯以后的阳台", created, mood: "平静", weather: "晴", topic: "近况", excerpt: { text: "停下来的时候，去阳台看看外面的星星，月亮也在。", source: "text" }, stats: { minutes: 2, reads: 8, likes: 0 }, original: false }} headingLevel={3} />
+      <PostCard post={{ id: "a", href: "#post", title: "置顶文章：北极星卡片（带星光的卡片，左栏是会呼吸的北极星）", summary: "整张卡片可点，悬停有淡底，标题变成强调色；分类链接还能单独点。", excerpt: { text: "AI 摘要优先显示（前面一枚小星标记），没有就用自己写的摘要，再没有就截正文开头。", source: "ai" }, stats: { minutes: 5, reads: 21, likes: 2 }, tags: ["学习心得", "React"], created, pinned: true, category: { name: "学习与感悟", slug: "study" } }} headingLevel={3} />
+      <PostCard post={{ id: "b", href: "#post", title: "普通文章：没有置顶时的样子", summary: "左栏是大号的日和小字年月。", stats: { minutes: 3, reads: 5, likes: 0 }, created, category: { name: "技术", slug: "tech" } }} headingLevel={3} />
+      <NoteEntry note={{ id: "n", nid: 1, title: "标记过的手记（后台“回忆项”）：月光色的北极星卡片", created, mood: "平静", weather: "晴", topic: "近况", bookmark: true, excerpt: { text: "停下来的时候，去阳台看看外面的星星，月亮也在。", source: "text" }, stats: { minutes: 2, reads: 8, likes: 0 }, original: false }} headingLevel={3} />
+      <NoteEntry note={{ id: "m", nid: 2, title: "手记：熄灯以后的阳台", created, mood: "平静", weather: "晴", topic: "近况", bookmark: false, excerpt: { text: "没有标记的手记，按时间排在原处。", source: "text" }, stats: { minutes: 2, reads: 8, likes: 0 }, original: false }} headingLevel={3} />
       <ul className="project-grid guide-gap">
         <li><ProjectCard project={{ id: "p", name: "作品卡片", description: "没有图标时用名字的首字。", avatar: undefined, projectUrl: "https://example.com", previewUrl: undefined, docUrl: undefined, original: false }} headingLevel={3} /></li>
       </ul>

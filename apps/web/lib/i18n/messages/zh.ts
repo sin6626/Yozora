@@ -231,6 +231,7 @@ const zh = {
     pagination: (what: string) => `${what}分页`,
     loadingComments: "正在读取评论…",
     pinned: "置顶",
+    memory: "回忆",
     reads: (count: number) => `阅读 ${count}`,
     mood: (value: string) => `心情 · ${value}`,
     weather: (value: string) => `天气 · ${value}`,
