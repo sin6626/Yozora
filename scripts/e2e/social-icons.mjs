@@ -1,6 +1,6 @@
 // 社交图标悬停换成品牌色（2026-10-31 用户选定）：平时单色，鼠标移上去变成平台自己的颜色；
 // 深色品牌（GitHub 等）熄灯时是品牌色圆底 + 白色图标，开灯时直接用品牌色。在 /debug 的“社交图标”里用真实首屏组件和导航面板样式测。
-// 首屏图标悬停时在上方显示平台名称（2026-11-01，Base UI Tooltip），不再用浏览器自带的 title，所以首屏按 aria-label 找图标。
+// 首屏与导航“首页”面板的图标悬停时在上方显示平台名称（2026-11-01，Base UI Tooltip），不再用浏览器自带的 title，所以按 aria-label 找图标。
 // 需先开 pnpm dev。用法：node scripts/e2e/social-icons.mjs（WEB_URL 可改地址）
 import assert from 'node:assert/strict'
 import { openBrowser, sleep } from '../headless-browser.mjs'
@@ -82,19 +82,23 @@ try {
   await sleep(600)
   await b.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: trigger.x, y: trigger.y })
   await sleep(900)
-  const navTitles = await b.evaluate(`[...document.querySelectorAll('.navigation-Popup .nav-socials a')].map((a) => a.title)`)
+  const navTitles = await b.evaluate(`[...document.querySelectorAll('.navigation-Popup .nav-socials a')].map((a) => a.getAttribute('aria-label'))`)
   assert.ok(navTitles.length > 0, '导航面板里有社交图标')
-  const navIcon = `.navigation-Popup .nav-socials a[title="${navTitles[0]}"]`
+  assert.equal(await b.evaluate(`document.querySelectorAll('.navigation-Popup .nav-socials [title]').length`), 0, '导航面板图标不再有 title')
+  const navIcon = `.navigation-Popup .nav-socials a[aria-label="${navTitles[0]}"]`
   const navBox = await b.evaluate(`(() => { const r = document.querySelector(${JSON.stringify(navIcon)}).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 } })()`)
   const navIdle = await b.evaluate(`getComputedStyle(document.querySelector(${JSON.stringify(navIcon)})).color`)
   await b.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: navBox.x, y: navBox.y })
   await sleep(450)
   const navHover = await b.evaluate(`getComputedStyle(document.querySelector(${JSON.stringify(navIcon)})).color`)
   assert.notEqual(navHover, navIdle, '导航面板里悬停换成品牌色')
+  // 悬停提示挂在导航弹层里（不被面板盖住），面板不收起
+  const navTip = await b.evaluate(`(() => { const t = [...document.querySelectorAll('.social-tooltip')].filter((e) => !e.hasAttribute('data-ending-style')); return { text: t.map((e) => e.textContent), inPopup: t.every((e) => !!e.closest('.navigation-Popup')), panel: !!document.querySelector('.navigation-Popup .nav-panel.is-home') } })()`)
+  assert.deepEqual(navTip, { text: [navTitles[0]], inPopup: true, panel: true }, '导航面板图标悬停显示名称')
 
-  const navOrder = await b.evaluate(`[...document.querySelectorAll('.navigation-Popup .nav-socials > li')].map((li) => li.classList.contains('nav-socials-divider') ? '|' : li.querySelector('a, button').getAttribute('title'))`)
+  const navOrder = await b.evaluate(`[...document.querySelectorAll('.navigation-Popup .nav-socials > li')].map((li) => li.classList.contains('nav-socials-divider') ? '|' : li.querySelector('a, button').getAttribute('aria-label').split('：')[0])`)
   assert.deepEqual(navOrder.slice(-3), ['|', '微信', 'QQ'], `导航面板里名片在竖线后面：${navOrder}`)
-  const qq = await b.evaluate(`(() => { const r = document.querySelector('.navigation-Popup .nav-socials button[title="QQ"]').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 } })()`)
+  const qq = await b.evaluate(`(() => { const r = document.querySelector('.navigation-Popup .nav-socials button[aria-label^="QQ："]').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 } })()`)
   await b.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: qq.x, y: qq.y })
   for (const type of ['mousePressed', 'mouseReleased']) await b.send('Input.dispatchMouseEvent', { type, x: qq.x, y: qq.y, button: 'left', buttons: type === 'mousePressed' ? 1 : 0, clickCount: 1 })
   await sleep(600)
@@ -110,7 +114,7 @@ try {
   await sleep(500)
   assert.equal(await b.evaluate(`!!document.querySelector('.contact-card')`), false, 'Esc 关闭名片')
   assert.deepEqual(b.errors, [], '页面不应当有报错')
-  console.log('PASS 社交图标：平时单色、悬停换品牌色（首屏与导航面板），深色品牌熄灯时白色图标；首屏悬停在上方显示平台名称、相邻图标立即切换、点开名片时收起；微信、QQ、Discord、赞赏码名片在竖线后、点开看二维码和号码')
+  console.log('PASS 社交图标：平时单色、悬停换品牌色（首屏与导航面板），深色品牌熄灯时白色图标；首屏与导航面板悬停在上方显示平台名称、相邻图标立即切换、点开名片时收起；微信、QQ、Discord、赞赏码名片在竖线后、点开看二维码和号码')
 } finally {
   await b.close()
 }

@@ -12,6 +12,7 @@ import type { NavigationEntry, getNavigationPanels } from "../lib/blog-data";
 import { formatDate } from "../lib/date";
 import type { SocialCard } from "../lib/social";
 import ContactCard from "./contact-card";
+import SocialTooltip, { SocialTooltipGroup } from "./social-tooltip";
 import MobileMenu from "./mobile-menu";
 import "./navigation-menu.css";
 
@@ -106,7 +107,7 @@ type HomePanelProps = { pages: NavigationLink[]; socials: Ready["socials"]; cont
 
 function HomePanel({ pages, socials, contacts = [], stats, pathname }: HomePanelProps) {
   const t = useT().nav;
-  // 名片卡片挂进导航弹层（.navigation-Popup，不裁切内容）：鼠标移到卡片上仍算在面板里，面板不会收起。
+  // 名片卡片和社交图标的悬停提示挂进导航弹层（.navigation-Popup，不裁切内容）：鼠标移到卡片上仍算在面板里，面板不会收起。
   // 调试页把面板直接摆在页面上、没有弹层，就挂在面板自己身上。
   const panel = useRef<HTMLDivElement>(null);
   const [cardHost, setCardHost] = useState<HTMLElement | null>(null);
@@ -143,19 +144,23 @@ function HomePanel({ pages, socials, contacts = [], stats, pathname }: HomePanel
           </ul>
         ) : <p className="nav-panel-empty">{t.noPages}</p>}
         {(socials.length > 0 || contacts.length > 0) && (
-          <ul className="nav-socials">
-            {socials.map((social) => (
-              <li key={social.href} data-dark={social.dark ? "" : undefined} style={{ "--brand": social.color } as CSSProperties}>
-                <a href={social.href} target="_blank" rel="noopener noreferrer" aria-label={social.label} title={social.label}>{social.icon}</a>
-              </li>
-            ))}
-            {socials.length > 0 && contacts.length > 0 && <li className="nav-socials-divider" aria-hidden="true" />}
-            {contacts.map(({ card, icon }) => (
-              <li key={card.key} style={{ "--brand": card.color } as CSSProperties}>
-                <ContactCard card={card} icon={icon} container={cardHost} side="bottom" />
-              </li>
-            ))}
-          </ul>
+          <SocialTooltipGroup>
+            <ul className="nav-socials">
+              {socials.map((social) => (
+                <li key={social.href} data-dark={social.dark ? "" : undefined} style={{ "--brand": social.color } as CSSProperties}>
+                  <SocialTooltip label={social.label} container={cardHost}>
+                    <a href={social.href} target="_blank" rel="noopener noreferrer" aria-label={social.label}>{social.icon}</a>
+                  </SocialTooltip>
+                </li>
+              ))}
+              {socials.length > 0 && contacts.length > 0 && <li className="nav-socials-divider" aria-hidden="true" />}
+              {contacts.map(({ card, icon }) => (
+                <li key={card.key} style={{ "--brand": card.color } as CSSProperties}>
+                  <ContactCard card={card} icon={icon} container={cardHost} side="bottom" tooltip />
+                </li>
+              ))}
+            </ul>
+          </SocialTooltipGroup>
         )}
       </section>
     </div>
