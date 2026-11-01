@@ -78,6 +78,26 @@ later(10)
 await post({ name: 'Safari', iconUrl: 'javascript:alert(1)' }, song(130))
 assert.deepEqual(take(), [['ps-update', { name: 'Safari' }]], '换 App 只广播 App，非 https 图标丢掉')
 
+// 2026-11-01 的 bug：网易云放到 2:36，卡片却显示 0:10。Companion 每次心跳都原样重发切歌时采到的进度（一直是 0.708 秒），
+// 云函数却把每次收到的时间当成采样时间，页面只能显示 0:00–0:10。同一首歌、进度数字没变，就是同一次采样，应当沿用第一次收到的时间往前推算
+take()
+later(10)
+await post({ name: 'Safari' }, { title: '苦茶子', processName: 'NetEaseMusic', duration: 170.86, elapsedTime: 0.708 })
+take()
+const stale = clock.now
+for (let i = 0; i < 3; i++) {
+  later(10)
+  await post({ name: 'Safari' }, { title: '苦茶子', processName: 'NetEaseMusic', duration: 170.86, elapsedTime: 0.708 })
+}
+assert.deepEqual(take(), [], '原样重发的进度不算拖动，不广播')
+const { mediaPosition: positionAt } = load('../apps/web/lib/presence.ts')
+assert.equal((await get()).mediaInfo.at, stale, '沿用第一次收到这个进度的时间')
+assert.equal(Math.round(positionAt((await get()).mediaInfo, clock.now)), 31, '30 秒后显示 0:31，不再停在前几秒')
+later(5)
+await post({ name: 'Safari' }, { title: '苦茶子', processName: 'NetEaseMusic', duration: 170.86, elapsedTime: 120 })
+assert.deepEqual(take().map(([type]) => type), ['media-update'], '进度数字变了（拖动了进度条）时重新校准并广播')
+assert.deepEqual([(await get()).mediaInfo.elapsed, (await get()).mediaInfo.at], [120, clock.now])
+
 await post({ name: 'Safari' }, { artist: 'YOASOBI', title: null })
 assert.deepEqual(take(), [['media-update', null]], '没在放歌（没有标题）时广播 null')
 assert.equal((await get()).mediaInfo, null, '并清掉缓存里的歌')
@@ -135,5 +155,6 @@ for (const [key, { icon, names }] of Object.entries(appIcons)) {
 assert.equal(appIconSrc(' google chrome '), '/api/app-icon/chrome?v=1', '查名字不分大小写、去掉首尾空格')
 assert.equal(appIconSrc('微信'), '/api/app-icon/wechat?v=1', '中文名也认')
 assert.equal(appIconSrc('UU远程'), undefined, '认不得的 App 没有矢量图标')
+assert.equal(appIconSrc('NetEaseMusic'), '/api/app-icon/netease?v=1', 'Companion 报的播放器进程名也认')
 
 console.log('PASS 站长“正在用 / 在听”：云函数的密钥、清洗（不记用了多久）、进度校准、只在变化时广播、清空，前台解析与进度推算、App 图标对照表')

@@ -76,9 +76,13 @@ async function read(ctx: Context) {
 
 const sameApp = (a: Process | null, b: Process | null) => a?.name === b?.name && a?.iconUrl === b?.iconUrl
 const songOf = (media: Media | null) => JSON.stringify(media ? [media.title, media.artist, media.player] : null)
+// Companion 只在切歌、暂停、拖动进度时重新采样，心跳时原样重发上次采到的进度（比如一直是 0.708 秒）。
+// 同一首歌、进度数字没变，就是同一次采样：沿用第一次收到它的时间往前推算，不算拖动
+const sameSample = (before: Media | null, media: Media | null) =>
+  songOf(before) === songOf(media) && before?.elapsed !== undefined && before.elapsed === media?.elapsed && Boolean(before.at)
 function sameSong(before: Media | null, media: Media | null, now: number) {
   if (songOf(before) !== songOf(media)) return false
-  if (before?.elapsed === undefined || !before.at || media?.elapsed === undefined) return true
+  if (before?.elapsed === undefined || !before.at || media?.elapsed === undefined || sameSample(before, media)) return true
   return Math.abs(before.elapsed + (now - before.at) / 1000 - media.elapsed) <= seekTolerance
 }
 
@@ -92,6 +96,7 @@ async function update(ctx: Context, body: Record<string, unknown> | null) {
   const before = await read(ctx)
   const process = body ? toProcess(body.process) : null
   const media = body ? toMedia(body.media, now) : null
+  if (media && sameSample(before.mediaInfo, media)) media.at = before.mediaInfo?.at
   if (!sameApp(before.processInfo, process)) {
     ctx.broadcast?.('ps-update', { processInfo: process, process: process?.name ?? null, ts: now })
   }
