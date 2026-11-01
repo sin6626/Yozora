@@ -13,7 +13,8 @@ import "./starfield.css";
 // 标签页隐藏时停止绘制；“减少动态效果”时星星不闪不转，只在状态变化时重画；浏览器不支持 WebGL 时画布隐藏，首屏退回 CSS 渐变。
 // 按下去（2026-11-01，原创的“星井”）：鼠标或手写笔在页面任何地方按下，那一片夜空就陷下去一口井——星光像被引力弯过去一样往井心收、
 // 井心变暗；光从月亮那边（右上）照来，靠月亮那侧的井壁落进阴影、对面井壁亮起一道月光边，所以看得出是“陷下去”；按住不放井就一直在，
-// 松开后弹回，同时一圈星光从井口往外荡开。最多同时 4 口井；触屏（滚动时到处都是按下）和输入框里不算；“减少动态效果”时没有。
+// 松开后弹回，同时一圈星光从井口往外荡开。最多同时 4 口井；触屏（滚动时到处都是按下）不算；“减少动态效果”时没有。
+// 只在“按这片夜空”时挖井：按在链接、按钮、菜单项、表单控件、可聚焦的元素和弹层上不挖（它们有自己的反馈，两种反馈叠在一起显得乱），见 noWell。
 // 没有显卡加速（软件渲染，例如 Chrome 关了硬件加速）时全屏着色器全靠 CPU 算，安静夜空也要占 3 个核，所以那时安静夜空只画一帧静止的。
 
 const vertexSource = `
@@ -255,6 +256,13 @@ function pageColor(): Vec3 {
 }
 
 // 首屏在视口里占了多少（0–1）。Next 把上一页藏起来时（display: none）它的尺寸是 0，自然算作不在
+// 按在这些元素（或它们里面）上不挖井：交互元素、可聚焦的元素（如首屏月亮）、弹层（菜单、对话框、列表框）
+const noWell = [
+  "a[href]", "button", "input", "textarea", "select", "label", "summary", "[contenteditable='true']", "[tabindex]:not([tabindex='-1'])",
+  "[role='button']", "[role='link']", "[role='menuitem']", "[role='menuitemradio']", "[role='menuitemcheckbox']", "[role='option']",
+  "[role='tab']", "[role='checkbox']", "[role='radio']", "[role='switch']", "[role='slider']", "[role='menu']", "[role='dialog']", "[role='listbox']",
+].join(", ");
+
 function heroInView() {
   let best: { hero: HTMLElement; amount: number } | null = null;
   for (const hero of document.querySelectorAll<HTMLElement>(".home-hero")) {
@@ -413,7 +421,7 @@ export default function Starfield() {
     // 鼠标左键、手写笔按下就记一口井（立刻开始逐帧画，不等安静夜空的下一拍）；松开、拖出窗口、窗口失焦都算松开
     const press = (event: PointerEvent) => {
       if (event.button !== 0 || event.pointerType === "touch" || reduceMotion) return;
-      if (event.target instanceof Element && event.target.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (event.target instanceof Element && event.target.closest(noWell)) return;
       presses = [...presses.slice(-3), { x: event.clientX, y: event.clientY, down: performance.now() / 1000, up: null }];
       clearTimeout(timer);
       timer = 0;
