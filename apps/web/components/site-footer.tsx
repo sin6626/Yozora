@@ -29,7 +29,8 @@ export default async function SiteFooter() {
           <p className="site-footer-sign">
             © 2026 <Suspense fallback={siteOwnerName}><OwnerName /></Suspense> · Made with <Heart size={12} aria-label="love" /> under the stars
           </p>
-          <a className="site-footer-icp" href={moeIcp.href} target="_blank" rel="noopener noreferrer">{moeIcp.label}</a>
+          {/* 备案号按审核要求原样写中文，外文页面也不翻译，标上语言 */}
+          <a className="site-footer-icp" href={moeIcp.href} target="_blank" rel="noopener noreferrer" lang="zh-CN">{moeIcp.label}</a>
         </div>
         <div className="site-footer-side">
           <nav className="site-footer-links" aria-label={t.links}>
