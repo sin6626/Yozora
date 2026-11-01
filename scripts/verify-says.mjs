@@ -10,7 +10,7 @@ const ts = require('typescript')
 const source = readFileSync(new URL('../apps/web/lib/says.ts', import.meta.url), 'utf8')
 const module = { exports: {} }
 vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { module, exports: module.exports })
-const { authorsOf, drawSay, wrapText } = module.exports
+const { authorsOf, drawSay, wrapText, skyLayout } = module.exports
 const plain = (value) => JSON.parse(JSON.stringify(value))
 
 const says = [
@@ -33,4 +33,23 @@ assert.deepEqual(plain(wrapText('当我用了GPT Pro 和 Claude Max 我将失去
 assert.deepEqual(plain(wrapText('第一行\n第二行', measure, 20)), ['第一行', '第二行'], '保留原来的换行')
 assert.deepEqual(plain(wrapText('Supercalifragilistic', measure, 8)), ['Supercalifragilistic'], '一个词比整行还长时单独一行（不硬拆）')
 
-console.log('PASS 一言：按人分组、抽一句、金句卡片折行')
+// 金句星图排布：同样的输入同样的位置；星都在圆内、互相不挤；每个星座的连线把它的星串成一棵树；没写作者的是孤星、不标名字
+const many = Array.from({ length: 30 }, (_, i) => ({ id: `q${i}`, text: 'x', author: ['康德', '大帝', '少年捞大', 'Sin', ''][i % 5] || undefined, created: new Date(2026, 0, i + 1).toISOString() }))
+const sky = plain(skyLayout(many))
+assert.deepEqual(plain(skyLayout(many)), sky, '同样的输入排出同样的星图')
+assert.equal(sky.stars.length, 30)
+const center = sky.size / 2
+assert.ok(sky.stars.every((star) => Math.hypot(star.x - center, star.y - center) <= sky.limit + 0.1), '星都在星盘里')
+const gaps = sky.stars.flatMap((a, i) => sky.stars.slice(i + 1).map((b) => Math.hypot(a.x - b.x, a.y - b.y)))
+assert.ok(Math.min(...gaps) >= 15.8, `两颗星至少隔 16（最近 ${Math.min(...gaps).toFixed(1)}）`)
+const named = sky.groups.filter((group) => group.name)
+assert.deepEqual(named.map((group) => group.name), ['康德', '大帝', '少年捞大', 'Sin'], '每个人一个星座')
+for (const group of sky.groups) {
+  assert.equal(group.edges.length, group.stars.length - 1, `${group.name ?? '孤星'} 的连线是一棵树`)
+  assert.ok(group.edges.flat().every((star) => group.stars.includes(star)), '连线只连自己星座里的星')
+  assert.equal(Boolean(group.label), Boolean(group.name), '有名字的星座才标名字')
+}
+assert.equal(sky.groups.filter((group) => !group.name).length, 6, '没写作者的 6 句各是一颗孤星')
+assert.equal(sky.stars[sky.groups[0].stars[0]].id, 'q0', '星座里最早的那句排在第一颗')
+
+console.log('PASS 一言：按人分组、抽一句、金句卡片折行、金句星图排布')

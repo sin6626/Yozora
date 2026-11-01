@@ -1,58 +1,16 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { Dices, ImageDown, Share2, X } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { ImageDown, Share2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { formatDate } from "../lib/date";
 import { drawSayCard } from "../lib/say-card";
-import { drawSay, type Say } from "../lib/says";
+import type { Say } from "../lib/says";
 import { useT } from "./locale-provider";
 import "lxgw-wenkai-webfont/lxgwwenkai-light.css";
 
-// 一言页的两样小互动（样式在 says.css）：
-// - SayDraw：工具栏（左边是服务端渲染好的“按人看”胶囊，右边“抽一句”），点一下像抽签一样翻出一句，可以再抽、做成卡片、收起；
-// - SayCardButton：把一句话画成金句卡片图（lib/say-card.ts），在弹窗里预览，可以保存或用系统分享发出去。
-
-export function SayDraw({ says, site, children }: { says: Say[]; site: string; children?: ReactNode }) {
-  const t = useT().says;
-  const [drawn, setDrawn] = useState<Say>();
-  const draw = () => setDrawn(drawSay(says, drawn?.id));
-  return (
-    <>
-      <div className="say-toolbar">
-        {children}
-        {says.length > 0 && (
-          <button type="button" className="btn btn-sm say-draw-button" onClick={draw}>
-            <Dices size={15} aria-hidden="true" />
-            {drawn ? t.drawAgain : t.draw}
-          </button>
-        )}
-      </div>
-      {drawn && (
-        <section key={drawn.id} className="say-drawn" aria-live="polite" aria-label={t.drawn}>
-          <p className="say-drawn-label">{t.drawn}</p>
-          <blockquote lang="zh-CN">
-            <p>{drawn.text}</p>
-            <footer className="post-meta">
-              <span>—— {drawn.author?.trim() || t.anonymous}</span>
-              {drawn.source && <cite>{drawn.source}</cite>}
-            </footer>
-          </blockquote>
-          <div className="say-drawn-actions">
-            <button type="button" className="btn btn-sm" onClick={draw}>
-              <Dices size={14} aria-hidden="true" />
-              {t.drawAgain}
-            </button>
-            <SayCardButton say={drawn} site={site} withLabel />
-            <button type="button" className="btn btn-ghost btn-sm say-drawn-close" aria-label={t.close} title={t.close} onClick={() => setDrawn(undefined)}>
-              <X size={14} aria-hidden="true" />
-            </button>
-          </div>
-        </section>
-      )}
-    </>
-  );
-}
+// 金句卡片按钮（样式在 says.css）：把一句话画成金句卡片图（lib/say-card.ts），在弹窗里预览，可以保存或用系统分享发出去。
+// 一言列表每张引文卡片右上角、金句星图的读星面板里都有。抽一句在星图里（say-sky.tsx）。
 
 type Card = { url: string; file: File; canShare: boolean };
 

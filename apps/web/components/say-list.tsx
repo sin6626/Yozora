@@ -6,15 +6,16 @@ import { notFound, unstable_rethrow } from "next/navigation";
 import { getAllSays, getSiteSettings, getSiteUrl } from "../lib/blog-data";
 import { formatDate } from "../lib/date";
 import { getT } from "../lib/i18n/server";
-import { authorsOf } from "../lib/says";
+import { authorsOf, skyLayout } from "../lib/says";
 import { listHref, Pagination } from "./list-filters";
 import LoadError from "./load-error";
-import { SayCardButton, SayDraw } from "./say-tools";
+import SaySky from "./say-sky";
+import { SayCardButton } from "./say-tools";
 
 const pageSize = 20;
 
-// 一言：朋友们说过的好句子。上面一排“按人看”的胶囊（?author=名字，名字原样匹配），右边“抽一句”；
-// 每张引文卡片右上角可以“做成卡片”（金句卡片图）。抽一句、卡片在 say-tools.tsx，纯逻辑在 lib/says.ts。
+// 一言：朋友们说过的好句子。最上面是金句星图（say-sky.tsx，抽一句也在里面），下面一排“按人看”的胶囊
+// （?author=名字，名字原样匹配），再下面是普通列表，每张引文卡片右上角可以“做成卡片”（say-tools.tsx）。纯逻辑在 lib/says.ts。
 export default async function SayList({ searchParams }: { searchParams: Promise<{ page?: string | string[]; author?: string | string[] }> }) {
   const { page: rawPage = "1", author: rawAuthor } = await searchParams;
   if (typeof rawPage !== "string" || !/^[1-9]\d*$/.test(rawPage) || Array.isArray(rawAuthor)) notFound();
@@ -49,8 +50,9 @@ export default async function SayList({ searchParams }: { searchParams: Promise<
         <p className="post-meta">{t.count(shown.length)}</p>
       </header>
       <div className="post-list-content">
-        <SayDraw says={shown} site={site}>
-          {authors.length > 1 && (
+        {says.length > 0 && <SaySky layout={skyLayout(says)} says={says} author={author} site={site} />}
+        {authors.length > 1 && (
+          <div className="say-toolbar">
             <nav className="say-authors" aria-label={t.byAuthor}>
               <ul className="tag-list">
                 <li>
@@ -69,8 +71,8 @@ export default async function SayList({ searchParams }: { searchParams: Promise<
                 ))}
               </ul>
             </nav>
-          )}
-        </SayDraw>
+          </div>
+        )}
         {pageSays.length ? (
           <ul className="say-list">
             {pageSays.map((say) => (

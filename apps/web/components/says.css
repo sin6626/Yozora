@@ -11,39 +11,176 @@
   min-width: 0;
 }
 
-.say-draw-button {
-  margin-left: auto;
+/* ---------- 金句星图（say-sky.tsx）：左边圆形星盘，右边读星面板；窄屏上下排 ---------- */
+.say-sky {
+  display: grid;
+  grid-template-columns: minmax(0, 25rem) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-8);
+  margin-bottom: var(--space-8);
 }
 
-/* 抽到的那句：像翻开一张签，从上沿翻下来；用首屏的霞鹜文楷写大字 */
-.say-drawn {
-  position: relative;
-  margin-bottom: var(--space-8);
-  padding: var(--space-8) var(--space-8) var(--space-6);
-  border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
-  border-radius: var(--radius-md);
-  background: linear-gradient(160deg, var(--primary-soft), transparent 70%), var(--muted);
-  box-shadow: 0 0 44px -20px var(--star-glow);
+@media (max-width: 47.99rem) {
+  .say-sky {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+}
+
+.say-sky-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  user-select: none;
+}
+
+/* 星盘：外圈实线、两道虚线圈、一圈刻度，都很淡 */
+.say-sky-grid {
+  fill: none;
+  stroke: var(--constellation-line);
+  stroke-width: 1;
+}
+
+.say-sky-ring {
+  stroke-dasharray: 2 6;
+}
+
+.say-sky-dust {
+  fill: var(--foreground);
+  pointer-events: none;
+}
+
+/* 星座：连线和名字平时淡，选中的星所在的星座亮起；“按人看”时别的星座变暗 */
+.say-sky-group {
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.say-sky-line {
+  stroke: var(--constellation-line);
+  stroke-width: 1;
+  transition: stroke var(--duration-base) var(--ease-out);
+}
+
+.say-sky-label {
+  fill: var(--muted-foreground);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-anchor: middle;
+  transition: fill var(--duration-base) var(--ease-out);
+}
+
+.say-sky-group[data-active] .say-sky-line {
+  stroke: color-mix(in srgb, var(--primary) 75%, transparent);
+}
+
+.say-sky-group[data-active] .say-sky-label {
+  fill: var(--foreground);
+}
+
+:is(.say-sky-group, .say-sky-star)[data-dim] {
+  opacity: 0.22;
+}
+
+/* 一颗星：亮核 + 一圈柔光（慢慢闪）；选中时柔光变亮、带十字星芒 */
+.say-sky-star {
+  cursor: pointer;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.say-sky-core {
+  fill: var(--moonlight);
+}
+
+.say-sky-halo {
+  fill: url(#say-sky-glow);
+  opacity: 0.35;
+  animation: say-sky-twinkle 4s ease-in-out var(--twinkle-delay) infinite;
+  transition: opacity var(--duration-base) var(--ease-out), scale var(--duration-base) var(--ease-out);
+}
+
+@keyframes say-sky-twinkle {
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.say-sky-spikes {
+  stroke: var(--moonlight);
+  stroke-width: 0.8;
+  stroke-linecap: round;
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.say-sky-hit {
+  fill: transparent;
+}
+
+.say-sky-star:hover .say-sky-halo,
+.say-sky-star[data-active] .say-sky-halo {
+  opacity: 1;
+  scale: 1.35;
+  animation: none;
+}
+
+.say-sky-star[data-active] .say-sky-spikes {
+  opacity: 0.9;
+}
+
+/* 抽一句：一颗流星沿着线从星盘外沿划到抽中的星 */
+.say-sky-flight {
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-dasharray: 0.3 1;
+  stroke-dashoffset: 0.3;
+  animation: say-sky-flight 0.7s cubic-bezier(0.3, 0, 0.2, 1) forwards;
+  pointer-events: none;
+}
+
+@keyframes say-sky-flight {
+  to {
+    stroke-dashoffset: -0.7;
+  }
+}
+
+/* 读星面板：没选星时是说明 + 抽一句；选了星就像翻开一张签，用霞鹜文楷写这句话 */
+.say-sky-intro h2 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-lg);
+}
+
+.say-sky-intro p {
+  margin: 0 0 var(--space-3);
+  color: var(--muted-foreground);
+  line-height: 1.7;
+}
+
+.say-sky-intro .say-draw-button {
+  margin-top: var(--space-2);
+}
+
+.say-sky-reading {
   transform-origin: top center;
-  animation: say-draw-in 0.6s var(--ease-out) both;
+  animation: say-draw-in 0.55s var(--ease-out) both;
 }
 
 @keyframes say-draw-in {
   from {
     opacity: 0;
-    transform: perspective(900px) rotateX(-70deg);
+    transform: perspective(900px) rotateX(-60deg);
     filter: blur(6px);
   }
 }
 
-.say-drawn-label {
+.say-sky-eyebrow {
   margin: 0 0 var(--space-3);
   color: var(--primary);
   font-size: var(--text-xs);
   letter-spacing: 0.2em;
 }
 
-.say-drawn blockquote > p {
+.say-sky-reading blockquote > p {
   margin: 0;
   font-family: "LXGW WenKai", "PingFang SC", var(--font-cjk-sans), sans-serif;
   font-size: var(--text-xl);
@@ -51,26 +188,26 @@
   line-height: 1.6;
 }
 
-.say-drawn footer {
+.say-sky-reading footer {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
   margin-top: var(--space-3);
 }
 
-.say-drawn cite {
+.say-sky-reading cite {
   font-style: normal;
 }
 
-.say-drawn cite::before {
+.say-sky-reading cite::before {
   content: "《";
 }
 
-.say-drawn cite::after {
+.say-sky-reading cite::after {
   content: "》";
 }
 
-.say-drawn-actions {
+.say-sky-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -78,7 +215,7 @@
   margin-top: var(--space-6);
 }
 
-.say-drawn-close {
+.say-sky-back {
   margin-left: auto;
 }
 
@@ -195,8 +332,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .say-drawn {
+  .say-sky-reading {
     animation-name: say-draw-fade;
+  }
+
+  .say-sky-halo {
+    animation: none;
   }
 }
 
