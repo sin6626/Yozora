@@ -18,8 +18,8 @@ import "./site-header.css";
 // - activity：有实时活动（新文章发布、文章修改删除……）时临时变形播报，几秒后缩回去。活动由 lib/island-store.ts 排队。
 // 导航（nav）始终渲染、只用 CSS 按状态显隐，避免面板和手机菜单反复卸载。
 
-// 弹簧约 0.4 秒到位，带一点点回弹（阻尼比约 0.8），手感比硬切更软，接近灵动岛
-const spring = { type: "spring", stiffness: 260, damping: 26, mass: 1 } as const;
+// 不回弹的弹簧，约 0.45 秒到位。原来带一点回弹（阻尼比约 0.8），外框会冲过头再退回，用户觉得像弹跳（e2e header-smooth.mjs）
+const spring = { type: "spring", bounce: 0, duration: 0.45 } as const;
 // 从有导航的状态（bar / expanded）变成小胶囊时，先在原来的大小里把导航淡出这么久，再收拢
 const fadeOutMs = 90;
 const fullModes = new Set(["bar", "expanded"]);

@@ -277,11 +277,8 @@
   display: none;
 }
 
-.site-header[data-mode="compact"] .site-brand-avatar,
-.site-header[data-mode="expanded"] .site-brand-avatar {
-  width: 1.75rem;
-  height: 1.75rem;
-}
+/* 头像在所有状态下都是 2rem：以前收拢、展开时用 CSS 直接缩成 1.75rem，外框还没开始变形头像就先跳一下，
+   右边的东西跟着瞬移 4px，看起来像弹了一下（e2e header-smooth.mjs） */
 
 /* 展开：头像 + 站名 | 导航 | 工具，留出呼吸感 */
 .site-header[data-mode="expanded"] .island {
