@@ -11,6 +11,9 @@ import "./starfield.css";
 // 两种状态：首页第一屏在视野里时是完整的夜空（月亮跟着第一屏走，画在首屏里悬停区域 .moon-tip 的位置，位置和大小写在 moon-tip.css）；
 // 内页和首页往下滚之后是“安静”的夜空：天色压向页面底色、星星变暗变慢、没有流星和月亮，每秒只画约 15 帧。
 // 标签页隐藏时停止绘制；“减少动态效果”时星星不闪不转，只在状态变化时重画；浏览器不支持 WebGL 时画布隐藏，首屏退回 CSS 渐变。
+// 按下去（2026-11-01，原创的“星井”）：鼠标或手写笔在页面任何地方按下，那一片夜空就陷下去一口井——星光像被引力弯过去一样往井心收、
+// 井心变暗；光从月亮那边（右上）照来，靠月亮那侧的井壁落进阴影、对面井壁亮起一道月光边，所以看得出是“陷下去”；按住不放井就一直在，
+// 松开后弹回，同时一圈星光从井口往外荡开。最多同时 4 口井；触屏（滚动时到处都是按下）和输入框里不算；“减少动态效果”时没有。
 // 没有显卡加速（软件渲染，例如 Chrome 关了硬件加速）时全屏着色器全靠 CPU 算，安静夜空也要占 3 个核，所以那时安静夜空只画一帧静止的。
 
 const vertexSource = `
@@ -28,6 +31,8 @@ uniform vec3 uMoon;     // 月亮圆心（像素）和半径（像素）
 uniform float uSpin;    // 星空绕北天极转过的角度（弧度）
 uniform float uQuiet;   // 0 完整夜空（首页第一屏），1 安静夜空（内页）
 uniform vec3 uPage;     // 页面底色，安静时天色往它靠
+uniform vec4 uPress[4]; // 按下的井：圆心（像素）、深度 0–1、松开后过了几秒（还按着为 -1）
+uniform float uWell;    // 井的半径（像素）
 // 配色（下面的 palettes，夜紫 / 墨黑 / 银河）：天空渐变、地平线的光、银河、星星的色温与多少、月亮的光晕与暗面
 uniform vec3 uNightTop, uNightLow, uDuskTop, uDuskLow, uHorizonNight, uHorizonDusk;
 uniform vec3 uNebulaA, uNebulaB;
@@ -82,6 +87,29 @@ void main() {
   vec2 p = frag / uResolution.y;   // 以高度为单位，星星在宽屏上不会被拉伸
   float t = uTime;
 
+  // 星井：井是平底、陡壁的碗（深度 exp(-q⁴)），pull 是井壁的坡度（井心和井外为 0，约 0.93 个半径处最陡），星空的取样坐标沿坡往外挪，看起来就是星光被吸向井心；
+  // wall 是井壁朝着月光的程度，hollow 是井心有多深，ripple 是松开后往外荡的那圈光
+  vec2 pull = vec2(0.0);
+  float wall = 0.0, hollow = 0.0, ripple = 0.0;
+  for (int i = 0; i < 4; i++) {
+    vec4 press = uPress[i];
+    if (press.z <= 0.001 && press.w < 0.0) continue;
+    vec2 d = frag - press.xy;
+    float dist = length(d);
+    vec2 dir = d / max(dist, 1.0);
+    float q = dist / uWell;
+    float bowl = exp(-q * q * q * q);
+    float slope = q * q * q * bowl * 2.65 * press.z;
+    pull += dir * slope;
+    wall -= dot(dir, vec2(0.7071)) * slope;
+    hollow += bowl * press.z;
+    if (press.w >= 0.0) {
+      float front = uWell * (0.5 + press.w * 3.2);
+      ripple += exp(-pow((dist - front) / (uWell * 0.14), 2.0)) * exp(-press.w * 2.4);
+    }
+  }
+  p += pull * uWell * 0.25 / uResolution.y;
+
   // 天空：从天顶到地平线的渐变（夜里 / 开灯时的天色），地平线附近再加一层光
   vec3 sky = mix(mix(uNightLow, uNightTop, pow(uv.y, 0.8)), mix(uDuskLow, uDuskTop, pow(uv.y, 0.9)), uLight);
   sky += mix(uHorizonNight, uHorizonDusk, uLight) * pow(1.0 - uv.y, 3.0);
@@ -113,7 +141,12 @@ void main() {
   vec3 stars = starLayer(sp, 140.0, 0.10 + band * 0.22, 0.06, t, 0.0) * 0.8
              + starLayer(sp + 3.1, 70.0, 0.08 + band * 0.12, 0.07, t * 0.8, 0.0)
              + starLayer(sp + 7.7, 26.0, 0.07, 0.06, t * 0.6, uSpikes) * 1.5;
-  sky += stars * starAmount * uStarGain * (1.0 - lanes * 0.6);
+  sky += stars * starAmount * uStarGain * (1.0 - lanes * 0.6) * (1.0 + ripple * 2.0);
+
+  // 星井的明暗：井心压暗，背着月亮的井壁亮起一道月光边、朝着月亮的井壁落进阴影，松开后那圈星光淡淡发亮
+  hollow = min(hollow, 1.0);
+  sky *= 1.0 - (hollow * 0.3 + max(-wall, 0.0) * 0.6) * mix(1.0, 0.4, uLight);
+  sky += mix(uMoonGlow, vec3(1.0), uLight) * (pow(max(wall, 0.0), 1.5) * mix(0.2, 0.3, uLight) + ripple * 0.05);
 
   // 流星：每 23 秒一颗，划过约 1 秒，起点和方向每次不同
   float period = 23.0;
@@ -274,6 +307,8 @@ export default function Starfield() {
       spin: gl.getUniformLocation(program, "uSpin"),
       quiet: gl.getUniformLocation(program, "uQuiet"),
       page: gl.getUniformLocation(program, "uPage"),
+      press: gl.getUniformLocation(program, "uPress"),
+      well: gl.getUniformLocation(program, "uWell"),
     };
     gl.uniform1f(uniforms.phase, moonPhase(Date.now()));
     // 配色在页面打开时由地址参数定下（layout.tsx 的 themeScript），这里读一次
@@ -298,6 +333,10 @@ export default function Starfield() {
     let timer = 0;
     let last = performance.now();
     let drawn = "";
+    // 按下的井：按下时刻、松开时刻（还按着为 null），时间用 performance.now() 的秒
+    type Press = { x: number; y: number; down: number; up: number | null };
+    let presses: Press[] = [];
+    const pressData = new Float32Array(16);
 
     // 画布铺满视口，像素比最多 1.5，全屏着色器在高分屏上也不会太费电。
     const resize = () => {
@@ -310,6 +349,7 @@ export default function Starfield() {
       }
       gl.viewport(0, 0, width, height);
       gl.uniform2f(uniforms.resolution, width, height);
+      gl.uniform1f(uniforms.well, 64 * ratio);
       drawn = "";
     };
 
@@ -331,8 +371,18 @@ export default function Starfield() {
       const quietTarget = 1 - Math.min(Math.max((found?.amount ?? 0) - 0.25, 0) / 0.5, 1);
       quiet = reduceMotion ? quietTarget : ease(quiet, quietTarget, 0.8);
       const moonKey = found && quiet < 1 ? placeMoon(found.hero) : "";
-      // 减少动态效果、或软件渲染时的安静夜空：画面静止，只在天色、安静程度、月亮位置变化时重画
-      const still = reduceMotion || (software && quiet >= 1);
+      // 井：0.12 秒按到底；松开（快速点一下时从按下 0.15 秒后算起）以 0.45 秒的节奏弹回，松开 1.8 秒后整口井连同那圈光消失
+      const seconds = now / 1000;
+      presses = presses.filter((press) => press.up === null || seconds - press.up < 1.8);
+      pressData.fill(0);
+      presses.forEach((press, index) => {
+        const rise = Math.min(Math.max((seconds - press.down) / 0.12, 0), 1);
+        const settle = press.up === null ? 1 : Math.exp(-Math.max(seconds - Math.max(press.up, press.down + 0.15), 0) / 0.45);
+        pressData.set([press.x * ratio, canvas.height - press.y * ratio, rise * rise * (3 - 2 * rise) * settle, press.up === null ? -1 : seconds - press.up], index * 4);
+      });
+      gl.uniform4fv(uniforms.press, pressData);
+      // 减少动态效果、或软件渲染时的安静夜空：画面静止，只在天色、安静程度、月亮位置变化时重画；有井在动时照常每帧画
+      const still = presses.length === 0 && (reduceMotion || (software && quiet >= 1));
       // 安静时星星闪得慢一些
       if (!still) time += step * (1 - quiet * 0.6);
       const key = `${light}/${quiet}/${moonKey}`;
@@ -345,12 +395,12 @@ export default function Starfield() {
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
 
-    // 完整夜空每帧都画；安静（或减少动态效果）时约每秒 15 帧，中间让浏览器歇着
+    // 完整夜空和有井的时候每帧都画；安静（或减少动态效果）时约每秒 15 帧，中间让浏览器歇着
     const loop = (now: number) => {
       frame = 0;
       draw(now);
       if (document.hidden) return;
-      if (quiet >= 0.999 || reduceMotion) timer = window.setTimeout(() => { timer = 0; frame = requestAnimationFrame(loop); }, 66);
+      if ((quiet >= 0.999 || reduceMotion) && presses.length === 0) timer = window.setTimeout(() => { timer = 0; frame = requestAnimationFrame(loop); }, 66);
       else frame = requestAnimationFrame(loop);
     };
     const wake = () => {
@@ -359,6 +409,24 @@ export default function Starfield() {
         frame = requestAnimationFrame(loop);
       }
     };
+
+    // 鼠标左键、手写笔按下就记一口井（立刻开始逐帧画，不等安静夜空的下一拍）；松开、拖出窗口、窗口失焦都算松开
+    const press = (event: PointerEvent) => {
+      if (event.button !== 0 || event.pointerType === "touch" || reduceMotion) return;
+      if (event.target instanceof Element && event.target.closest("input, textarea, select, [contenteditable='true']")) return;
+      presses = [...presses.slice(-3), { x: event.clientX, y: event.clientY, down: performance.now() / 1000, up: null }];
+      clearTimeout(timer);
+      timer = 0;
+      wake();
+    };
+    const release = () => {
+      const seconds = performance.now() / 1000;
+      presses = presses.map((item) => (item.up === null ? { ...item, up: seconds } : item));
+    };
+    window.addEventListener("pointerdown", press, { passive: true });
+    window.addEventListener("pointerup", release, { passive: true });
+    window.addEventListener("pointercancel", release, { passive: true });
+    window.addEventListener("blur", release);
 
     const resizeObserver = new ResizeObserver(() => {
       resize();
@@ -378,6 +446,10 @@ export default function Starfield() {
       resizeObserver.disconnect();
       themeObserver.disconnect();
       document.removeEventListener("visibilitychange", wake);
+      window.removeEventListener("pointerdown", press);
+      window.removeEventListener("pointerup", release);
+      window.removeEventListener("pointercancel", release);
+      window.removeEventListener("blur", release);
       gl.deleteProgram(program);
       gl.deleteShader(vertex);
       gl.deleteShader(fragment);
