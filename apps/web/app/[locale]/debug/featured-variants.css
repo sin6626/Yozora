@@ -1,0 +1,96 @@
+/* 调试页“置顶 / 回忆样式候选”（featured-variants.tsx）。三种都只用一种颜色、一个光源：文章是强调色，回忆（手记）是月光色；
+   不铺底色、不加阴影、标签不用色块。 */
+.fv-grid {
+  display: grid;
+  gap: var(--space-12);
+  margin-top: var(--space-4);
+}
+
+.fv-pinned {
+  --fv-light: var(--primary);
+  --fv-head: light-dark(var(--primary), #ffffff);
+}
+
+.fv-pinned.is-serif {
+  --fv-light: var(--moonlight);
+  --fv-head: light-dark(var(--moonlight), #ffffff);
+}
+
+/* 标签：一行字距拉开的小字，前面一枚小星，没有底色 */
+.fv-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--fv-light);
+  font-size: var(--text-xs);
+  letter-spacing: 0.24em;
+}
+
+/* A · 星轨：一圈几乎看不见的细线，一颗带尾迹的小星沿着轮廓绕（offset-path 用条目自己的边框形状，圆角也跟着转） */
+.fv-a .fv-label {
+  order: 1;
+}
+
+.fv-a .fv-pinned,
+.fv-c .fv-pinned {
+  border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+
+.fv-a .fv-pinned::before,
+.fv-c .fv-pinned::before {
+  content: "";
+  position: absolute;
+  width: 4.5rem;
+  height: 2px;
+  offset-path: border-box;
+  offset-anchor: 100% 50%;
+  offset-rotate: auto;
+  border-radius: var(--radius-full);
+  background: linear-gradient(to right, transparent, color-mix(in srgb, var(--fv-light) 70%, transparent) 75%, var(--fv-head));
+  filter: drop-shadow(0 0 3px var(--fv-light));
+  pointer-events: none;
+  animation: fv-orbit 9s linear infinite;
+}
+
+.fv-c .fv-pinned::before {
+  animation-duration: 14s;
+}
+
+@keyframes fv-orbit {
+  from { offset-distance: 0%; }
+  to { offset-distance: 100%; }
+}
+
+/* B · 微光：没有框，标题上隔一会儿扫过一道星光；“置顶 / 回忆”放在标题上方单独一行 */
+.fv-b .fv-label,
+.fv-c .fv-label {
+  flex-basis: 100%;
+}
+
+.fv-b .fv-pinned .entry-title a,
+.fv-c .fv-pinned .entry-title a {
+  /* 光带中间是白（开灯时是强调色），两侧带一点强调色，否则熄灯时浅色标题上扫过白光根本看不出来 */
+  background: linear-gradient(105deg, var(--foreground) 38%, var(--fv-light) 45%, var(--fv-head) 50%, var(--fv-light) 55%, var(--foreground) 62%) 100% 0 / 260% 100% no-repeat;
+  background-clip: text;
+  color: transparent;
+  animation: fv-shine 6s ease-in-out infinite;
+}
+
+.fv-c .fv-pinned .entry-title a {
+  animation-duration: 10s;
+}
+
+@keyframes fv-shine {
+  0%, 20% { background-position: 100% 0; }
+  60%, 100% { background-position: 0% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fv-pinned::before {
+    display: none;
+  }
+
+  .fv-pinned .entry-title a {
+    animation: none;
+  }
+}
