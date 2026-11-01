@@ -72,6 +72,7 @@ const ja: Messages = {
     motto: "頭上の星空は、心の中の星空。",
     timeline: "タイムライン",
     friends: "リンク",
+    source: "ソース",
     online: (count: number) => `いま ${count} 人がここにいます`,
     sky: (year: number, month: number) => `${year} 年 ${month} 月から今日まで、LeetCode とコードを書いた日の星`,
     skyLegend: "星の色",

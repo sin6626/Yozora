@@ -73,6 +73,7 @@ const zh = {
     motto: "头顶的星空，是心里的星空。",
     timeline: "时间线",
     friends: "友链",
+    source: "源码",
     online: (count: number) => `此刻有 ${count} 人在这里`,
     sky: (year: number, month: number) => `从 ${year} 年 ${month} 月到今天，每天刷题和写代码的星星`,
     skyLegend: "星星的颜色",
