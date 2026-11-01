@@ -66,6 +66,22 @@
   margin-left: var(--space-1);
 }
 
+/* 手记话题前面的小图（后台话题图标），样子和导航“手记”面板的一致 */
+.list-topic {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.list-topic-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: color-mix(in srgb, var(--foreground) 10%, transparent);
+}
+
 .tag-drawer .tag-list {
   max-height: 12rem;
   overflow-y: auto;
@@ -259,6 +275,18 @@
 .tag-count {
   color: var(--muted-foreground);
   font-size: var(--text-xs);
+}
+
+/* 带小图的话题整条按中线对齐：图片会把文字基线拉到图底，后面的篇数看着偏低 */
+.post-categories a:has(.list-topic) {
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (min-width: 90rem) {
+  .list-aside .post-categories a:has(.list-topic) {
+    display: flex;
+  }
 }
 
 /* 邮件订阅表单（subscribe-form.tsx），用在首屏“订阅”浮层里 */

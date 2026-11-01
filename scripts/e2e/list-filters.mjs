@@ -94,6 +94,9 @@ try {
   await browser.goto(`${base}/notes`);
   const notesWide = await layout();
   assert.ok(notesWide.position === "fixed" && notesWide.search && notesWide.categories > 1, `手记页宽屏也有右侧筛选栏（搜索、话题）：${JSON.stringify(notesWide)}`);
+  // 话题在后台设了图片（近况有）就显示在话题名前面，和导航“手记”面板一样（曾经漏了）
+  const topicIcons = await browser.evaluate(`[...document.querySelectorAll(".site-content .list-aside .post-categories a")].filter((a) => a.checkVisibility()).map((a) => ({ name: a.firstChild.textContent, icon: a.querySelector("img")?.getAttribute("src") ?? null }))`);
+  assert.ok(topicIcons.some((topic) => topic.icon), `话题应显示后台设置的图片：${JSON.stringify(topicIcons)}`);
 
   // 窄一些（1280）：放不下右栏，筛选块回到列表上方，标签收在抽屉里
   await browser.setViewport(1280, 900);

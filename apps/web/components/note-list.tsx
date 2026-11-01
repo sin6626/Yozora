@@ -93,7 +93,13 @@ export default async function NoteList({ searchParams }: { searchParams: Promise
                 <Link href="/notes" aria-current={filter.kind === "all" ? "page" : undefined}>{t.all}</Link>
                 {topics.map((item) => (
                   <Link key={item.id} href={`/notes?topic=${encodeURIComponent(item.slug)}`} aria-current={filter.kind === "topic" && item.slug === filter.slug ? "page" : undefined}>
-                    {item.name}<span className="tag-count">{item.count}</span>
+                    {/* 话题在后台设的图片放在名字前面（和导航“手记”面板一样）；没设图片的留一个同样大的空位，名字对齐 */}
+                    <span className="list-topic">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- 后台任意地址的小图标，不走 Next 图片优化 */}
+                      {item.icon ? <img className="list-topic-icon" src={item.icon} alt="" width={18} height={18} /> : <span className="list-topic-icon" aria-hidden="true" />}
+                      {item.name}
+                    </span>
+                    <span className="tag-count">{item.count}</span>
                   </Link>
                 ))}
               </nav>
