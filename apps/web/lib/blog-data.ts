@@ -103,7 +103,8 @@ export async function getSubscribeOptions() {
 }
 
 // 首页的自我介绍：后台“个人资料”的名字、头像、一句话介绍，以及“关于我”页面的地址（标题含“关于我”的页面，否则排第一的页面）。
-export async function getOwner() {
+// lang：社交平台名称用哪种语言（首屏、导航面板的悬停提示），默认中文；只用头像、名字的地方不用传
+export async function getOwner(lang: ContentLang = "zh") {
   "use cache";
   cacheLife({ stale: 60, revalidate: 300, expire: 3600 });
   cacheTag("blog:navigation", "blog:pages");
@@ -116,8 +117,8 @@ export async function getOwner() {
     introduce: user.introduce?.trim() || undefined,
     aboutHref: about?.slug ? `/${encodeURIComponent(about.slug)}` : undefined,
     // 能直接跳转的社交链接（首屏、导航面板）和微信、QQ 这类名片（只在首屏，点开看二维码和号码）
-    socials: socialLinks(user.socialIds),
-    contacts: socialCards(user.socialIds),
+    socials: socialLinks(user.socialIds, lang),
+    contacts: socialCards(user.socialIds, lang),
   };
 }
 

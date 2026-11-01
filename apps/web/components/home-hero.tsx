@@ -24,7 +24,7 @@ import "./home-hero.css";
 
 async function loadOwner() {
   try {
-    return await getOwner();
+    return await getOwner(await getLocale());
   } catch (error) {
     unstable_rethrow(error);
     return null;

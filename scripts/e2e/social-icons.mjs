@@ -113,8 +113,24 @@ try {
   await b.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
   await sleep(500)
   assert.equal(await b.evaluate(`!!document.querySelector('.contact-card')`), false, 'Esc 关闭名片')
+
+  // 英文、日文首屏：图标名称（读屏文字和悬停提示）跟着站点语言，英文页面没有汉字；悬停微信显示 WeChat
+  for (const [lang, bilibili] of [['en', 'Bilibili'], ['ja', 'ビリビリ動画']]) {
+    await b.goto(`${base}/${lang}`, 5000)
+    const names = await b.evaluate(`[...document.querySelectorAll('.home-hero .home-hero-socials :is(a, button)')].map((e) => e.getAttribute('aria-label').split(/[:：]/)[0])`)
+    assert.ok(names.length > 0, `${lang} 首屏有社交图标`)
+    if (lang === 'en') assert.deepEqual(names.filter((name) => /\p{Script=Han}/u.test(name)), [], `英文首屏图标名称没有汉字：${names}`)
+    if (names.includes('哔哩哔哩') || names.includes(bilibili)) assert.ok(names.includes(bilibili), `${lang} 哔哩哔哩显示为 ${bilibili}：${names}`)
+    if (lang === 'en' && names.includes('WeChat')) {
+      const wechat = await b.evaluate(`(() => { const r = document.querySelector('.home-hero .home-hero-socials button[aria-label^="WeChat:"]').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 } })()`)
+      await b.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: wechat.x, y: wechat.y })
+      await sleep(500)
+      assert.deepEqual(await tips(), ['WeChat'], '英文首屏悬停微信显示 WeChat')
+      await away()
+    }
+  }
   assert.deepEqual(b.errors, [], '页面不应当有报错')
-  console.log('PASS 社交图标：平时单色、悬停换品牌色（首屏与导航面板），深色品牌熄灯时白色图标；首屏与导航面板悬停在上方显示平台名称、相邻图标立即切换、点开名片时收起；微信、QQ、Discord、赞赏码名片在竖线后、点开看二维码和号码')
+  console.log('PASS 社交图标：平时单色、悬停换品牌色（首屏与导航面板），深色品牌熄灯时白色图标；首屏与导航面板悬停在上方显示平台名称（英文日文页面用英文日文名）、相邻图标立即切换、点开名片时收起；微信、QQ、Discord、赞赏码名片在竖线后、点开看二维码和号码')
 } finally {
   await b.close()
 }

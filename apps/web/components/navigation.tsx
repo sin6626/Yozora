@@ -31,7 +31,7 @@ async function NavigationData({ account }: { account?: ReactNode }) {
     const [data, panels, owner] = await Promise.all([
       getNavigationData(await getLocale()),
       getNavigationPanels(await getLocale()).catch((error) => { unstable_rethrow(error); return null; }),
-      getOwner().catch((error) => { unstable_rethrow(error); return null; }),
+      getOwner(await getLocale()).catch((error) => { unstable_rethrow(error); return null; }),
     ]);
     state = {
       status: "ready",

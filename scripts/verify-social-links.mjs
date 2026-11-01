@@ -48,4 +48,19 @@ assert.deepEqual(plain(socialCards({ discord: 'sin6626', donate: { qr: 'https://
   { key: 'discord', label: 'Discord', icon: 'simple-icons:discord', color: '#5865F2', dark: false, id: 'sin6626' },
   { key: 'donate', label: '赞赏', icon: 'mingcute:teacup-fill', color: 'var(--love)', dark: false, qr: 'https://s3.example.com/pay.webp' },
 ])
-console.log('PASS social links: admin and web platforms match, every icon installed, id/link/email/alias handling, WeChat/QQ/Discord/donate cards')
+// 平台名称跟着站点语言（悬停提示、读屏文字用）：英文页面不能有汉字；日文页面不能直接用中文名（简体字），没传语言时是中文
+const everyPlatform = (lang) => [
+  ...plain(socialLinks(Object.fromEntries(socialPlatformKeys.map((key) => [key, key === 'email' ? 'a@b.cn' : 'sin'])), lang)),
+  ...plain(socialCards(Object.fromEntries(socialPlatformKeys.map((key) => [key, 'sin'])), lang)),
+]
+const zhNames = Object.fromEntries(everyPlatform().map((item) => [item.key, item.label]))
+assert.equal(Object.keys(zhNames).length, socialPlatformKeys.length, '每个平台都有名称')
+for (const item of everyPlatform('en')) assert.ok(!/\p{Script=Han}/u.test(item.label), `英文名称不能有汉字：${item.key} → ${item.label}`)
+for (const item of everyPlatform('ja')) if (/\p{Script=Han}/u.test(zhNames[item.key])) assert.notEqual(item.label, zhNames[item.key], `日文名称不能直接用中文：${item.key} → ${item.label}`)
+assert.deepEqual(['bilibili', 'email', 'wechat', 'donate'].map((key) => [zhNames[key], everyPlatform('en').find((item) => item.key === key).label, everyPlatform('ja').find((item) => item.key === key).label]), [
+  ['哔哩哔哩', 'Bilibili', 'ビリビリ動画'],
+  ['邮箱', 'Email', 'メール'],
+  ['微信', 'WeChat', 'WeChat'],
+  ['赞赏', 'Tip', '投げ銭'],
+])
+console.log('PASS social links: admin and web platforms match, every icon installed, id/link/email/alias handling, WeChat/QQ/Discord/donate cards, names in zh/en/ja')
