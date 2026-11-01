@@ -1,5 +1,6 @@
 // 社交图标悬停换成品牌色（2026-10-31 用户选定）：平时单色，鼠标移上去变成平台自己的颜色；
 // 深色品牌（GitHub 等）熄灯时是品牌色圆底 + 白色图标，开灯时直接用品牌色。在 /debug 的“社交图标”里用真实首屏组件和导航面板样式测。
+// 首屏图标悬停时在上方显示平台名称（2026-11-01，Base UI Tooltip），不再用浏览器自带的 title，所以首屏按 aria-label 找图标。
 // 需先开 pnpm dev。用法：node scripts/e2e/social-icons.mjs（WEB_URL 可改地址）
 import assert from 'node:assert/strict'
 import { openBrowser, sleep } from '../headless-browser.mjs'
@@ -13,7 +14,9 @@ const hover = async (selector) => {
   return b.evaluate(`(() => { const s = getComputedStyle(document.querySelector(${JSON.stringify(selector)})); return { color: s.color, background: s.backgroundColor } })()`)
 }
 const away = () => b.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 2, y: 2 })
-const hero = (label) => `#debug-socials .home-hero-socials:not(.debug-social-brand) a[title="${label}"]`
+const hero = (label) => `#debug-socials .home-hero-socials:not(.debug-social-brand) a[aria-label="${label}"]`
+const cardButton = (label) => `#debug-social-cards button[aria-label^="${label}："]`
+const tips = () => b.evaluate(`[...document.querySelectorAll('.social-tooltip')].filter((e) => !e.hasAttribute('data-ending-style')).map((e) => e.textContent)`)
 
 try {
   await b.setViewport(1440, 900)
@@ -23,17 +26,32 @@ try {
   assert.equal((await hover(hero('哔哩哔哩'))).color, 'rgb(0, 161, 214)', '悬停哔哩哔哩变成 B 站蓝')
   await away()
   assert.deepEqual(await hover(hero('GitHub')), { color: 'rgb(255, 255, 255)', background: 'rgb(24, 23, 23)' }, '熄灯时 GitHub 悬停是黑色圆底 + 白色图标')
+  // 悬停提示：停一下出现平台名称，提示在图标正上方；挪到相邻图标立即换成它的名称；首屏图标没有 title（免得浏览器再冒一个）
+  assert.deepEqual(await tips(), ['GitHub'], '悬停 GitHub 显示名称')
+  const above = await b.evaluate(`(() => { const t = document.querySelector('.social-tooltip').getBoundingClientRect(), i = document.querySelector(${JSON.stringify(hero('GitHub'))}).getBoundingClientRect(); return t.bottom <= i.top && Math.abs((t.left + t.right) / 2 - (i.left + i.right) / 2) < 2 })()`)
+  assert.equal(above, true, '提示在图标正上方')
+  const next = await b.evaluate(`(() => { const r = document.querySelector(${JSON.stringify(hero('哔哩哔哩'))}).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 } })()`)
+  await b.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: next.x, y: next.y })
+  await sleep(120)
+  assert.deepEqual(await tips(), ['哔哩哔哩'], '挪到相邻图标立即换成它的名称')
+  assert.equal(await b.evaluate(`document.querySelectorAll('#debug-socials .home-hero-socials:not(.debug-social-brand) [title]').length`), 0, '首屏图标不再有 title')
   await away()
+  await sleep(300)
+  assert.deepEqual(await tips(), [], '移开后提示收起')
 
   // 名片（微信、QQ）：在竖线后面；点 QQ 弹出卡片（二维码 + 号码 + 复制），点外面关闭；导航面板只有直达链接
   const cards = await b.evaluate(`(() => {
     const items = [...document.querySelectorAll('#debug-social-cards .home-hero-socials > li')]
-    return items.map((li) => li.classList.contains('home-hero-socials-divider') ? '|' : li.querySelector('a, button').getAttribute('title'))
+    return items.map((li) => li.classList.contains('home-hero-socials-divider') ? '|' : li.querySelector('a, button').getAttribute('aria-label').split('：')[0])
   })()`)
   assert.deepEqual(cards, ['GitHub', '哔哩哔哩', '微博', '|', '微信', 'QQ', 'Discord', '赞赏'], '直达链接在前，竖线，名片在后')
-  await b.evaluate(`document.querySelector('#debug-social-cards button[title="QQ"]').scrollIntoView({ block: 'center' })`)
-  await b.evaluate(`document.querySelector('#debug-social-cards button[title="QQ"]').click()`)
+  // 名片也有悬停提示；点开卡片时提示收起
+  await hover(cardButton('QQ'))
+  assert.deepEqual(await tips(), ['QQ'], '悬停 QQ 名片显示名称')
+  const qqBox = await b.evaluate(`(() => { const r = document.querySelector(${JSON.stringify(cardButton('QQ'))}).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 } })()`)
+  for (const type of ['mousePressed', 'mouseReleased']) await b.send('Input.dispatchMouseEvent', { type, x: qqBox.x, y: qqBox.y, button: 'left', buttons: type === 'mousePressed' ? 1 : 0, clickCount: 1 })
   await sleep(500)
+  assert.deepEqual(await tips(), [], '点开名片时提示收起')
   const card = await b.evaluate(`(() => { const c = document.querySelector('.contact-card'); return c && { title: c.querySelector('.contact-card-title').textContent, qr: !!c.querySelector('img.contact-card-qr'), id: c.querySelector('.contact-card-id span')?.textContent, copy: c.querySelector('.contact-card-id button')?.textContent } })()`)
   assert.deepEqual(card, { title: 'QQ', qr: true, id: '10001', copy: '复制' }, '点 QQ 弹出名片')
   await b.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: 5, y: 5, button: 'left', buttons: 1, clickCount: 1 })
@@ -41,12 +59,12 @@ try {
   await sleep(500)
   assert.equal(await b.evaluate(`document.querySelector('.contact-card')`), null, '点外面关闭')
   // 赞赏码：只有二维码，说明是“请我喝杯茶”；Discord：只有用户名和复制
-  await b.evaluate(`document.querySelector('#debug-social-cards button[title="赞赏"]').click()`)
+  await b.evaluate(`document.querySelector(${JSON.stringify(cardButton('赞赏'))}).click()`)
   await sleep(500)
   assert.deepEqual(await b.evaluate(`(() => { const c = document.querySelector('.contact-card'); return { qr: !!c.querySelector('img.contact-card-qr'), id: !!c.querySelector('.contact-card-id'), hint: c.querySelector('.contact-card-hint')?.textContent } })()`), { qr: true, id: false, hint: '觉得有用的话，可以请我喝杯茶' })
   await b.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
   await sleep(400)
-  await b.evaluate(`document.querySelector('#debug-social-cards button[title="Discord"]').click()`)
+  await b.evaluate(`document.querySelector(${JSON.stringify(cardButton('Discord'))}).click()`)
   await sleep(500)
   assert.deepEqual(await b.evaluate(`(() => { const c = document.querySelector('.contact-card'); return { qr: !!c.querySelector('img.contact-card-qr'), id: c.querySelector('.contact-card-id span')?.textContent } })()`), { qr: false, id: 'sin6626' })
   await b.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
@@ -92,7 +110,7 @@ try {
   await sleep(500)
   assert.equal(await b.evaluate(`!!document.querySelector('.contact-card')`), false, 'Esc 关闭名片')
   assert.deepEqual(b.errors, [], '页面不应当有报错')
-  console.log('PASS 社交图标：平时单色、悬停换品牌色（首屏与导航面板），深色品牌熄灯时白色图标；微信、QQ、Discord、赞赏码名片在竖线后、点开看二维码和号码')
+  console.log('PASS 社交图标：平时单色、悬停换品牌色（首屏与导航面板），深色品牌熄灯时白色图标；首屏悬停在上方显示平台名称、相邻图标立即切换、点开名片时收起；微信、QQ、Discord、赞赏码名片在竖线后、点开看二维码和号码')
 } finally {
   await b.close()
 }

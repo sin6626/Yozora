@@ -9,6 +9,7 @@ import OwnerName from "./owner-name";
 import { getLocale, getT } from "../lib/i18n/server";
 import IconifyIcon, { SocialIcon } from "./iconify-icon";
 import ScrollHint from "./scroll-hint";
+import SocialTooltip, { SocialTooltipGroup } from "./social-tooltip";
 import SiteActions from "./site-actions";
 import MoonTip from "./moon-tip";
 // 首屏标题与说明用霞鹜文楷（简体版，npm 包已按字符切成小块，浏览器只下载页面上用到的字）；细体、常规，强调词“大三学生”用粗体
@@ -32,24 +33,29 @@ async function loadOwner() {
 
 // 首屏的社交图标一排（多了会换行），平时单色、悬停换成品牌色；/debug 用同一个组件预览图标很多时的样子。
 // 能直接跳转的平台在前；微信、QQ 这类没有网页主页的“名片”在竖线后面，点图标弹出二维码和号码。
+// 鼠标移上去在图标上方显示平台名称（social-tooltip.tsx），所以不再写 title（否则浏览器自己的提示过一秒又冒出来一个）。
 export function HeroSocialList({ socials, contacts = [] }: { socials: SocialLink[]; contacts?: SocialCard[] }) {
   const brand = (item: SocialLink | SocialCard) => ({ "data-dark": item.dark ? "" : undefined, style: { "--brand": item.color } as CSSProperties });
   return (
-    <ul className="home-hero-socials">
-      {socials.map((social) => (
-        <li key={social.href} {...brand(social)}>
-          <a href={social.href} target="_blank" rel="noopener noreferrer" aria-label={social.label} title={social.label}>
-            <SocialIcon icon={social.icon} label={social.label} />
-          </a>
-        </li>
-      ))}
-      {socials.length > 0 && contacts.length > 0 && <li className="home-hero-socials-divider" aria-hidden="true" />}
-      {contacts.map((card) => (
-        <li key={card.key} {...brand(card)}>
-          <ContactCard card={card} icon={<SocialIcon icon={card.icon} label={card.label} />} />
-        </li>
-      ))}
-    </ul>
+    <SocialTooltipGroup>
+      <ul className="home-hero-socials">
+        {socials.map((social) => (
+          <li key={social.href} {...brand(social)}>
+            <SocialTooltip label={social.label}>
+              <a href={social.href} target="_blank" rel="noopener noreferrer" aria-label={social.label}>
+                <SocialIcon icon={social.icon} label={social.label} />
+              </a>
+            </SocialTooltip>
+          </li>
+        ))}
+        {socials.length > 0 && contacts.length > 0 && <li className="home-hero-socials-divider" aria-hidden="true" />}
+        {contacts.map((card) => (
+          <li key={card.key} {...brand(card)}>
+            <ContactCard card={card} icon={<SocialIcon icon={card.icon} label={card.label} />} tooltip />
+          </li>
+        ))}
+      </ul>
+    </SocialTooltipGroup>
   );
 }
 

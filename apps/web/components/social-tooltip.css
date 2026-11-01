@@ -1,0 +1,42 @@
+/* 社交图标的悬停提示（social-tooltip.tsx）：小号半透明胶囊 + 向下的小三角，从图标方向微微浮出 */
+.social-tooltip {
+  position: relative;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--glass-popup);
+  box-shadow: var(--shadow-popup);
+  backdrop-filter: blur(12px);
+  color: var(--foreground);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  white-space: nowrap;
+  transform-origin: var(--transform-origin);
+  transition: opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
+}
+
+.social-tooltip[data-starting-style],
+.social-tooltip[data-ending-style] {
+  opacity: 0;
+  transform: translateY(4px) scale(0.96);
+}
+
+/* 小三角：一个转 45° 的小方块，底色、描边与提示框一致，只露出下半边 */
+.social-tooltip-arrow {
+  width: 8px;
+  height: 8px;
+  border-right: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-popup);
+  rotate: 45deg;
+}
+
+.social-tooltip-arrow[data-side="top"] {
+  bottom: -5px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .social-tooltip {
+    transition: none;
+  }
+}
