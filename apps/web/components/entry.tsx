@@ -1,12 +1,15 @@
 import { Clock3, Eye, Heart, Sparkle, Sparkles } from "lucide-react";
 import Link from "./locale-provider";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { ListExcerpt } from "../lib/blog-data";
 import { formatDate } from "../lib/date";
 import { getLocale, getT } from "../lib/i18n/server";
 import "./corners.css";
 
 export type EntryStats = { minutes: number; reads: number; likes: number };
+
+// 星轨尾巴的十段：第 i 段长度、淡和细都按 i/10 算
+const orbitTail = Array.from({ length: 10 }, (_, index) => (index + 1) / 10);
 
 // 文章、手记、搜索结果共用的列表条目：左栏是大号的“日”和小字“年.月”，右栏第一行标题、标题右边跟分类或话题标签，
 // 然后最多两行摘要（AI 摘要前面有一枚小星标记），最后一行信息：手记的心情天气、阅读时长、阅读数、喜欢数、文章标签。
@@ -35,10 +38,9 @@ export default async function Entry({ href, title, created, tags, meta, excerpt,
   return (
     <article className={["entry", serif && "is-serif", featured && "is-featured"].filter(Boolean).join(" ")}>
       {featured && (
-        // 尾迹由三段长短、浓淡不同的描边组成，跟着同一个速度沿轮廓走，看起来就是一颗拖着尾巴的星（corners.css 的 .entry-orbit）
+        // 星轨：一颗圆点状的星，后面十段越来越长、越来越淡越细的描边都收在星上，叠起来就是从头到尾平滑变淡的尾巴（corners.css 的 .entry-orbit）
         <svg className="entry-orbit" aria-hidden="true">
-          <rect className="entry-orbit-tail" pathLength={100} />
-          <rect className="entry-orbit-trail" pathLength={100} />
+          {orbitTail.map((step) => <rect key={step} className="entry-orbit-tail" pathLength={100} style={{ "--t": step } as CSSProperties} />)}
           <rect className="entry-orbit-head" pathLength={100} />
         </svg>
       )}
