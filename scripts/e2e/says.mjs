@@ -1,8 +1,9 @@
-// 浏览器回归测试：一言页（components/say-list.tsx、say-sky.tsx、say-tools.tsx）。
-// 金句星图（每句一颗星，一开始右边是最新的一句，鼠标移到星上就换成那一句、星和星座亮起；2026-11-02 用户要求去掉“金句星图”说明和抽一句，
-// 只有一颗星的星座平时不标名字；调试页 5 / 60 / 240 句的示例：星都在星盘里、可悬停的范围互不盖住、悬停能换句）；
-// 按人看就是看星座，不再有“按人看”胶囊（它和星图各管一份选中状态，点胶囊后星图还停在上一句），旧的 ?author= 链接显示全部；
-// 金句卡片图（弹窗里是 1080×1350 的图，能保存；引文卡片右上角的按钮悬停才出现）。只读，不写库。
+// 浏览器回归测试：一言页（components/say-list.tsx、say-sky.tsx、say-list-drawer.tsx、say-tools.tsx）。
+// 2026-11-02 用户定：一言页整页是一片星空（不要圆形星盘、不要“金句星图”说明和抽一句、不要下面的列表），每句话一颗暖色的星，
+// 同一个人说的连成星座；一开始是最新一句，鼠标移到星上就在旁边浮出那句话；全部句子收在右下角“全部 N 条”抽屉里；手机竖屏另排一份，那句话在底部。
+// 这里检查：星空铺满屏幕宽、每句一颗星、悬停换句与星座亮起、离开停住、卡片在星旁边且不出画面、没有圆盘/说明/抽一句/胶囊、旧 ?author= 显示全部；
+// 调试页 5 / 60 / 240 句都在画面里且悬停范围互不盖住、240 句能悬停到指定星；手机竖屏用竖排那份、点星换句、卡片在底部；
+// 抽屉里是全部句子、引文卡片的“做成卡片”悬停才出现；金句卡片图 1080×1350 可保存、Esc 关闭。只读，不写库。
 // 需要先运行 pnpm dev。用法：pnpm e2e
 import assert from "node:assert/strict";
 import { openBrowser, sleep } from "../headless-browser.mjs";
@@ -11,97 +12,114 @@ const base = process.env.WEB_URL ?? "http://127.0.0.1:2323";
 const api = process.env.API_URL ?? "http://127.0.0.1:2333";
 const all = (await (await fetch(`${api}/says/all`)).json()).data ?? [];
 const browser = await openBrowser({ port: 9379 });
+const centerOf = (selector) => browser.evaluate(`(() => { const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
 const click = async (selector) => {
-  const point = await browser.evaluate(`(() => { const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
+  const point = await centerOf(selector);
   await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: point.x, y: point.y });
   for (const type of ["mousePressed", "mouseReleased"]) await browser.send("Input.dispatchMouseEvent", { type, x: point.x, y: point.y, button: "left", clickCount: 1 });
 };
 const hover = async (selector) => {
-  const point = await browser.evaluate(`(() => { const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
+  const point = await centerOf(selector);
   await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: point.x - 40, y: point.y - 40 });
   await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: point.x, y: point.y });
 };
-const reading = () => browser.evaluate(`document.querySelector(".say-sky-reading blockquote > p")?.textContent`);
-const sky = () => browser.evaluate(`({
-  stars: document.querySelectorAll(".say-sky-star").length,
-  active: [...document.querySelectorAll(".say-sky-star[data-active]")].map((g) => g.dataset.id),
-  activeGroups: document.querySelectorAll(".say-sky-group[data-active]").length,
-  spikes: document.querySelector(".say-sky-star[data-active] .say-sky-spikes") && getComputedStyle(document.querySelector(".say-sky-star[data-active] .say-sky-spikes")).opacity,
-})`);
-const page = () => browser.evaluate(`({
-  count: document.querySelector(".page-heading .post-meta")?.textContent,
-  chips: document.querySelectorAll(".say-authors, .say-toolbar").length,
-  texts: [...document.querySelectorAll(".say-list .say-card blockquote > p")].map((p) => p.textContent),
-  notFound: Boolean(document.querySelector(".site-content .empty-state")),
-})`);
+const escape = async () => {
+  await browser.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+  await browser.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+};
+// 当前看得见的那份星空（横屏 wide / 竖屏 tall）
+const layer = (scope = "") => `${scope} .say-sky:is([data-shape="wide"], [data-shape="tall"])`;
+const visible = (scope = "") => `[...document.querySelectorAll('${layer(scope)}')].find((el) => el.checkVisibility())`;
+const sky = (scope = "") => browser.evaluate(`(() => {
+  const sky = ${visible(scope)};
+  const card = sky.querySelector(".say-sky-card");
+  const box = sky.getBoundingClientRect();
+  const cardBox = card?.getBoundingClientRect();
+  return {
+    shape: sky.dataset.shape,
+    stars: sky.querySelectorAll(".say-star").length,
+    active: [...sky.querySelectorAll(".say-star[data-active]")].map((el) => el.dataset.id),
+    activeLines: sky.querySelectorAll(".say-sky-lines g[data-active] line").length,
+    spikes: sky.querySelector(".say-star[data-active] .say-star-spikes") && getComputedStyle(sky.querySelector(".say-star[data-active] .say-star-spikes")).opacity,
+    reading: card?.querySelector("blockquote > p")?.textContent,
+    card: cardBox && { left: cardBox.left, right: cardBox.right, top: cardBox.top, bottom: cardBox.bottom },
+    field: { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width },
+  };
+})()`);
 
 try {
   assert.ok(all.length >= 2, "本地库至少要有两条一言才能测（悬停换句）");
-  await browser.setViewport(1280, 900);
-  await browser.goto(`${base}/says`, 3000);
-  const full = await page();
-  assert.equal(full.count, `共 ${all.length} 条`);
-  assert.equal(full.chips, 0, "没有“按人看”胶囊，按人看就看星座");
-  await browser.goto(`${base}/says?author=${encodeURIComponent(all.find((say) => say.author?.trim())?.author?.trim() ?? "x")}`, 2500);
-  const legacy = await page();
-  assert.equal(legacy.notFound, false, "旧的 ?author= 链接不 404");
-  assert.equal(legacy.count, `共 ${all.length} 条`, "旧的 ?author= 链接显示全部");
-
-  // 金句星图：每句一颗星；一开始右边是最新的一句；鼠标移到哪颗星上就换成哪句，这颗星带星芒、它的星座亮起。没有说明文字、没有抽一句
   const textOf = new Map(all.map((say) => [say.id, say.text]));
   const newest = all.reduce((latest, say) => (Date.parse(say.created) > Date.parse(latest.created) ? say : latest));
-  await browser.goto(`${base}/says`, 3000);
-  assert.equal((await sky()).stars, all.length, "每句话一颗星");
-  assert.equal(await reading(), newest.text, "一开始是最新的一句");
-  assert.deepEqual((await sky()).active, [newest.id], "最新那句的星亮着");
-  const extras = await browser.evaluate(`({
-    intro: document.querySelectorAll(".say-sky-intro, .say-draw-button, .say-sky-back").length,
-    heading: [...document.querySelectorAll(".say-sky h2, .say-sky h3")].map((h) => h.textContent),
-    labels: [...document.querySelectorAll(".say-sky-group")].map((g) => ({ stars: g.querySelectorAll(".say-sky-line").length + 1, active: g.hasAttribute("data-active"), label: Boolean(g.querySelector(".say-sky-label")) })),
-  })`);
-  assert.equal(extras.intro, 0, "没有说明、抽一句、回到星图");
-  assert.deepEqual(extras.heading, [], "星图里没有“金句星图”标题");
-  assert.ok(extras.labels.every((group) => group.stars > 1 || group.active || !group.label), "只有一颗星的星座平时不标名字");
-  const [firstId, secondId] = await browser.evaluate(`[...document.querySelectorAll(".say-sky-star")].map((g) => g.dataset.id).filter((id) => id !== ${JSON.stringify(newest.id)}).slice(0, 2)`);
-  await hover(`.say-sky-star[data-id="${firstId}"] .say-sky-core`);
-  await sleep(600);
-  assert.equal(await reading(), textOf.get(firstId), "悬停星：右边换成这一句");
-  const hovered = await sky();
-  assert.deepEqual(hovered.active, [firstId], "悬停的这颗星亮起");
-  assert.equal(hovered.activeGroups, (all.find((say) => say.id === firstId).author?.trim() ? 1 : 0), "有作者时它的星座亮起");
-  assert.equal(hovered.spikes, "0.9", "亮起的星带十字星芒");
-  await hover(`.say-sky-star[data-id="${secondId}"] .say-sky-core`);
-  await sleep(600);
-  assert.equal(await reading(), textOf.get(secondId), "移到另一颗星：换成那一句");
-  await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: 600 });
-  await sleep(300);
-  assert.equal(await reading(), textOf.get(secondId), "鼠标离开星盘后停在最后看的那句");
+  await browser.setViewport(1440, 900);
+  await browser.goto(`${base}/says`, 3500);
 
-  // 调试页：5 / 60 / 240 句的示例都装在星盘里，可悬停的范围互不盖住，悬停能换句（2026-11-02 用户：句子多了圈根本装不下）
-  await browser.goto(`${base}/debug`, 5000);
-  const samples = await browser.evaluate(`[...document.querySelectorAll(".debug-say-sky")].map((box) => {
-    const rim = box.querySelector(".say-sky-grid circle").getBoundingClientRect();
-    const cx = rim.x + rim.width / 2, cy = rim.y + rim.height / 2, radius = rim.width / 2;
-    const stars = [...box.querySelectorAll(".say-sky-star")].map((g) => { const hit = g.querySelector(".say-sky-hit").getBoundingClientRect(); return { x: hit.x + hit.width / 2, y: hit.y + hit.height / 2, r: hit.width / 2 }; });
-    let gap = Infinity;
-    for (let i = 0; i < stars.length; i++) for (let j = i + 1; j < stars.length; j++) gap = Math.min(gap, Math.hypot(stars[i].x - stars[j].x, stars[i].y - stars[j].y));
-    return { count: Number(box.dataset.count), stars: stars.length, outside: stars.filter((star) => Math.hypot(star.x - cx, star.y - cy) > radius).length, hit: stars[0].r, gap };
+  // 整页星空：铺满屏幕宽，横屏那份；每句一颗星；没有圆盘、说明、抽一句、按人看胶囊、下面的列表
+  const page = await browser.evaluate(`({
+    count: document.querySelector(".page-heading .post-meta")?.textContent,
+    width: innerWidth,
+    old: document.querySelectorAll(".say-sky-chart, .say-sky-grid, .say-sky-intro, .say-draw-button, .say-authors, .say-toolbar").length,
+    listOutsideDrawer: [...document.querySelectorAll(".say-list")].filter((list) => !list.closest(".say-drawer")).length,
+    drawerItems: document.querySelectorAll(".say-drawer .say-card").length,
   })`);
-  assert.deepEqual(samples.map((sample) => [sample.count, sample.stars]), [[5, 5], [60, 60], [240, 240]], "三份示例，每句一颗星");
-  for (const sample of samples) {
-    assert.equal(sample.outside, 0, `${sample.count} 句：星都在星盘里`);
-    assert.ok(sample.hit * 2 <= sample.gap + 0.5, `${sample.count} 句：可悬停的范围互不盖住（半径 ${sample.hit.toFixed(1)}px，最近 ${sample.gap.toFixed(1)}px）`);
+  assert.equal(page.count, `共 ${all.length} 条`);
+  assert.equal(page.old, 0, "没有圆形星盘、说明、抽一句、按人看胶囊");
+  assert.equal(page.listOutsideDrawer, 0, "星空下面没有列表");
+  assert.equal(page.drawerItems, all.length, "全部句子都在抽屉里（没打开时也在页面里）");
+  const first = await sky();
+  assert.equal(first.shape, "wide", "横屏用横排那份");
+  assert.ok(first.field.width >= page.width - 20 && first.field.left <= 1, `星空铺满屏幕宽（${first.field.width}/${page.width}）`);
+  assert.equal(first.stars, all.length, "每句话一颗星");
+  assert.equal(first.reading, newest.text, "一开始是最新的一句");
+  assert.deepEqual(first.active, [newest.id], "最新那句的星亮着");
+
+  // 悬停换句：这颗星带星芒、它的星座（不止一颗星时）连线亮起；卡片在画面里；离开星空停在最后看的那句
+  // 看得见、没被卡片盖住的星（elementFromPoint 拿到的就是它）
+  const uncovered = () => browser.evaluate(`[...${visible()}.querySelectorAll(".say-star:not([data-active])")].filter((el) => { const r = el.getBoundingClientRect(); return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest(".say-star") === el; }).map((el) => el.dataset.id)`);
+  assert.equal((await uncovered()).length, all.length - 1, "一开始那句话的卡片没有盖住别的星");
+  const ids = (await uncovered()).slice(0, 2);
+  for (const id of ids) {
+    await hover(`${layer()} .say-star[data-id="${id}"]`);
+    await sleep(600);
+    const now = await sky();
+    assert.equal(now.reading, textOf.get(id), "悬停星：旁边换成这一句");
+    assert.deepEqual(now.active, [id], "悬停的这颗星亮起");
+    assert.equal(now.spikes, "0.9", "亮起的星带十字星芒");
+    const author = all.find((say) => say.id === id).author?.trim();
+    const kin = author ? all.filter((say) => say.author?.trim() === author).length : 1;
+    assert.equal(now.activeLines, kin - 1, "它的星座连线亮起（只有一颗星时没有线）");
+    if (all.length <= 12) assert.equal((await uncovered()).length, all.length - 1, "星不多时卡片不盖住别的星");
+    assert.ok(now.card.left >= now.field.left && now.card.right <= now.field.right && now.card.top >= now.field.top - 40 && now.card.bottom <= now.field.bottom + 40, "那句话的卡片在星空里");
   }
-  await browser.evaluate(`document.querySelector('.debug-say-sky[data-count="240"]').scrollIntoView({ block: "center" })`);
-  await sleep(400);
-  const target = await browser.evaluate(`document.querySelectorAll('.debug-say-sky[data-count="240"] .say-sky-star')[100].dataset.id`);
-  await hover(`.debug-say-sky[data-count="240"] .say-sky-star[data-id="${target}"] .say-sky-core`);
-  await sleep(600);
-  assert.equal(await browser.evaluate(`document.querySelector('.debug-say-sky[data-count="240"] .say-sky-star[data-active]')?.dataset.id`), target, "240 句时也能悬停到指定的那颗星");
+  await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: 120 });
+  await sleep(300);
+  assert.equal((await sky()).reading, textOf.get(ids.at(-1)), "鼠标离开后停在最后看的那句");
 
+  // 旧链接：?author=、?page= 都显示这一页、不 404
+  for (const query of [`author=${encodeURIComponent(all.find((say) => say.author?.trim())?.author?.trim() ?? "x")}`, "page=2"]) {
+    await browser.goto(`${base}/says?${query}`, 2500);
+    assert.equal(await browser.evaluate(`document.querySelector(".page-heading .post-meta")?.textContent`), `共 ${all.length} 条`, `旧的 ?${query} 链接显示全部`);
+  }
+
+  // 抽屉：右下角“全部 N 条”滑出全部句子；引文卡片右上角的“做成卡片”悬停才出现；Esc 关上
   await browser.goto(`${base}/says`, 3000);
-  const drawn = await reading();
-  await click(".say-sky-actions .btn");
+  await click(".say-list-trigger");
+  await sleep(700);
+  // 贴着可视区右边（html 留着滚动条的位置，固定定位的可视区比 innerWidth 窄一条滚动条宽）
+  const drawer = await browser.evaluate(`(() => { const r = document.querySelector(".say-drawer").getBoundingClientRect(); return { right: Math.round(r.right), edge: Math.round(document.querySelector(".say-drawer-viewport").getBoundingClientRect().right), open: document.querySelector(".say-drawer").checkVisibility() }; })()`);
+  assert.ok(drawer.open && Math.abs(drawer.right - drawer.edge) <= 1, `抽屉从右边滑出、贴着右边（${drawer.right}/${drawer.edge}）`);
+  const opacity = () => browser.evaluate(`getComputedStyle(document.querySelector(".say-drawer .say-card-button")).opacity`);
+  assert.equal(await opacity(), "0", "引文卡片右上角的“做成卡片”平时藏着");
+  await hover(".say-drawer .say-card");
+  await sleep(300);
+  assert.equal(await opacity(), "1", "悬停卡片时出现");
+  await escape();
+  await sleep(700);
+  assert.equal(await browser.evaluate(`document.querySelector(".say-drawer").checkVisibility()`), false, "Esc 关上抽屉");
+
+  // 金句卡片图：星旁边那句的“做成卡片”
+  const drawn = (await sky()).reading;
+  await click(`${layer()} .say-sky-card .btn`);
   await browser.evaluate(`new Promise((resolve) => { const check = () => document.querySelector(".say-card-preview img")?.naturalWidth ? resolve() : setTimeout(check, 100); check(); })`);
   const card = await browser.evaluate(`(() => {
     const img = document.querySelector(".say-card-preview img");
@@ -109,22 +127,51 @@ try {
     return { size: [img.naturalWidth, img.naturalHeight], alt: img.alt, save: save && { href: save.href.startsWith("blob:"), name: save.getAttribute("download") } };
   })()`);
   assert.deepEqual(card.size, [1080, 1350], "金句卡片是 1080×1350 的竖图");
-  assert.equal(card.alt, drawn, "卡片画的就是右边那句");
+  assert.equal(card.alt, drawn, "卡片画的就是星旁边那句");
   assert.ok(card.save?.href && card.save.name.endsWith(".png"), "可以保存成 PNG");
-  await browser.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
-  await browser.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+  await escape();
   await sleep(400);
   assert.equal(await browser.evaluate(`Boolean(document.querySelector(".say-card-dialog"))`), false, "Esc 关掉卡片弹窗");
 
-  const opacity = () => browser.evaluate(`getComputedStyle(document.querySelector(".say-list .say-card-button")).opacity`);
-  assert.equal(await opacity(), "0", "引文卡片右上角的“做成卡片”平时藏着");
-  const cardBox = await browser.evaluate(`(() => { const r = document.querySelector(".say-list .say-card").getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
-  await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: cardBox.x, y: cardBox.y });
-  await sleep(300);
-  assert.equal(await opacity(), "1", "悬停卡片时出现");
+  // 手机竖屏：竖排那份，点一颗星换句，那句话在星空底部、不出屏幕；“全部 N 条”在右上角
+  await browser.setViewport(390, 844);
+  await browser.goto(`${base}/says`, 3000);
+  const phone = await sky();
+  assert.equal(phone.shape, "tall", "竖屏用竖排那份");
+  assert.equal(phone.stars, all.length);
+  await click(`.say-sky[data-shape="tall"] .say-star[data-id="${ids[0]}"]`);
+  await sleep(600);
+  const tapped = await sky();
+  assert.equal(tapped.reading, textOf.get(ids[0]), "点一颗星换成那一句");
+  assert.ok(tapped.card.left >= 0 && tapped.card.right <= 390 && Math.abs(tapped.card.bottom - (tapped.field.bottom - 16)) <= 2, "那句话在星空底部，不出屏幕");
+  const trigger = await browser.evaluate(`(() => { const r = document.querySelector(".say-list-trigger").getBoundingClientRect(); return { top: r.top, right: r.right }; })()`);
+  assert.ok(trigger.right <= 390 && Math.abs(trigger.top - tapped.field.top) <= 2, "“全部 N 条”在星空右上角");
+
+  // 调试页：5 / 60 / 240 句（横屏）都在画面里，可悬停的范围互不盖住，240 句能悬停到指定星（2026-11-02 用户：句子多了根本装不下）
+  await browser.setViewport(1440, 900);
+  await browser.goto(`${base}/debug`, 5000);
+  const samples = await browser.evaluate(`[...document.querySelectorAll(".debug-say-sky")].map((box) => {
+    const sky = box.querySelector('.say-sky[data-shape="wide"]');
+    const field = sky.getBoundingClientRect();
+    const stars = [...sky.querySelectorAll(".say-star")].map((el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2, r: r.width / 2 }; });
+    let gap = Infinity;
+    for (let i = 0; i < stars.length; i++) for (let j = i + 1; j < stars.length; j++) gap = Math.min(gap, Math.hypot(stars[i].x - stars[j].x, stars[i].y - stars[j].y));
+    return { count: Number(box.dataset.count), stars: stars.length, outside: stars.filter((star) => star.x < field.left || star.x > field.right || star.y < field.top || star.y > field.bottom).length, hit: stars[0].r, gap };
+  })`);
+  assert.deepEqual(samples.map((sample) => [sample.count, sample.stars]), [[5, 5], [60, 60], [240, 240]], "三份示例，每句一颗星");
+  for (const sample of samples) {
+    assert.equal(sample.outside, 0, `${sample.count} 句：星都在画面里`);
+    assert.ok(sample.hit * 2 <= sample.gap + 0.5, `${sample.count} 句：可悬停的范围互不盖住（半径 ${sample.hit.toFixed(1)}px，最近 ${sample.gap.toFixed(1)}px）`);
+  }
+  await browser.evaluate(`document.querySelector('.debug-say-sky[data-count="240"] .say-field').scrollIntoView({ block: "center" })`);
+  await sleep(400);
+  const target = await browser.evaluate(`document.querySelectorAll('.debug-say-sky[data-count="240"] .say-sky[data-shape="wide"] .say-star')[100].dataset.id`);
+  await hover(`.debug-say-sky[data-count="240"] .say-sky[data-shape="wide"] .say-star[data-id="${target}"]`);
+  await sleep(600);
+  assert.equal(await browser.evaluate(`document.querySelector('.debug-say-sky[data-count="240"] .say-sky[data-shape="wide"] .say-star[data-active]')?.dataset.id`), target, "240 句时也能悬停到指定的那颗星");
 
   assert.deepEqual(browser.errors, [], "页面不应当有报错");
-  console.log(`PASS 一言：没有按人看胶囊、旧 ?author= 显示全部、星图一开始是最新一句、悬停换句与星座亮起、没有说明和抽一句、调试页 5/60/240 句都装得下且悬停不打架、金句卡片 1080×1350 可保存、Esc 关闭、悬停才出现卡片按钮`);
+  console.log(`PASS 一言：整屏星空铺满宽、每句一颗星、一开始最新一句、悬停换句与星座亮起、离开停住、无圆盘说明抽一句和列表、旧链接显示全部、抽屉全部句子与卡片按钮、金句卡片 1080×1350、手机竖排点星换句卡片在底部、调试页 5/60/240 句都装得下且悬停不打架`);
 } finally {
   await browser.close();
 }

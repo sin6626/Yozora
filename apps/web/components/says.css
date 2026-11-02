@@ -1,84 +1,93 @@
-/* 一言页（say-list.tsx、say-sky.tsx、say-tools.tsx）：金句星图、每张引文卡片的“做成卡片”按钮和卡片弹窗 */
-/* ---------- 金句星图（say-sky.tsx）：左边圆形星盘，右边读星面板；窄屏上下排 ---------- */
-.say-sky {
-  display: grid;
-  grid-template-columns: minmax(0, 25rem) minmax(0, 1fr);
-  align-items: center;
-  gap: var(--space-8);
-  margin-bottom: var(--space-8);
+/* 一言页（say-list.tsx、say-sky.tsx、say-list-drawer.tsx、say-tools.tsx）：整屏金句星空、星旁边的那句话、“全部 N 条”抽屉、“做成卡片”按钮和卡片弹窗 */
+
+/* ---------- 星空：冲出正文那一栏铺满屏幕宽，高度到一屏底部 ---------- */
+.site-shell:has(.say-field) {
+  overflow-x: clip;
 }
 
-@media (max-width: 47.99rem) {
-  .say-sky {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-4);
+.say-field {
+  position: relative;
+  container-type: size;
+  width: 100vw;
+  height: max(26rem, calc(100dvh - 11rem));
+  margin-inline: calc(50% - 50vw);
+}
+
+/* 横屏、竖屏各排一份，按屏幕方向显示一份 */
+.say-sky {
+  position: absolute;
+  inset: 0;
+}
+
+.say-sky[data-shape="tall"] {
+  display: none;
+}
+
+@media (orientation: portrait) {
+  .say-sky[data-shape="wide"] {
+    display: none;
+  }
+
+  .say-sky[data-shape="tall"] {
+    display: block;
   }
 }
 
-.say-sky-chart svg {
-  display: block;
+/* 星座：很淡的连线，选中那颗星所在的星座亮起 */
+.say-sky-lines {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: auto;
+  height: 100%;
   overflow: visible;
-  user-select: none;
-}
-
-/* 星盘：外圈实线、两道虚线圈、一圈刻度，都很淡 */
-.say-sky-grid {
-  fill: none;
-  stroke: var(--constellation-line);
-  stroke-width: 1;
-}
-
-.say-sky-ring {
-  stroke-dasharray: 2 6;
-}
-
-.say-sky-dust {
-  fill: var(--foreground);
   pointer-events: none;
 }
 
-/* 星座：连线和名字平时淡，选中的星所在的星座亮起 */
-.say-sky-line {
-  stroke: color-mix(in srgb, var(--foreground) 20%, transparent);
+.say-sky-lines line {
+  stroke: color-mix(in srgb, var(--moonlight) 22%, transparent);
   stroke-width: 0.8;
   transition: stroke var(--duration-base) var(--ease-out);
 }
 
-/* 名字描一圈夜色的边，压在星上也看得清 */
-.say-sky-label {
-  fill: var(--muted-foreground);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-anchor: middle;
-  paint-order: stroke;
-  stroke: color-mix(in srgb, var(--background) 85%, transparent);
-  stroke-width: 3px;
-  stroke-linejoin: round;
-  pointer-events: none;
-  transition: fill var(--duration-base) var(--ease-out);
+.say-sky-lines g[data-active] line {
+  stroke: color-mix(in srgb, var(--moonlight) 70%, transparent);
+  stroke-width: 1;
 }
 
-.say-sky-group[data-active] .say-sky-line {
-  stroke: color-mix(in srgb, var(--primary) 75%, transparent);
+.say-sky-stars {
+  position: absolute;
+  inset: 0;
 }
 
-.say-sky-group[data-active] .say-sky-label {
-  fill: var(--foreground);
-}
-
-/* 一颗星：亮核 + 一圈柔光（慢慢闪）；选中时柔光变亮、带十字星芒 */
-.say-sky-star {
+/* 一颗星：亮核 + 一圈柔光（慢慢闪）；亮度按新旧（--b）；悬停或选中时柔光变亮，选中的带十字星芒，同星座的其他星也亮起来 */
+.say-star {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: calc(var(--say-hit) * 2);
+  height: calc(var(--say-hit) * 2);
+  translate: -50% -50%;
+  opacity: var(--b);
   cursor: pointer;
+  transition: opacity var(--duration-base) var(--ease-out);
 }
 
-.say-sky-core {
-  fill: var(--moonlight);
+.say-star > span {
+  position: absolute;
+  border-radius: var(--radius-full);
+  pointer-events: none;
 }
 
-.say-sky-halo {
-  fill: url(#say-sky-glow);
+.say-star-core {
+  width: calc(var(--r) * 2);
+  height: calc(var(--r) * 2);
+  background: var(--moonlight);
+}
+
+.say-star-halo {
+  width: calc(var(--r) * 10);
+  height: calc(var(--r) * 10);
+  background: radial-gradient(circle, color-mix(in srgb, var(--moonlight) 85%, transparent), transparent 70%);
   opacity: var(--say-sky-glow, 0.35);
   animation: say-sky-twinkle 4s ease-in-out var(--twinkle-delay) infinite;
   transition: opacity var(--duration-base) var(--ease-out), scale var(--duration-base) var(--ease-out);
@@ -90,87 +99,223 @@
   }
 }
 
-/* 天上已经有成形的星座时，只有一颗星的（孤星、只说过一句的人）画得暗一点 */
-.say-sky-star[data-faint]:not([data-active]) {
-  opacity: 0.55;
-}
-
-.say-sky-spikes {
-  stroke: var(--moonlight);
-  stroke-width: 0.8;
-  stroke-linecap: round;
+.say-star-spikes {
+  width: calc(var(--r) * 9);
+  height: calc(var(--r) * 9);
+  background:
+    linear-gradient(var(--moonlight), var(--moonlight)) center / 1px 100% no-repeat,
+    linear-gradient(var(--moonlight), var(--moonlight)) center / 100% 1px no-repeat;
+  mask: radial-gradient(circle, #000 15%, transparent 70%);
   opacity: 0;
   transition: opacity var(--duration-base) var(--ease-out);
 }
 
-.say-sky-hit {
-  fill: transparent;
+.say-star:hover,
+.say-star[data-active],
+.say-star[data-kin] {
+  opacity: 1;
 }
 
-.say-sky-star:hover .say-sky-halo,
-.say-sky-star[data-active] .say-sky-halo {
+.say-star:hover .say-star-halo,
+.say-star[data-active] .say-star-halo {
   opacity: 1;
   scale: 1.35;
   animation: none;
 }
 
-.say-sky-star[data-active] .say-sky-spikes {
+.say-star[data-active] .say-star-spikes {
   opacity: 0.9;
 }
 
-/* 右边这句话：换星时轻轻浮上来，用霞鹜文楷写 */
-.say-sky-reading {
+/* ---------- 星旁边的那句话：左右两边 × 居中/靠上/靠下里挑不出画面、盖住别的星最少的位置（lib/says.ts 的 placeCard）；竖屏（手机）固定在星空底部 ---------- */
+.say-sky-card {
+  --card-gap: calc(var(--say-hit) + 0.75rem);
+  position: absolute;
+  z-index: 2;
+  width: min(21rem, 38vw);
+  padding: var(--space-4) var(--space-6);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--glass-popup);
+  box-shadow: var(--shadow-popup);
+  translate: var(--card-x) var(--card-y);
   animation: say-sky-in 0.32s var(--ease-out) both;
+}
+
+.say-sky-card[data-side="right"] {
+  --card-x: var(--card-gap);
+  --card-y: calc(var(--card-f) * -100%);
+}
+
+.say-sky-card[data-side="left"] {
+  --card-x: calc(-100% - var(--card-gap));
+  --card-y: calc(var(--card-f) * -100%);
+}
+
+.say-sky-card[data-side="above"] {
+  --card-x: calc(var(--card-f) * -100%);
+  --card-y: calc(-100% - var(--card-gap));
+}
+
+.say-sky-card[data-side="below"] {
+  --card-x: calc(var(--card-f) * -100%);
+  --card-y: var(--card-gap);
+}
+
+.say-sky[data-shape="tall"] .say-sky-card {
+  inset: auto var(--space-4) var(--space-4) !important;
+  width: auto;
+  translate: none;
 }
 
 @keyframes say-sky-in {
   from {
     opacity: 0;
-    translate: 0 6px;
+    transform: translateY(6px);
     filter: blur(3px);
   }
 }
 
 .say-sky-eyebrow {
-  margin: 0 0 var(--space-3);
+  margin: 0 0 var(--space-2);
   color: var(--primary);
   font-size: var(--text-xs);
   letter-spacing: 0.2em;
 }
 
-.say-sky-reading blockquote > p {
+.say-sky-card blockquote > p {
   margin: 0;
   font-family: "LXGW WenKai", "PingFang SC", var(--font-cjk-sans), sans-serif;
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: 300;
   line-height: 1.6;
 }
 
-.say-sky-reading footer {
+.say-sky-card footer {
   display: flex;
   flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.say-sky-card cite {
+  font-style: normal;
+}
+
+.say-sky-card cite::before {
+  content: "《";
+}
+
+.say-sky-card cite::after {
+  content: "》";
+}
+
+.say-sky-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
   margin-top: var(--space-3);
 }
 
-.say-sky-reading cite {
-  font-style: normal;
+.say-sky-card-foot .say-date {
+  margin: 0;
 }
 
-.say-sky-reading cite::before {
-  content: "《";
+/* ---------- “全部 N 条”：电脑在星空右下角（和正文那一栏的右边对齐），手机在右上角 ---------- */
+.say-list-trigger {
+  position: absolute;
+  right: max(var(--space-4), calc((100% - var(--article-max-width)) / 2 + var(--space-6)));
+  bottom: var(--space-6);
+  z-index: 3;
 }
 
-.say-sky-reading cite::after {
-  content: "》";
+@media (orientation: portrait) {
+  .say-list-trigger {
+    top: 0;
+    bottom: auto;
+  }
 }
 
-.say-sky-actions {
+/* 抽屉：从右边滑出，可以往右滑掉 */
+.say-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-popup);
+  background: color-mix(in srgb, var(--island-bg) 55%, transparent);
+  opacity: calc(1 - var(--drawer-swipe-progress, 0));
+  transition: opacity 450ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.say-drawer-backdrop[data-starting-style],
+.say-drawer-backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.say-drawer-viewport {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-popup);
   display: flex;
-  flex-wrap: wrap;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.say-drawer {
+  display: flex;
+  flex-direction: column;
+  width: min(28rem, calc(100vw - 3rem));
+  height: 100%;
+  border-left: 1px solid var(--glass-border);
+  background: var(--glass-popup);
+  box-shadow: var(--shadow-popup);
+  outline: 0;
+  pointer-events: auto;
+  transform: translateX(var(--drawer-swipe-movement-x, 0));
+  transition: transform 450ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.say-drawer[data-starting-style],
+.say-drawer[data-ending-style] {
+  transform: translateX(100%);
+}
+
+.say-drawer[data-swiping] {
+  transition-duration: 0ms;
+}
+
+.say-drawer-head {
+  display: flex;
   align-items: center;
-  gap: var(--space-2);
-  margin-top: var(--space-6);
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.say-drawer-title {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.say-drawer-content {
+  flex: 1;
+  padding: var(--space-4) var(--space-6) var(--space-8);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.say-drawer .say-card {
+  padding: var(--space-4) var(--space-4) var(--space-3) var(--space-12);
+}
+
+.say-drawer .say-card::before {
+  left: var(--space-3);
+  font-size: 2.25rem;
+}
+
+.say-drawer .say-card blockquote > p {
+  font-size: var(--text-base);
 }
 
 /* 每张引文卡片右上角“做成卡片”：平时藏着，悬停卡片或键盘聚焦时出现；触屏一直显示 */
@@ -286,12 +431,17 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .say-sky-reading {
+  .say-sky-card {
     animation-name: say-sky-fade;
   }
 
-  .say-sky-halo {
+  .say-star-halo {
     animation: none;
+  }
+
+  .say-drawer,
+  .say-drawer-backdrop {
+    transition: none;
   }
 }
 

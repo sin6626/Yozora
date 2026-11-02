@@ -8,10 +8,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t.says.title };
 }
 
-export default async function SayListPage({ searchParams }: PageProps<"/[locale]/says">) {
+export default async function SayListPage() {
   return (
     <Suspense fallback={<p className="post-list-content" role="status">{(await getT()).common.loading}</p>}>
-      <SayList searchParams={searchParams} />
+      <SayList />
     </Suspense>
   );
 }

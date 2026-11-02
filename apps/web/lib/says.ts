@@ -36,11 +36,20 @@ export function wrapText(text: string, measure: (value: string) => number, maxWi
   return lines;
 }
 
-// ---------- 金句星图（components/say-sky.tsx）：每句话一颗星，同一个人说的连成星座 ----------
-export type SkyStar = { id: string; x: number; y: number; r: number; group: number };
-export type SkyGroup = { name?: string; stars: number[]; edges: [number, number][]; label?: { x: number; y: number } };
-// hit：每颗星可悬停的半径；glow：星的光晕亮度。星多时两个都变小，免得互相盖住、糊成一片
-export type SkyLayout = { size: number; limit: number; hit: number; glow: number; stars: SkyStar[]; groups: SkyGroup[]; dust: { x: number; y: number; r: number; o: number }[] };
+// ---------- 金句星图（components/say-sky.tsx）：一整屏星空，每句话一颗星，同一个人说的连成星座 ----------
+// x、y 是在画面里的百分比（画面多宽多高都能放），r 是星的半径（像素），b 是亮度（新的一句最亮）
+export type SkyStar = { id: string; x: number; y: number; r: number; b: number; group: number };
+export type SkyGroup = { name?: string; stars: number[]; edges: [number, number][] };
+// 画面的设计尺寸（像素）与四周留白；实际画面按百分比伸缩。竖屏底部留出那句话卡片的位置
+export type SkyFrame = { width: number; height: number; padX: number; padTop: number; padBottom: number };
+// hit：每颗星可悬停的半径（像素）；glow：星的光晕亮度。星多时两个都变小，免得互相盖住、糊成一片
+export type SkyLayout = { width: number; height: number; hit: number; glow: number; stars: SkyStar[]; groups: SkyGroup[] };
+
+// 横屏（电脑）和竖屏（手机）各排一份，页面按屏幕方向显示其中一份
+export const skyFrames = {
+  wide: { width: 1600, height: 760, padX: 110, padTop: 60, padBottom: 80 },
+  tall: { width: 390, height: 660, padX: 26, padTop: 70, padBottom: 236 },
+} satisfies Record<string, SkyFrame>;
 
 // 按字符串播种的随机数：同一句话、同一个人每次都落在同一个位置
 export function seededRandom(seed: string) {
@@ -97,14 +106,15 @@ function scatter(members: Say[], radius: number) {
   return points;
 }
 
-// 星图排布（坐标在 size×size 的正方形里，星都在半径 limit 的圆内）。句子再多也装得下：
+// 星图排布。句子再多也装得下：
 // ① 先在不限大小的平面上排：星座半径按星数算（星越多越大），说得多的排前面，从中心沿黄金角螺线往外找第一个和已有星座不重叠的位置；
-//    没写作者的句子各自是一颗孤星，排在最后；
-// ② 再整体缩放到刚好装进星盘（星少时最多放大到 3 倍，免得挤在中间）；星多时星点、可悬停半径跟着变小。
-// 星座里第一颗（最早那句）在中心，连线是最小生成树；名字标在星座下方，出圈就标上方。
-export function skyLayout(says: Say[], size = 400): SkyLayout {
-  const center = size / 2;
-  const limit = size / 2 - 22;
+//    螺线按能放星的区域的宽高比压扁，排出来的一团和它一样宽扁；没写作者的句子各自是一颗孤星，排在最后；
+// ② 再整体缩放到刚好铺满画面（星少时最多放大到 5 倍）；星多时星点、可悬停半径、光晕跟着变小。
+// 星座里第一颗（最早那句）在中心，连线是最小生成树。新的句子亮、旧的暗一些（最暗 0.7，免得和背景里的星混在一起）。
+export function skyLayout(says: Say[], frame: SkyFrame = skyFrames.wide): SkyLayout {
+  const { width, height, padX, padTop, padBottom } = frame;
+  // 按去掉留白后能放星的那块区域的宽高比压扁螺线
+  const stretch = Math.sqrt((width - padX * 2) / (height - padTop - padBottom));
   const groups = [
     ...authorsOf(says).map(({ name }) => ({ name, members: says.filter((say) => say.author?.trim() === name) })),
     ...says.filter((say) => !say.author?.trim()).map((say) => ({ name: undefined, members: [say] })),
@@ -122,8 +132,8 @@ export function skyLayout(says: Say[], size = 400): SkyLayout {
     if (index > 0 && group.radius !== groups[index - 1].radius) from = 0;
     for (let step = from; ; step++) {
       const distance = spacing * 0.6 * Math.sqrt(step);
-      const x = distance * Math.cos(step * golden);
-      const y = distance * Math.sin(step * golden);
+      const x = distance * Math.cos(step * golden) * stretch;
+      const y = (distance * Math.sin(step * golden)) / stretch;
       if (centers.every((other) => Math.hypot(other.x - x, other.y - y) >= other.radius + group.radius + gap)) {
         centers.push({ x, y, radius: group.radius });
         from = step;
@@ -132,38 +142,70 @@ export function skyLayout(says: Say[], size = 400): SkyLayout {
     }
   }
 
-  // ② 缩放进星盘
-  const extent = Math.max(...groups.flatMap((group, index) => group.points.map((point) => Math.hypot(centers[index].x + point.x, centers[index].y + point.y))), 0);
-  const scale = extent > 0 ? Math.min(3, limit / extent) : 1;
+  // ② 缩放铺满画面（以所有星的外框为准，外框中心对准画面中心）
+  const points = groups.flatMap((group, index) => group.points.map((point) => ({ x: centers[index].x + point.x, y: centers[index].y + point.y })));
+  const [left, right] = [Math.min(...points.map((point) => point.x)), Math.max(...points.map((point) => point.x))];
+  const [top, bottom] = [Math.min(...points.map((point) => point.y)), Math.max(...points.map((point) => point.y))];
+  const scale = Math.min(5, (width - padX * 2) / Math.max(right - left, 1e-6), (height - padTop - padBottom) / Math.max(bottom - top, 1e-6));
   const shrink = Math.min(1, Math.max(0.45, scale));
+  const toX = (x: number) => width / 2 + (x - (left + right) / 2) * scale;
+  const toY = (y: number) => padTop + (height - padTop - padBottom) / 2 + (y - (top + bottom) / 2) * scale;
+  const percent = (value: number, total: number) => Math.round((value / total) * 10000) / 100;
+  const order = [...says].sort((a, b) => Date.parse(a.created) - Date.parse(b.created)).map((say) => say.id);
+  const age = new Map(order.map((id, index) => [id, order.length > 1 ? index / (order.length - 1) : 1]));
+
   const stars: SkyStar[] = [];
   const result: SkyGroup[] = groups.map((group, index) => {
-    const indices = group.members.map((say, order) => {
-      const point = group.points[order];
+    const placed = group.members.map((say, rank) => {
+      const point = group.points[rank];
+      return { id: say.id, x: toX(centers[index].x + point.x), y: toY(centers[index].y + point.y) };
+    });
+    const indices = placed.map((star) => {
       stars.push({
-        id: say.id,
-        x: round(center + (centers[index].x + point.x) * scale),
-        y: round(center + (centers[index].y + point.y) * scale),
-        r: round((2.4 + seededRandom(`${say.id}:r`)() * 1.1) * shrink),
+        id: star.id,
+        x: percent(star.x, width),
+        y: percent(star.y, height),
+        r: round((2.4 + seededRandom(`${star.id}:r`)() * 1.1) * shrink),
+        b: Math.round((0.7 + 0.3 * (age.get(star.id) ?? 1)) * 100) / 100,
         group: index,
       });
       return stars.length - 1;
     });
-    const placed = indices.map((i) => stars[i]);
     const edges = spanningTree(placed).map(([a, b]) => [indices[a], indices[b]] as [number, number]);
-    if (!group.name) return { stars: indices, edges };
-    const middle = round(placed.reduce((sum, star) => sum + star.x, 0) / placed.length);
-    const below = { x: middle, y: round(Math.max(...placed.map((star) => star.y)) + 24) };
-    const above = { x: middle, y: round(Math.min(...placed.map((star) => star.y)) - 16) };
-    return { name: group.name, stars: indices, edges, label: below.y <= center + limit + 12 ? below : above };
+    return group.name ? { name: group.name, stars: indices, edges } : { stars: indices, edges };
   });
 
-  const random = seededRandom("yozora-dust");
-  const dust = Array.from({ length: 110 }, () => {
-    const turn = random() * Math.PI * 2;
-    const spread = Math.sqrt(random()) * (limit + 14);
-    return { x: round(center + spread * Math.cos(turn)), y: round(center + spread * Math.sin(turn)), r: round(0.4 + random() * 0.7), o: round(0.15 + random() * 0.4) };
-  });
   const glow = Math.round(0.35 * Math.min(1, Math.sqrt(40 / Math.max(1, stars.length))) * 100) / 100;
-  return { size, limit, hit: round(Math.min(12, Math.max(3, (spacing * scale) / 2))), glow, stars, groups: result, dust };
+  // 可悬停半径：最近两颗星距离的一半（最多 14），保证互不盖住
+  let closest = Infinity;
+  for (let i = 0; i < stars.length; i++) {
+    for (let j = i + 1; j < stars.length; j++) closest = Math.min(closest, Math.hypot(((stars[i].x - stars[j].x) / 100) * width, ((stars[i].y - stars[j].y) / 100) * height));
+  }
+  return { width, height, hit: Math.floor(Math.min(28, closest) * 5) / 10, glow, stars, groups: result };
+}
+
+// 那句话的卡片放在星的哪一边：右、左、上、下四边，每边沿着星滑五个位置（f 是卡片相对星挪了自己的几成：
+// 左右时是往上挪、上下时是往左挪），挑出不出画面、盖住别的星最少的一个；一样少时偏向居中、先右后左再上下。
+// width、height 传画面实际的像素大小（没量到时用设计尺寸），卡片约 336×200 像素；星的可悬停范围碰到卡片也算盖住。
+// 星很密时总会盖住几颗，换一颗星后就能悬停到。
+export type CardPlace = { side: "right" | "left" | "above" | "below"; f: number };
+const cardSides = ["right", "left", "above", "below"] as const;
+export function placeCard(layout: Pick<SkyLayout, "width" | "height" | "hit" | "stars">, starIndex: number, card = { width: 336, height: 200 }): CardPlace {
+  const star = layout.stars[starIndex];
+  const w = (card.width / layout.width) * 100;
+  const h = (card.height / layout.height) * 100;
+  const [gapX, gapY] = [((layout.hit + 12) / layout.width) * 100, ((layout.hit + 12) / layout.height) * 100];
+  const [padX, padY] = [(layout.hit / layout.width) * 100, (layout.hit / layout.height) * 100];
+  let best: { place: CardPlace; cost: number } | undefined;
+  for (const [order, side] of cardSides.entries()) {
+    for (const f of [0.5, 0.3, 0.7, 0.08, 0.92]) {
+      const left = side === "right" ? star.x + gapX : side === "left" ? star.x - gapX - w : star.x - f * w;
+      const top = side === "above" ? star.y - gapY - h : side === "below" ? star.y + gapY : star.y - f * h;
+      const outside = Math.max(0, -left) + Math.max(0, left + w - 100) + Math.max(0, -top) + Math.max(0, top + h - 100);
+      const covered = layout.stars.filter((other, index) => index !== starIndex && other.x > left - padX && other.x < left + w + padX && other.y > top - padY && other.y < top + h + padY).length;
+      const cost = outside * 100 + covered * 10 + Math.abs(f - 0.5) + order * 0.01;
+      if (!best || cost < best.cost) best = { place: { side, f }, cost };
+    }
+  }
+  return best!.place;
 }

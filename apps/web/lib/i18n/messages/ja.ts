@@ -432,6 +432,8 @@ const ja: Messages = {
     count: (count: number) => `全 ${count} 件`,
     empty: "ひとことはまだありません。",
     sky: "名言の星図",
+    list: (count: number) => `すべて ${count} 件`,
+    listTitle: "ひとこと一覧",
     constellation: (name: string) => `${name}座`,
     lone: "ひとつ星",
     close: "閉じる",

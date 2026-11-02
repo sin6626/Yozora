@@ -1,9 +1,11 @@
+import { SayCards } from "@/components/say-list";
+import SayListDrawer from "@/components/say-list-drawer";
 import SaySky from "@/components/say-sky";
-import type { Say } from "@/lib/says";
-import { skyLayout } from "@/lib/says";
+import { skyFrames, skyLayout, type Say } from "@/lib/says";
+import "@/components/corners.css";
 import "@/components/says.css";
 
-// 调试页“金句星图”：真实的 SaySky，用示例句子（不读库）摆出现在、几十句、几百句三种规模，看星盘装不装得下、星座挤不挤。
+// 调试页“金句星图”：真实的 SaySky + 抽屉，用示例句子（不读库）摆出现在、几十句、几百句三种规模，看星空装不装得下、星座挤不挤。
 const lines = [
   "年少的时候总想快点长大，长大了才知道慢一点也挺好。",
   "代码能跑就别动它，能删就别留着它。",
@@ -48,7 +50,11 @@ export default function SaySkyPreview() {
         return (
           <div key={count} className="debug-say-sky" data-count={count}>
             <p className="post-meta">{count} 句</p>
-            <SaySky layout={skyLayout(says)} says={says} site="Sin’s Yozora · 调试" />
+            <SaySky layouts={{ wide: skyLayout(says, skyFrames.wide), tall: skyLayout(says, skyFrames.tall) }} says={says} site="Sin’s Yozora · 调试">
+              <SayListDrawer count={says.length}>
+                <SayCards says={says} site="Sin’s Yozora · 调试" />
+              </SayListDrawer>
+            </SaySky>
           </div>
         );
       })}

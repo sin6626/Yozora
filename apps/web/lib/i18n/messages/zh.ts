@@ -439,6 +439,8 @@ const zh = {
     empty: "还没有一言。",
     // 金句星图（say-sky.tsx，sky 只给读屏念）与金句卡片（say-tools.tsx）
     sky: "金句星图",
+    list: (count: number) => `全部 ${count} 条`,
+    listTitle: "全部一言",
     constellation: (name: string) => `${name}座`,
     lone: "孤星",
     close: "收起",
