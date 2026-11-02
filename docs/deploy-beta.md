@@ -37,6 +37,15 @@ ssh root@服务器IP 'bash -s' < scripts/deploy/server-inspect.sh > server-inspe
 
 因为内存和硬盘都小，**不在服务器上编译**：Core 和前台都在本机构建好再传上去。Core 用现在的镜像做底、叠上本仓库编译好的代码，回滚就是把 compose 的镜像改回原来的；前台用 `node:24` 容器跑在 `127.0.0.1:2324`。
 
+## 2026-11-02 已做：清理磁盘、备份
+
+- 清理（磁盘 4G → 12G 可用）：Docker 构建缓存 4.4G（`docker builder prune -af`）、系统日志 journal 压到 200M（原 2.9G）、apt 缓存、三个单文件（1Panel 安装包 tar.gz、旧 dmesg.0、旧 btmp.1）、两年前不用的 `innei/shiro:latest` 镜像。Core 和 Shiro 清理后都正常（ping 200）。
+- 留给站长自己决定、自己删的目录（批量删除按规矩由站长手动）：`/1panel-v2.1.8-linux-amd64`（154M，1Panel 安装解压目录）、`/root/mx-space/shiro`（1.5G，Shiro 源码和依赖，线上跑的是 `shiro-release`）、`/root/mx-space/mx-web-yun`（250M）。
+- 备份在服务器 `/root/backups/2026-11-02/`（权限 700），本机拷了一份到 `.local/backups/server-20261102/`（不进 git，SHA-256 已核对）：整库 `mongodump --archive --gzip`（1.3M，dry run 读回通过；文章 13、手记 10、评论 38），Core 数据目录（不含它自己的每日备份，30M），compose 文件，镜像清单。
+- 正在跑的 Core 镜像另打了固定标签 `innei/mx-server:running-20261102`，回滚用。
+- 注意：线上 compose 文件写的是 `innei/mx-server:latest`（现在是 v11.1.2），而正在跑的容器是旧的 `:10`（库里的迁移记录到 v10.4.3）。谁在那个目录执行 `docker compose up -d`，Core 就会直接跳到 v11 并跑一串迁移。
+- 安全：`/var/log/btmp` 记录了两万多次 SSH 登录失败（有人在扫密码），而服务器开着 root 密码登录。建议改成只允许密钥登录。
+
 ## 第 1 步：备份
 
 - MongoDB：`mongodump` 整库导出（Docker 跑的就在容器里执行再拷出来），放到服务器以外的地方再留一份。
