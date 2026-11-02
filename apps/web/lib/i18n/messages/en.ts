@@ -433,8 +433,6 @@ const en: Messages = {
     count: (count: number) => `${count} ${count === 1 ? "quote" : "quotes"}`,
     empty: "No quotes yet.",
     sky: "Quote constellations",
-    list: (count: number) => `All ${count}`,
-    listTitle: "All quotes",
     close: "Close",
     makeCard: "Make a card",
     card: "Quote card",

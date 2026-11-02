@@ -10,11 +10,11 @@ import { useT } from "./locale-provider";
 import "lxgw-wenkai-webfont/lxgwwenkai-light.css";
 
 // 金句卡片按钮（样式在 says.css）：把一句话画成金句卡片图（lib/say-card.ts），在弹窗里预览，可以保存或用系统分享发出去。
-// 一言列表每张引文卡片右上角、金句星图右边那句话下面都有。
+// 在星空里那句话卡片的右下角。
 
 type Card = { url: string; file: File; canShare: boolean };
 
-export function SayCardButton({ say, site, withLabel }: { say: Say; site: string; withLabel?: boolean }) {
+export function SayCardButton({ say, site }: { say: Say; site: string }) {
   const t = useT().says;
   const [open, setOpen] = useState(false);
   const [card, setCard] = useState<Card | null>(null);
@@ -49,9 +49,9 @@ export function SayCardButton({ say, site, withLabel }: { say: Say; site: string
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger className={withLabel ? "btn btn-sm" : "say-card-button"} aria-label={withLabel ? undefined : t.makeCard} title={withLabel ? undefined : t.makeCard}>
-        <ImageDown size={withLabel ? 14 : 16} aria-hidden="true" />
-        {withLabel && t.makeCard}
+      <Dialog.Trigger className="btn btn-sm">
+        <ImageDown size={14} aria-hidden="true" />
+        {t.makeCard}
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Backdrop className="say-card-backdrop" />

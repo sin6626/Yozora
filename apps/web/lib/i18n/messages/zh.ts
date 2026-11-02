@@ -441,8 +441,6 @@ const zh = {
     empty: "还没有一言。",
     // 金句星图（say-sky.tsx，sky 只给读屏念）与金句卡片（say-tools.tsx）
     sky: "金句星图",
-    list: (count: number) => `全部 ${count} 条`,
-    listTitle: "全部一言",
     close: "收起",
     makeCard: "做成卡片",
     card: "金句卡片",

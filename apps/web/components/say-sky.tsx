@@ -10,7 +10,7 @@ import { SayCardButton } from "./say-tools";
 // skyLayout，在服务端算好，刷新不跳，句子再多也装得下）。横屏、竖屏各排一份，按屏幕方向显示一份（shapes）。
 // 鼠标移到一颗星上（触屏点一下）就在它旁边浮出那句话（不写“某某座”，2026-11-02 用户要求），这颗星和它的星座亮起；鼠标离开后卡片还留着，
 // 点星和卡片以外的地方或按 Esc 才收起。一开始没有选中的星（2026-11-02 用户要求）。新的句子亮，旧的暗一些。
-// 星只给鼠标和触屏用（对读屏隐藏），全部句子在 children（右下角“全部 N 条”抽屉）里。
+// 星只给鼠标和触屏用（对读屏隐藏），全部句子在 children（say-list.tsx 给读屏的 sr-only 列表）里。
 type Shape = "wide" | "tall";
 
 export default function SaySky({ layouts, says, site, children }: { layouts: Record<Shape, SkyLayout>; says: Say[]; site: string; children?: ReactNode }) {
@@ -100,7 +100,7 @@ export default function SaySky({ layouts, says, site, children }: { layouts: Rec
                 </blockquote>
                 <div className="say-sky-card-foot">
                   <time className="say-date" dateTime={say.created}>{formatDate(say.created)}</time>
-                  <SayCardButton say={say} site={site} withLabel />
+                  <SayCardButton say={say} site={site} />
                 </div>
               </article>
             )}

@@ -1,4 +1,4 @@
-/* 一言页（say-list.tsx、say-sky.tsx、say-list-drawer.tsx、say-tools.tsx）：整屏金句星空、星旁边的那句话、“全部 N 条”抽屉、“做成卡片”按钮和卡片弹窗 */
+/* 一言页（say-list.tsx、say-sky.tsx、say-tools.tsx）：整屏金句星空、星旁边的那句话、“做成卡片”的卡片弹窗 */
 
 /* ---------- 星空：冲出正文那一栏铺满屏幕宽，高度到一屏底部 ---------- */
 .site-shell:has(.say-field) {
@@ -211,145 +211,9 @@
   margin-top: var(--space-3);
 }
 
-.say-sky-card-foot .say-date {
-  margin: 0;
-}
-
-/* ---------- “全部 N 条”：电脑在星空右下角（和正文那一栏的右边对齐），手机在右上角 ---------- */
-.say-list-trigger {
-  position: absolute;
-  right: max(var(--space-4), calc((100% - var(--article-max-width)) / 2 + var(--space-6)));
-  bottom: var(--space-6);
-  z-index: 3;
-}
-
-@media (orientation: portrait) {
-  .say-list-trigger {
-    top: 0;
-    bottom: auto;
-  }
-}
-
-/* 抽屉：从右边滑出，可以往右滑掉 */
-.say-drawer-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-popup);
-  background: color-mix(in srgb, var(--island-bg) 55%, transparent);
-  opacity: calc(1 - var(--drawer-swipe-progress, 0));
-  transition: opacity 450ms cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-.say-drawer-backdrop[data-starting-style],
-.say-drawer-backdrop[data-ending-style] {
-  opacity: 0;
-}
-
-.say-drawer-viewport {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-popup);
-  display: flex;
-  justify-content: flex-end;
-  pointer-events: none;
-}
-
-.say-drawer {
-  display: flex;
-  flex-direction: column;
-  width: min(28rem, calc(100vw - 3rem));
-  height: 100%;
-  border-left: 1px solid var(--glass-border);
-  background: var(--glass-popup);
-  box-shadow: var(--shadow-popup);
-  outline: 0;
-  pointer-events: auto;
-  transform: translateX(var(--drawer-swipe-movement-x, 0));
-  transition: transform 450ms cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-.say-drawer[data-starting-style],
-.say-drawer[data-ending-style] {
-  transform: translateX(100%);
-}
-
-.say-drawer[data-swiping] {
-  transition-duration: 0ms;
-}
-
-.say-drawer-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-4) var(--space-6);
-  border-bottom: 1px solid var(--glass-border);
-}
-
-.say-drawer-title {
-  margin: 0;
-  font-size: var(--text-base);
-  font-weight: 600;
-}
-
-.say-drawer-content {
-  flex: 1;
-  padding: var(--space-4) var(--space-6) var(--space-8);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-.say-drawer .say-card {
-  padding: var(--space-4) var(--space-4) var(--space-3) var(--space-12);
-}
-
-.say-drawer .say-card::before {
-  left: var(--space-3);
-  font-size: 2.25rem;
-}
-
-.say-drawer .say-card blockquote > p {
-  font-size: var(--text-base);
-}
-
-/* 每张引文卡片右上角“做成卡片”：平时藏着，悬停卡片或键盘聚焦时出现；触屏一直显示 */
-.say-card-button {
-  position: absolute;
-  top: var(--space-3);
-  right: var(--space-3);
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-full);
-  background: transparent;
+.say-date {
   color: var(--muted-foreground);
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--duration-fast), background-color var(--duration-fast), color var(--duration-fast);
-}
-
-.say-card:hover .say-card-button,
-.say-card-button:focus-visible,
-.say-card-button[data-popup-open] {
-  opacity: 1;
-}
-
-.say-card-button:hover {
-  background: var(--accent);
-  color: var(--primary);
-}
-
-.say-card-button:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-}
-
-@media (hover: none) {
-  .say-card-button {
-    opacity: 1;
-  }
+  font-size: var(--text-xs);
 }
 
 /* 卡片弹窗：居中一张 4:5 的预览图，下面保存、分享、收起 */
@@ -432,10 +296,6 @@
     animation: none;
   }
 
-  .say-drawer,
-  .say-drawer-backdrop {
-    transition: none;
-  }
 }
 
 @keyframes say-sky-fade {

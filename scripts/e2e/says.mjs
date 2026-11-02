@@ -1,11 +1,11 @@
-// 浏览器回归测试：一言页（components/say-list.tsx、say-sky.tsx、say-list-drawer.tsx、say-tools.tsx）。
+// 浏览器回归测试：一言页（components/say-list.tsx、say-sky.tsx、say-tools.tsx）。
 // 2026-11-02 用户定：一言页整页是一片星空（不要圆形星盘、不要“金句星图”说明和抽一句、不要下面的列表），每句话一颗暖色的星，
-// 同一个人说的连成星座；一开始没有选中的星，鼠标移到星上就在旁边浮出那句话，点别处或按 Esc 收起；全部句子收在右下角“全部 N 条”抽屉里；
+// 同一个人说的连成星座；一开始没有选中的星，鼠标移到星上就在旁边浮出那句话，点别处或按 Esc 收起；没有列表和抽屉（全部句子只在给读屏的隐藏列表里）；
 // 手机竖屏另排一份，那句话在底部。
 // 这里检查：星空铺满屏幕宽、每句一颗星、一开始没有选中的星和卡片、悬停换句与星座亮起、离开停住、点别处和 Esc 收起、卡片在星旁边且不出画面、
 // 没有圆盘/说明/抽一句/胶囊、旧 ?author= 显示全部；
 // 调试页 5 / 60 / 240 句都在画面里且悬停范围互不盖住、240 句能悬停到指定星；手机竖屏用竖排那份、点星换句、卡片在底部；
-// 抽屉里是全部句子、引文卡片的“做成卡片”悬停才出现；金句卡片图 1080×1350 可保存、Esc 关闭。只读，不写库。
+// 金句卡片图 1080×1350 可保存、Esc 关闭。只读，不写库。
 // 需要先运行 pnpm dev。用法：pnpm e2e
 import assert from "node:assert/strict";
 import { openBrowser, sleep } from "../headless-browser.mjs";
@@ -60,13 +60,13 @@ try {
     count: document.querySelector(".page-heading .post-meta")?.textContent,
     width: innerWidth,
     old: document.querySelectorAll(".say-sky-chart, .say-sky-grid, .say-sky-intro, .say-draw-button, .say-authors, .say-toolbar").length,
-    listOutsideDrawer: [...document.querySelectorAll(".say-list")].filter((list) => !list.closest(".say-drawer")).length,
-    drawerItems: document.querySelectorAll(".say-drawer .say-card").length,
+    lists: document.querySelectorAll(".say-list, .say-list-trigger, .say-drawer").length,
+    readerItems: document.querySelectorAll(".say-field ul.sr-only > li").length,
   })`);
   assert.equal(page.count, `共 ${all.length} 条`);
   assert.equal(page.old, 0, "没有圆形星盘、说明、抽一句、按人看胶囊");
-  assert.equal(page.listOutsideDrawer, 0, "星空下面没有列表");
-  assert.equal(page.drawerItems, all.length, "全部句子都在抽屉里（没打开时也在页面里）");
+  assert.equal(page.lists, 0, "没有列表、没有“全部 N 条”抽屉（2026-11-02 用户：只要这张星图）");
+  assert.equal(page.readerItems, all.length, "全部句子在给读屏的隐藏列表里");
   const first = await sky();
   assert.equal(first.shape, "wide", "横屏用横排那份");
   assert.ok(first.field.width >= page.width - 20 && first.field.left <= 1, `星空铺满屏幕宽（${first.field.width}/${page.width}）`);
@@ -97,7 +97,7 @@ try {
   await sleep(300);
   assert.equal((await sky()).reading, textOf.get(ids.at(-1)), "鼠标离开后停在最后看的那句");
   // 点星和卡片以外的地方收起（2026-11-02 用户：点屏幕其他处弹层应该消失）；点卡片本身不收起；Esc 也收起
-  const empty = await browser.evaluate(`(() => { const r = ${visible()}.getBoundingClientRect(); for (let y = r.top + 20; y < r.bottom; y += 23) for (let x = r.left + 20; x < r.right; x += 37) { const el = document.elementFromPoint(x, y); if (el && !el.closest(".say-star, .say-sky-card, .say-list-trigger, a, button")) return { x, y }; } })()`);
+  const empty = await browser.evaluate(`(() => { const r = ${visible()}.getBoundingClientRect(); for (let y = r.top + 20; y < r.bottom; y += 23) for (let x = r.left + 20; x < r.right; x += 37) { const el = document.elementFromPoint(x, y); if (el && !el.closest(".say-star, .say-sky-card, a, button")) return { x, y }; } })()`);
   await click(`${layer()} .say-sky-card blockquote`);
   await sleep(200);
   assert.equal((await sky()).reading, textOf.get(ids.at(-1)), "点卡片本身不收起");
@@ -119,22 +119,6 @@ try {
     assert.equal(await browser.evaluate(`document.querySelector(".page-heading .post-meta")?.textContent`), `共 ${all.length} 条`, `旧的 ?${query} 链接显示全部`);
   }
 
-  // 抽屉：右下角“全部 N 条”滑出全部句子；引文卡片右上角的“做成卡片”悬停才出现；Esc 关上
-  await browser.goto(`${base}/says`, 3000);
-  await click(".say-list-trigger");
-  await sleep(700);
-  // 贴着可视区右边（html 留着滚动条的位置，固定定位的可视区比 innerWidth 窄一条滚动条宽）
-  const drawer = await browser.evaluate(`(() => { const r = document.querySelector(".say-drawer").getBoundingClientRect(); return { right: Math.round(r.right), edge: Math.round(document.querySelector(".say-drawer-viewport").getBoundingClientRect().right), open: document.querySelector(".say-drawer").checkVisibility() }; })()`);
-  assert.ok(drawer.open && Math.abs(drawer.right - drawer.edge) <= 1, `抽屉从右边滑出、贴着右边（${drawer.right}/${drawer.edge}）`);
-  const opacity = () => browser.evaluate(`getComputedStyle(document.querySelector(".say-drawer .say-card-button")).opacity`);
-  assert.equal(await opacity(), "0", "引文卡片右上角的“做成卡片”平时藏着");
-  await hover(".say-drawer .say-card");
-  await sleep(300);
-  assert.equal(await opacity(), "1", "悬停卡片时出现");
-  await escape();
-  await sleep(700);
-  assert.equal(await browser.evaluate(`document.querySelector(".say-drawer").checkVisibility()`), false, "Esc 关上抽屉");
-
   // 金句卡片图：星旁边那句的“做成卡片”；弹窗用 Esc 关上后那句话的卡片还在
   await hover(`${layer()} .say-star[data-id="${ids[0]}"]`);
   await sleep(500);
@@ -154,7 +138,7 @@ try {
   assert.equal(await browser.evaluate(`Boolean(document.querySelector(".say-card-dialog"))`), false, "Esc 关掉卡片弹窗");
   assert.equal((await sky()).reading, drawn, "关掉弹窗后那句话的卡片还在");
 
-  // 手机竖屏：竖排那份，点一颗星换句，那句话在星空底部、不出屏幕；“全部 N 条”在右上角
+  // 手机竖屏：竖排那份，点一颗星换句，那句话在星空底部、不出屏幕
   await browser.setViewport(390, 844);
   await browser.goto(`${base}/says`, 3000);
   const phone = await sky();
@@ -165,9 +149,7 @@ try {
   const tapped = await sky();
   assert.equal(tapped.reading, textOf.get(ids[0]), "点一颗星换成那一句");
   assert.ok(tapped.card.left >= 0 && tapped.card.right <= 390 && Math.abs(tapped.card.bottom - (tapped.field.bottom - 16)) <= 2, "那句话在星空底部，不出屏幕");
-  const trigger = await browser.evaluate(`(() => { const r = document.querySelector(".say-list-trigger").getBoundingClientRect(); return { top: r.top, right: r.right }; })()`);
-  assert.ok(trigger.right <= 390 && Math.abs(trigger.top - tapped.field.top) <= 2, "“全部 N 条”在星空右上角");
-  const emptyPhone = await browser.evaluate(`(() => { const r = ${visible()}.getBoundingClientRect(); for (let y = r.top + 60; y < r.bottom; y += 23) for (let x = r.left + 20; x < r.right; x += 37) { const el = document.elementFromPoint(x, y); if (el && !el.closest(".say-star, .say-sky-card, .say-list-trigger, a, button")) return { x, y }; } })()`);
+  const emptyPhone = await browser.evaluate(`(() => { const r = ${visible()}.getBoundingClientRect(); for (let y = r.top + 60; y < r.bottom; y += 23) for (let x = r.left + 20; x < r.right; x += 37) { const el = document.elementFromPoint(x, y); if (el && !el.closest(".say-star, .say-sky-card, a, button")) return { x, y }; } })()`);
   for (const type of ["mousePressed", "mouseReleased"]) await browser.send("Input.dispatchMouseEvent", { type, x: emptyPhone.x, y: emptyPhone.y, button: "left", clickCount: 1 });
   await sleep(300);
   assert.equal((await sky()).reading, undefined, "手机上点空白处卡片收起");
@@ -196,7 +178,7 @@ try {
   assert.equal(await browser.evaluate(`document.querySelector('.debug-say-sky[data-count="240"] .say-sky[data-shape="wide"] .say-star[data-active]')?.dataset.id`), target, "240 句时也能悬停到指定的那颗星");
 
   assert.deepEqual(browser.errors, [], "页面不应当有报错");
-  console.log(`PASS 一言：整屏星空铺满宽、每句一颗星、一开始不选中、悬停换句与星座亮起、离开停住、点别处和 Esc 收起、关弹窗卡片还在、无圆盘说明抽一句和列表、旧链接显示全部、抽屉全部句子与卡片按钮、金句卡片 1080×1350、手机竖排点星换句卡片在底部点别处收起、调试页 5/60/240 句都装得下且悬停不打架`);
+  console.log(`PASS 一言：整屏星空铺满宽、每句一颗星、一开始不选中、悬停换句与星座亮起、离开停住、点别处和 Esc 收起、关弹窗卡片还在、无圆盘说明抽一句和列表、旧链接显示全部、没有列表和抽屉（读屏有隐藏列表）、金句卡片 1080×1350、手机竖排点星换句卡片在底部点别处收起、调试页 5/60/240 句都装得下且悬停不打架`);
 } finally {
   await browser.close();
 }

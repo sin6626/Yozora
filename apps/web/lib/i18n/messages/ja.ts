@@ -433,8 +433,6 @@ const ja: Messages = {
     count: (count: number) => `全 ${count} 件`,
     empty: "ひとことはまだありません。",
     sky: "名言の星図",
-    list: (count: number) => `すべて ${count} 件`,
-    listTitle: "ひとこと一覧",
     close: "閉じる",
     makeCard: "カードにする",
     card: "名言カード",
