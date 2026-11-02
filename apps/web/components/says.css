@@ -127,6 +127,42 @@
   opacity: 0.9;
 }
 
+/* 开灯时天是亮的，深色小圆点看着像灰尘、不像星（2026-11-02 用户反馈）：换成四角星的形状（月光色），
+   后面衬一团白光、外面一圈淡淡的月光色晕，像黄昏天上最早亮起的星；慢慢一闪一闪地缩放 */
+:root[data-theme="light"] .say-star-core {
+  width: calc(var(--r) * 7);
+  height: calc(var(--r) * 7);
+  border-radius: 0;
+  /* 竖长横短的四角星，比正十字更像星光 */
+  clip-path: polygon(50% 0%, 56% 44%, 84% 50%, 56% 56%, 50% 100%, 44% 56%, 16% 50%, 44% 44%);
+  animation: say-sky-sparkle 4s ease-in-out var(--twinkle-delay) infinite;
+  transition: scale var(--duration-base) var(--ease-out);
+}
+
+:root[data-theme="light"] .say-star-halo {
+  width: calc(var(--r) * 9);
+  height: calc(var(--r) * 9);
+  background: radial-gradient(circle, rgb(255 255 255 / 95%) 0, rgb(255 255 255 / 60%) 28%, color-mix(in srgb, var(--moonlight) 18%, transparent) 48%, transparent 72%);
+  opacity: 0.9;
+  animation: none;
+}
+
+@keyframes say-sky-sparkle {
+  50% {
+    scale: 0.82;
+  }
+}
+
+:root[data-theme="light"] .say-star:hover .say-star-core,
+:root[data-theme="light"] .say-star[data-active] .say-star-core {
+  scale: 1.35;
+  animation: none;
+}
+
+:root[data-theme="light"] .say-star[data-active] .say-star-spikes {
+  opacity: 0.55;
+}
+
 /* ---------- 星旁边的那句话：左右两边 × 居中/靠上/靠下里挑不出画面、盖住别的星最少的位置（lib/says.ts 的 placeCard）；竖屏（手机）固定在星空底部 ---------- */
 .say-sky-card {
   --card-gap: calc(var(--say-hit) + 0.75rem);
@@ -292,8 +328,9 @@
     animation-name: say-sky-fade;
   }
 
-  .say-star-halo {
-    animation: none;
+  .say-star-halo,
+  .say-star-core {
+    animation: none !important;
   }
 
 }

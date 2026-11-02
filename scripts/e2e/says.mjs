@@ -113,6 +113,18 @@ try {
   await sleep(300);
   assert.equal((await sky()).reading, undefined, "Esc 收起卡片");
 
+  // 星的样子：熄灯是带柔光的小圆点；开灯时天是亮的，换成四角星形状、后面衬白光（2026-11-02 用户：开灯时没有星星的感觉）
+  const starLook = () => browser.evaluate(`(() => { const core = ${visible()}.querySelector(".say-star-core"); const halo = core.parentElement.querySelector(".say-star-halo"); const cs = getComputedStyle(core); return { clip: cs.clipPath, radius: cs.borderRadius, width: parseFloat(cs.width), r: parseFloat(getComputedStyle(core.parentElement).getPropertyValue("--r")), halo: getComputedStyle(halo).backgroundImage }; })()`);
+  const darkStar = await starLook();
+  assert.equal(darkStar.clip, "none", "熄灯时是圆点");
+  await browser.evaluate(`localStorage.setItem("theme", "light")`);
+  await browser.goto(`${base}/says`, 3000);
+  const lightStar = await starLook();
+  assert.ok(lightStar.clip.startsWith("polygon("), `开灯时是四角星形状（${lightStar.clip.slice(0, 30)}）`);
+  assert.ok(lightStar.width >= lightStar.r * 6, "开灯时星比圆点大");
+  assert.ok(lightStar.halo.includes("rgb(255, 255, 255)") || lightStar.halo.includes("rgba(255, 255, 255"), "开灯时星后面衬白光");
+  await browser.evaluate(`localStorage.removeItem("theme")`);
+
   // 旧链接：?author=、?page= 都显示这一页、不 404
   for (const query of [`author=${encodeURIComponent(all.find((say) => say.author?.trim())?.author?.trim() ?? "x")}`, "page=2"]) {
     await browser.goto(`${base}/says?${query}`, 2500);
@@ -178,7 +190,7 @@ try {
   assert.equal(await browser.evaluate(`document.querySelector('.debug-say-sky[data-count="240"] .say-sky[data-shape="wide"] .say-star[data-active]')?.dataset.id`), target, "240 句时也能悬停到指定的那颗星");
 
   assert.deepEqual(browser.errors, [], "页面不应当有报错");
-  console.log(`PASS 一言：整屏星空铺满宽、每句一颗星、一开始不选中、悬停换句与星座亮起、离开停住、点别处和 Esc 收起、关弹窗卡片还在、无圆盘说明抽一句和列表、旧链接显示全部、没有列表和抽屉（读屏有隐藏列表）、金句卡片 1080×1350、手机竖排点星换句卡片在底部点别处收起、调试页 5/60/240 句都装得下且悬停不打架`);
+  console.log(`PASS 一言：整屏星空铺满宽、每句一颗星、一开始不选中、悬停换句与星座亮起、离开停住、点别处和 Esc 收起、关弹窗卡片还在、无圆盘说明抽一句和列表、开灯是四角星、旧链接显示全部、没有列表和抽屉（读屏有隐藏列表）、金句卡片 1080×1350、手机竖排点星换句卡片在底部点别处收起、调试页 5/60/240 句都装得下且悬停不打架`);
 } finally {
   await browser.close();
 }
