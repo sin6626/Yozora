@@ -1,9 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getSiteUrl } from "@/lib/blog-data";
+import { hiddenFromSearch, robotsFor } from "@/lib/indexing";
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
-  return {
-    rules: { userAgent: "*", allow: "/", disallow: ["/api/", "/debug"] },
-    sitemap: `${await getSiteUrl()}/sitemap.xml`,
-  };
+  return robotsFor(hiddenFromSearch() ? "" : await getSiteUrl());
 }

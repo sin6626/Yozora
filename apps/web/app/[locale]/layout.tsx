@@ -4,6 +4,7 @@ import { Cormorant_Garamond, Geist_Mono, Noto_Sans_SC, Noto_Serif_SC, Nunito } f
 import Notifications from "@/components/notifications";
 import { getApiUrl } from "@/lib/config";
 import { getSiteDescription, getSiteSettings, siteName, siteOwnerName } from "@/lib/blog-data";
+import { hiddenFromSearch } from "@/lib/indexing";
 import { Suspense } from "react";
 import HeaderAccount from "@/components/header-account";
 import { islandIcons } from "@/components/island-icons";
@@ -84,6 +85,8 @@ export async function generateMetadata(): Promise<Metadata> {
     description,
     openGraph: { siteName: name, title: name, description, type: "website", locale: ogLocale[locale] },
     alternates: { types: { "application/rss+xml": [{ url: "/feed.xml", title: name }] } },
+    // 灰度时（SITE_NOINDEX=1）整站不让搜索引擎收录
+    robots: hiddenFromSearch() ? { index: false, follow: false } : undefined,
   };
 }
 
