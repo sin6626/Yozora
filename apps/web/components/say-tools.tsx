@@ -10,7 +10,7 @@ import { useT } from "./locale-provider";
 import "lxgw-wenkai-webfont/lxgwwenkai-light.css";
 
 // 金句卡片按钮（样式在 says.css）：把一句话画成金句卡片图（lib/say-card.ts），在弹窗里预览，可以保存或用系统分享发出去。
-// 一言列表每张引文卡片右上角、金句星图的读星面板里都有。抽一句在星图里（say-sky.tsx）。
+// 一言列表每张引文卡片右上角、金句星图右边那句话下面都有。
 
 type Card = { url: string; file: File; canShare: boolean };
 

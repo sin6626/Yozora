@@ -437,16 +437,10 @@ const zh = {
     title: "一言",
     count: (count: number) => `共 ${count} 条`,
     empty: "还没有一言。",
-    // 按人看、抽一句、金句卡片（say-list.tsx、say-tools.tsx）
-    draw: "抽一句",
-    drawAgain: "再抽一句",
-    // 金句星图（say-sky.tsx）
+    // 金句星图（say-sky.tsx，sky 只给读屏念）与金句卡片（say-tools.tsx）
     sky: "金句星图",
-    skyHint: "每颗星是一句话，连在一起的是同一个人说的。移到一颗星上（手机上点一下）就能读到它，或者抽一句。",
-    skyCount: (stars: number, constellations: number) => `${stars} 颗星 · ${constellations} 个星座`,
     constellation: (name: string) => `${name}座`,
     lone: "孤星",
-    back: "回到星图",
     close: "收起",
     makeCard: "做成卡片",
     card: "金句卡片",

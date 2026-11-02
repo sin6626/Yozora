@@ -20,6 +20,7 @@ import { ActiveFilter } from "@/components/list-filters";
 import StyleGuide from "./style-guide";
 import IslandButtons from "./island-buttons";
 import BrandTickerPreview from "./brand-ticker";
+import SaySkyPreview from "./say-sky-preview";
 import ToastButtons from "./toast-buttons";
 
 // 评论悬浮窗的示例消息（不读库）
@@ -146,6 +147,11 @@ export default function DebugPage() {
             <p className="post-empty">还没有一言。</p>
             <p className="post-empty">还没有思考。</p>
             <p className="post-meta">recently-attitude.tsx 的赞/踩（真实组件，点击会请求 Core）：<RecentlyAttitude apiUrl={getApiUrl()} id="000000000000000000000000" up={3} down={1} /></p>
+          </li>
+          <li id="debug-say-sky">
+            <h2>金句星图</h2>
+            <p className="post-meta">say-sky.tsx（示例句子，不读库）：5 / 60 / 240 句时的样子。句子再多也整体缩进星盘里，星点和可悬停的范围跟着变小；只有一颗星的星座平时不标名字。鼠标移到星上换右边那句话，一开始是最新的一句</p>
+            <SaySkyPreview />
           </li>
           <li id="debug-socials">
             <h2>社交图标</h2>

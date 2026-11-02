@@ -41,16 +41,22 @@
 
 /* 星座：连线和名字平时淡，选中的星所在的星座亮起 */
 .say-sky-line {
-  stroke: var(--constellation-line);
-  stroke-width: 1;
+  stroke: color-mix(in srgb, var(--foreground) 20%, transparent);
+  stroke-width: 0.8;
   transition: stroke var(--duration-base) var(--ease-out);
 }
 
+/* 名字描一圈夜色的边，压在星上也看得清 */
 .say-sky-label {
   fill: var(--muted-foreground);
   font-size: 11px;
   letter-spacing: 0.08em;
   text-anchor: middle;
+  paint-order: stroke;
+  stroke: color-mix(in srgb, var(--background) 85%, transparent);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
   transition: fill var(--duration-base) var(--ease-out);
 }
 
@@ -73,15 +79,20 @@
 
 .say-sky-halo {
   fill: url(#say-sky-glow);
-  opacity: 0.35;
+  opacity: var(--say-sky-glow, 0.35);
   animation: say-sky-twinkle 4s ease-in-out var(--twinkle-delay) infinite;
   transition: opacity var(--duration-base) var(--ease-out), scale var(--duration-base) var(--ease-out);
 }
 
 @keyframes say-sky-twinkle {
   50% {
-    opacity: 0.6;
+    opacity: calc(var(--say-sky-glow, 0.35) * 1.7);
   }
+}
+
+/* 天上已经有成形的星座时，只有一颗星的（孤星、只说过一句的人）画得暗一点 */
+.say-sky-star[data-faint]:not([data-active]) {
+  opacity: 0.55;
 }
 
 .say-sky-spikes {
@@ -107,48 +118,16 @@
   opacity: 0.9;
 }
 
-/* 抽一句：一颗流星沿着线从星盘外沿划到抽中的星 */
-.say-sky-flight {
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-dasharray: 0.3 1;
-  stroke-dashoffset: 0.3;
-  animation: say-sky-flight 0.7s cubic-bezier(0.3, 0, 0.2, 1) forwards;
-  pointer-events: none;
-}
-
-@keyframes say-sky-flight {
-  to {
-    stroke-dashoffset: -0.7;
-  }
-}
-
-/* 读星面板：没选星时是说明 + 抽一句；选了星就像翻开一张签，用霞鹜文楷写这句话 */
-.say-sky-intro h2 {
-  margin: 0 0 var(--space-3);
-  font-size: var(--text-lg);
-}
-
-.say-sky-intro p {
-  margin: 0 0 var(--space-3);
-  color: var(--muted-foreground);
-  line-height: 1.7;
-}
-
-.say-sky-intro .say-draw-button {
-  margin-top: var(--space-2);
-}
-
+/* 右边这句话：换星时轻轻浮上来，用霞鹜文楷写 */
 .say-sky-reading {
-  transform-origin: top center;
-  animation: say-draw-in 0.55s var(--ease-out) both;
+  animation: say-sky-in 0.32s var(--ease-out) both;
 }
 
-@keyframes say-draw-in {
+@keyframes say-sky-in {
   from {
     opacity: 0;
-    transform: perspective(900px) rotateX(-60deg);
-    filter: blur(6px);
+    translate: 0 6px;
+    filter: blur(3px);
   }
 }
 
@@ -192,10 +171,6 @@
   align-items: center;
   gap: var(--space-2);
   margin-top: var(--space-6);
-}
-
-.say-sky-back {
-  margin-left: auto;
 }
 
 /* 每张引文卡片右上角“做成卡片”：平时藏着，悬停卡片或键盘聚焦时出现；触屏一直显示 */
@@ -312,7 +287,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .say-sky-reading {
-    animation-name: say-draw-fade;
+    animation-name: say-sky-fade;
   }
 
   .say-sky-halo {
@@ -320,7 +295,7 @@
   }
 }
 
-@keyframes say-draw-fade {
+@keyframes say-sky-fade {
   from {
     opacity: 0;
   }

@@ -13,7 +13,7 @@ import { SayCardButton } from "./say-tools";
 
 const pageSize = 20;
 
-// 一言：朋友们说过的好句子。最上面是金句星图（say-sky.tsx，同一个人说的连成星座，抽一句也在里面），
+// 一言：朋友们说过的好句子。最上面是金句星图（say-sky.tsx，同一个人说的连成星座，移到星上读那一句），
 // 下面是普通列表，每张引文卡片右上角可以“做成卡片”（say-tools.tsx）。纯逻辑在 lib/says.ts。
 export default async function SayList({ searchParams }: { searchParams: Promise<{ page?: string | string[] }> }) {
   const { page: rawPage = "1" } = await searchParams;
