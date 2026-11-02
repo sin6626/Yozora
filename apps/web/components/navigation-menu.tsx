@@ -1,7 +1,7 @@
 "use client";
 
 import { NavigationMenu } from "@base-ui/react/navigation-menu";
-import { ArrowRight, ArrowUpRight, ChevronDown, Lightbulb, Orbit, Quote, Rocket, Shapes, type LucideIcon } from "lucide-react";
+import { ArrowRight, ArrowUpRight, ChevronDown } from "lucide-react";
 import { LayoutGroup, MotionConfig, motion } from "motion/react";
 import type { Messages } from "../lib/i18n/messages";
 import Link, { useLocalePathname, useT } from "./locale-provider";
@@ -34,14 +34,15 @@ export type NavigationState =
 // 首页、文章、手记、时间线本身是链接（点击跳转），悬停或聚焦时展开各自的面板；碎碎念只是链接；更多只展开。
 // 文案在 lib/i18n/messages 的 nav 里（按当前语言取）
 type NavCopy = Messages["nav"];
-// “更多”：一栏上下排（图标 名字 …… 一句说明）。跃迁是萌备的“异次元之旅”（travel.moe），随机跳到一位萌备成员的博客（不是我们的友链），在新标签页打开
-const moreLinksOf = (t: NavCopy): { label: string; note: string; href: string; Icon: LucideIcon; external?: boolean }[] => [
-  { ...t.moreLinks.projects, href: "/projects", Icon: Shapes },
-  { ...t.moreLinks.friends, href: "/friends", Icon: Orbit },
-  { ...t.moreLinks.says, href: "/says", Icon: Quote },
-  { ...t.moreLinks.thinking, href: "/thinking", Icon: Lightbulb },
-  { ...t.moreLinks.warp, href: "https://travel.moe/go.html", Icon: Rocket, external: true },
+// “更多”：和时间线面板的分类一样一栏上下排（小星 名字 …… 一句说明）。
+// 跃迁放在底栏（和其他面板的“查看全部 →”同一个位置）：萌备的“异次元之旅”travel.moe，随机跳到一位萌备成员的博客（不是我们的友链），在新标签页打开
+const moreLinksOf = (t: NavCopy) => [
+  { ...t.moreLinks.projects, href: "/projects" },
+  { ...t.moreLinks.friends, href: "/friends" },
+  { ...t.moreLinks.says, href: "/says" },
+  { ...t.moreLinks.thinking, href: "/thinking" },
 ];
+const warpHref = "https://travel.moe/go.html";
 
 const isCurrent = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
 // 面板里的日期只显示“月·日”
@@ -290,7 +291,7 @@ export default function BlogNavigation({ state, account }: { state: NavigationSt
         { label: t.notes, href: "/notes", children: (panels?.topics ?? []).map(({ name, href, icon }) => ({ label: name, href, icon: icon ?? null })) },
         { label: t.timeline, href: "/timeline", children: [{ label: t.posts, href: "/timeline/posts" }, { label: t.notes, href: "/timeline/notes" }] },
         { label: t.murmurs, href: "/murmurs", children: [] },
-        { label: t.more, children: [...moreLinks.map(({ label, href, external }) => ({ label, href, external })), ...devLinks] },
+        { label: t.more, children: [...moreLinks.map(({ label, href }) => ({ label, href })), { label: t.moreLinks.warp.label, href: warpHref, external: true }, ...devLinks] },
       ]}
       account={account}
     />
@@ -338,18 +339,23 @@ export default function BlogNavigation({ state, account }: { state: NavigationSt
           </NavigationMenu.Trigger>
           <NavigationMenu.Content className="navigation-Content">
             <div className="nav-panel is-more">
-              <ul className="nav-more">
-                {moreLinks.map(({ Icon, ...link }) => (
-                  <li key={link.href}>
-                    <PanelLink href={link.href} className="nav-more-link" current={isCurrent(pathname, link.href)} external={link.external}>
-                      <span className="nav-more-icon" aria-hidden="true"><Icon size={15} /></span>
-                      <span className="nav-more-name">{link.label}{link.external && <ArrowUpRight size={13} aria-hidden="true" />}</span>
-                      <span className="nav-more-leader" aria-hidden="true" />
-                      <span className="nav-more-note">{link.note}</span>
-                    </PanelLink>
-                  </li>
-                ))}
-              </ul>
+              <section className="nav-more">
+                <p className="nav-panel-label">{t.moreLabel}</p>
+                <ul className="nav-categories">
+                  {moreLinks.map((link) => (
+                    <li key={link.href}>
+                      <PanelLink href={link.href} className="nav-category" current={isCurrent(pathname, link.href)}>
+                        <span className="nav-category-name">{link.label}</span>
+                        <span className="nav-more-note">{link.note}</span>
+                      </PanelLink>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+              <div className="nav-panel-footer">
+                <PanelLink href={warpHref} className="nav-panel-more" external>{t.moreLinks.warp.label}<ArrowUpRight size={14} aria-hidden="true" /></PanelLink>
+                <span>{t.moreLinks.warp.note}</span>
+              </div>
               {state.status === "loading" && <p className="navigation-message" role="status">{t.loading}</p>}
               {state.status === "error" && (
                 <p className="navigation-message" role="status">

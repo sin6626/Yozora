@@ -47,6 +47,7 @@ const zh = {
     more: "更多",
     debug: "调试",
     // “更多”面板里每一项的说明用自己的话写（原来那几句和 Innei 的站重了）；跃迁是萌备“异次元之旅”travel.moe 的随机跳转（去萌备成员的博客，不是友链），说明沿用 Innei 的“空间跃迁门”
+    moreLabel: "其他角落",
     moreLinks: {
       projects: { label: "作品", note: "夜里敲出来的小东西" },
       friends: { label: "友链", note: "夜空里的邻居们" },

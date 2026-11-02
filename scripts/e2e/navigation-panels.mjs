@@ -40,19 +40,43 @@ try {
     for (const href of await browser.evaluate(`[...document.querySelectorAll(".navigation-Popup .nav-panel a[href^='/']:not([target='_blank'])")].map((a) => a.getAttribute("href"))`)) hrefs.set(href, label);
   }
 
-  // 更多（2026-11-02 用户要求改回 Innei 那种一栏上下排，说明仍是自己的话）：每行“图标 名字 …… 说明”；
-  // 最后一项跃迁是萌备“异次元之旅”travel.moe 的随机跳转（去别人的博客，不是友链），说明沿用 Innei 的“空间跃迁门”
-  await hover("更多");
-  const more = await browser.evaluate(`[...document.querySelectorAll(".navigation-Popup .nav-more-link")].map((a) => {
-    const rect = a.getBoundingClientRect();
-    return { text: a.innerText.replace(/\\s+/g, " ").trim(), href: a.getAttribute("href"), target: a.target, rel: a.rel, icon: Boolean(a.querySelector(".nav-more-icon svg")),
-      leader: getComputedStyle(a.querySelector(".nav-more-leader")).borderBottomStyle, left: rect.left, top: rect.top, bottom: rect.bottom };
+  // 更多（2026-11-02 用户定）：一栏上下排，样式和时间线面板左栏的分类对齐（同样的小标题、小星行、行高字号，说明放在篇数的位置），
+  // 跃迁在底栏（和其他面板的“查看全部 →”同一个位置），是萌备“异次元之旅”travel.moe 的随机跳转（去别人的博客，不是友链）
+  const rowStyle = `(el) => { const style = getComputedStyle(el); return [style.fontSize, style.paddingTop, style.paddingBottom, Math.round(el.getBoundingClientRect().height)].join(" "); }`;
+  const labelStyle = `(el) => { const style = getComputedStyle(el); return [style.fontSize, style.letterSpacing, style.color].join(" "); }`;
+  await hover("时间线");
+  const timelineLook = await browser.evaluate(`({
+    row: (${rowStyle})(document.querySelector(".navigation-Popup .nav-panel.is-timeline .nav-category")),
+    label: (${labelStyle})(document.querySelector(".navigation-Popup .nav-panel.is-timeline .nav-panel-label")),
+    footer: (${labelStyle})(document.querySelector(".navigation-Popup .nav-panel.is-timeline .nav-panel-more")),
   })`);
-  assert.deepEqual(more.map((item) => item.text), ["作品 夜里敲出来的小东西", "友链 夜空里的邻居们", "一言 朋友们说过的好句子", "思考 读到什么，想到什么", "跃迁 空间跃迁门"], "更多面板的五项和说明");
-  assert.ok(more.every((item) => item.icon && item.leader === "dotted"), "每一项都有图标和虚线");
-  assert.ok(more.every((item, i) => Math.abs(item.left - more[0].left) < 1 && (i === 0 || item.top >= more[i - 1].bottom - 1)), "一栏上下排");
-  assert.deepEqual([more.at(-1).href, more.at(-1).target], ["https://travel.moe/go.html", "_blank"], "跃迁在新标签页打开 travel.moe");
-  assert.ok(more.at(-1).rel.includes("noopener"), "跃迁带 noopener");
+  await hover("更多");
+  const more = await browser.evaluate(`(() => {
+    const panel = document.querySelector(".navigation-Popup .nav-panel.is-more");
+    const rows = [...panel.querySelectorAll(".nav-category")];
+    const warp = panel.querySelector(".nav-panel-footer a");
+    return {
+      label: panel.querySelector(".nav-panel-label")?.textContent,
+      texts: rows.map((a) => a.innerText.replace(/\\s+/g, " ").trim()),
+      hrefs: rows.map((a) => a.getAttribute("href")),
+      looks: rows.map(${rowStyle}),
+      labelLook: (${labelStyle})(panel.querySelector(".nav-panel-label")),
+      footerLook: (${labelStyle})(warp),
+      icons: panel.querySelectorAll(".nav-category svg, .nav-category img").length,
+      column: rows.every((a, i) => Math.abs(a.getBoundingClientRect().left - rows[0].getBoundingClientRect().left) < 1 && (i === 0 || a.getBoundingClientRect().top >= rows[i - 1].getBoundingClientRect().bottom - 1)),
+      warp: { text: warp.parentElement.innerText.replace(/\\s+/g, " ").trim(), href: warp.getAttribute("href"), target: warp.target, rel: warp.rel },
+    };
+  })()`);
+  assert.equal(more.label, "其他角落", "更多面板有和其他面板一样的小标题");
+  assert.deepEqual(more.texts, ["作品 夜里敲出来的小东西", "友链 夜空里的邻居们", "一言 朋友们说过的好句子", "思考 读到什么，想到什么"], "更多面板的四项和说明");
+  assert.deepEqual(more.hrefs, ["/projects", "/friends", "/says", "/thinking"]);
+  assert.ok(more.column, "一栏上下排");
+  assert.equal(more.icons, 0, "行里不放图标，和分类一样用小星");
+  assert.ok(more.looks.every((look) => look === timelineLook.row), `行的字号、内边距、行高和时间线面板的分类一样（${more.looks[0]} / ${timelineLook.row}）`);
+  assert.equal(more.labelLook, timelineLook.label, "小标题样式和时间线面板一样");
+  assert.equal(more.footerLook, timelineLook.footer, "底栏链接样式和时间线面板的“查看时间线”一样");
+  assert.deepEqual([more.warp.text, more.warp.href, more.warp.target], ["跃迁 空间跃迁门", "https://travel.moe/go.html", "_blank"], "跃迁在底栏，新标签页打开 travel.moe");
+  assert.ok(more.warp.rel.includes("noopener"), "跃迁带 noopener");
   assert.equal((await fetch(`${base}/visit`, { redirect: "manual" })).status === 307, false, "旧的串门跳转已删");
 
   await hover("首页");

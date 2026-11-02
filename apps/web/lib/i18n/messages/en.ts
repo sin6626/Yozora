@@ -44,6 +44,7 @@ const en: Messages = {
     murmurs: "Murmurs",
     more: "More",
     debug: "Debug",
+    moreLabel: "Around here",
     moreLinks: {
       projects: { label: "Projects", note: "Little things made at night" },
       friends: { label: "Friends", note: "Neighbours in the night sky" },

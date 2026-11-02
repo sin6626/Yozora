@@ -44,6 +44,7 @@ const ja: Messages = {
     murmurs: "つぶやき",
     more: "その他",
     debug: "デバッグ",
+    moreLabel: "ほかの場所",
     moreLinks: {
       projects: { label: "作品", note: "夜につくった小さなもの" },
       friends: { label: "リンク", note: "夜空のご近所さん" },
