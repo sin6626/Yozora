@@ -34,7 +34,7 @@ const layer = (scope = "") => `${scope} .say-sky:is([data-shape="wide"], [data-s
 const visible = (scope = "") => `[...document.querySelectorAll('${layer(scope)}')].find((el) => el.checkVisibility())`;
 const sky = (scope = "") => browser.evaluate(`(() => {
   const sky = ${visible(scope)};
-  const card = sky.querySelector(".say-sky-card");
+  const card = sky.querySelector(".say-sky-card:not([data-leaving])");
   const box = sky.getBoundingClientRect();
   const cardBox = card?.getBoundingClientRect();
   return {
@@ -93,19 +93,28 @@ try {
     if (all.length <= 12) assert.equal((await uncovered()).length, all.length - 1, "星不多时卡片不盖住别的星");
     assert.ok(now.card.left >= now.field.left && now.card.right <= now.field.right && now.card.top >= now.field.top - 40 && now.card.bottom <= now.field.bottom + 40, "那句话的卡片在星空里");
   }
-  await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: 120 });
-  await sleep(300);
-  assert.equal((await sky()).reading, textOf.get(ids.at(-1)), "鼠标离开后停在最后看的那句");
-  // 点星和卡片以外的地方收起（2026-11-02 用户：点屏幕其他处弹层应该消失）；点卡片本身不收起；Esc 也收起
+  // 悬停触发（2026-11-02 用户：离开后卡片还留着，手感卡、挡住别的星）：鼠标离开星和卡片就收起，收起时有淡出动画；
+  // 从星移到卡片上卡片留着（来得及点“做成卡片”），点卡片本身也不收
   const empty = await browser.evaluate(`(() => { const r = ${visible()}.getBoundingClientRect(); for (let y = r.top + 20; y < r.bottom; y += 23) for (let x = r.left + 20; x < r.right; x += 37) { const el = document.elementFromPoint(x, y); if (el && !el.closest(".say-star, .say-sky-card, a, button")) return { x, y }; } })()`);
+  const cardAnimations = () => browser.evaluate(`[...document.querySelectorAll(${JSON.stringify(`${layer().trim()} .say-sky-card`)})].flatMap((card) => card.getAnimations().map((a) => (card.hasAttribute("data-leaving") ? "leaving:" : "") + a.animationName))`);
+  assert.ok((await cardAnimations()).includes("say-sky-in") || (await sky()).reading, "卡片浮出");
+  await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: empty.x, y: empty.y });
+  await sleep(250);
+  assert.ok((await cardAnimations()).includes("leaving:say-sky-out"), `离开后卡片淡出（${await cardAnimations()}）`);
+  await sleep(400);
+  const left = await sky();
+  assert.equal(left.reading, undefined, "鼠标离开星和卡片后卡片收起");
+  assert.deepEqual(left.active, [], "收起后没有选中的星");
+  assert.equal(await browser.evaluate(`document.querySelectorAll(".say-sky-card").length`), 0, "淡出后卡片从页面上拿掉");
+  await hover(`${layer()} .say-star[data-id="${ids.at(-1)}"]`);
+  await sleep(150);
+  assert.ok((await cardAnimations()).includes("say-sky-in"), "悬停时卡片带浮出动画");
   await click(`${layer()} .say-sky-card blockquote`);
-  await sleep(200);
-  assert.equal((await sky()).reading, textOf.get(ids.at(-1)), "点卡片本身不收起");
+  await sleep(400);
+  assert.equal((await sky()).reading, textOf.get(ids.at(-1)), "从星移到卡片上、点卡片本身都不收起");
   for (const type of ["mousePressed", "mouseReleased"]) await browser.send("Input.dispatchMouseEvent", { type, x: empty.x, y: empty.y, button: "left", clickCount: 1 });
-  await sleep(300);
-  const closed = await sky();
-  assert.equal(closed.reading, undefined, "点空白处卡片收起");
-  assert.deepEqual(closed.active, [], "点空白处后没有选中的星");
+  await sleep(500);
+  assert.equal((await sky()).reading, undefined, "点空白处卡片收起");
   await hover(`${layer()} .say-star[data-id="${ids[0]}"]`);
   await sleep(400);
   assert.equal((await sky()).reading, textOf.get(ids[0]));
@@ -201,8 +210,32 @@ try {
   await sleep(600);
   assert.equal(await browser.evaluate(`document.querySelector('.debug-say-sky[data-count="240"] .say-sky[data-shape="wide"] .say-star[data-active]')?.dataset.id`), target, "240 句时也能悬停到指定的那颗星");
 
+  // 被卡片挡住的星：在 60 句里找一颗星，它的卡片盖住了另一颗星；鼠标离开后卡片收起，那颗被挡住的星就能悬停到了
+  await browser.evaluate(`document.querySelector('.debug-say-sky[data-count="60"] .say-field').scrollIntoView({ block: "center" })`);
+  await sleep(400);
+  const scope = '.debug-say-sky[data-count="60"] .say-sky[data-shape="wide"]';
+  const blocked = await browser.evaluate(`(async () => {
+    const stars = [...document.querySelectorAll('${scope} .say-star')];
+    const centre = (el) => { const r = el.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; };
+    for (const star of stars) {
+      star.dispatchEvent(new PointerEvent("pointerenter", { pointerType: "mouse" }));
+      star.click();
+      await new Promise((r) => setTimeout(r, 30));
+      const hidden = stars.find((other) => other !== star && document.elementFromPoint(...centre(other))?.closest(".say-sky-card"));
+      if (hidden) return { from: star.dataset.id, hidden: hidden.dataset.id };
+    }
+  })()`);
+  assert.ok(blocked, "60 句里能找到一颗卡片挡住别的星的情形");
+  await hover(`${scope} .say-star[data-id="${blocked.from}"]`);
+  await sleep(300);
+  await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: 5 });
+  await sleep(500);
+  await hover(`${scope} .say-star[data-id="${blocked.hidden}"]`);
+  await sleep(400);
+  assert.equal(await browser.evaluate(`document.querySelector('${scope} .say-star[data-active]')?.dataset.id`), blocked.hidden, "卡片收起后，原来被挡住的星能悬停到");
+
   assert.deepEqual(browser.errors, [], "页面不应当有报错");
-  console.log(`PASS 一言：整屏星空铺满宽、每句一颗星、一开始不选中、悬停换句与星座亮起、离开停住、点别处和 Esc 收起、关弹窗卡片还在、无圆盘说明抽一句和列表、开灯是纸上星图（墨点白边经纬线）、旧链接显示全部、没有列表和抽屉（读屏有隐藏列表）、金句卡片 1080×1350、手机竖排点星换句卡片在底部点别处收起、调试页 5/60/240 句都装得下且悬停不打架`);
+  console.log(`PASS 一言：整屏星空铺满宽、每句一颗星、一开始不选中、悬停换句与星座亮起、离开就收起（淡出动画）、移到卡片上不收、点别处和 Esc 收起、关弹窗卡片还在、被挡住的星收起后能悬停到、无圆盘说明抽一句和列表、开灯是纸上星图（墨点白边经纬线）、旧链接显示全部、没有列表和抽屉（读屏有隐藏列表）、金句卡片 1080×1350、手机竖排点星换句卡片在底部点别处收起、调试页 5/60/240 句都装得下且悬停不打架`);
 } finally {
   await browser.close();
 }

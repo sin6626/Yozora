@@ -14,7 +14,7 @@ import "lxgw-wenkai-webfont/lxgwwenkai-light.css";
 
 type Card = { url: string; file: File; canShare: boolean };
 
-export function SayCardButton({ say, site }: { say: Say; site: string }) {
+export function SayCardButton({ say, site, onOpenChange }: { say: Say; site: string; onOpenChange?: (open: boolean) => void }) {
   const t = useT().says;
   const [open, setOpen] = useState(false);
   const [card, setCard] = useState<Card | null>(null);
@@ -48,7 +48,7 @@ export function SayCardButton({ say, site }: { say: Say; site: string }) {
   };
 
   return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
+    <Dialog.Root open={open} onOpenChange={(next) => { setOpen(next); onOpenChange?.(next); }}>
       <Dialog.Trigger className="btn btn-sm">
         <ImageDown size={14} aria-hidden="true" />
         {t.makeCard}

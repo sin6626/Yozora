@@ -196,51 +196,118 @@
   stroke: color-mix(in srgb, var(--foreground) 70%, transparent);
 }
 
-/* ---------- 星旁边的那句话：左右两边 × 居中/靠上/靠下里挑不出画面、盖住别的星最少的位置（lib/says.ts 的 placeCard）；竖屏（手机）固定在星空底部 ---------- */
+/* ---------- 星旁边的那句话：鼠标在星或卡片上时显示，离开 160 毫秒后收起（say-sky.tsx）。
+   位置：右/左/上/下里挑不出画面、盖住别的星最少的一边（lib/says.ts 的 placeCard）；竖屏（手机）固定在星空底部。
+   出现时从星那一边浮出（transform-origin 对着星，从 0.94 倍放大、去模糊），收起时往回缩、淡出；一条细引线从星连到卡片边上。 ---------- */
 .say-sky-card {
   --card-gap: calc(var(--say-hit) + 0.75rem);
+  --card-leader: color-mix(in srgb, var(--moonlight) 45%, transparent);
   position: absolute;
   z-index: 2;
-  width: min(21rem, 38vw);
+  width: min(20rem, 36vw);
   padding: var(--space-4) var(--space-6);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   background: var(--glass-popup);
   box-shadow: var(--shadow-popup);
   translate: var(--card-x) var(--card-y);
-  animation: say-sky-in 0.32s var(--ease-out) both;
+  transform-origin: var(--card-origin);
+  animation: say-sky-in 0.24s var(--ease-out) both;
+}
+
+.say-sky-card[data-leaving] {
+  z-index: 1;
+  pointer-events: none;
+  animation: say-sky-out 0.16s ease-in both;
+}
+
+/* 引线：从星的边上连到卡片朝着星的那条边 */
+.say-sky-card::before {
+  content: "";
+  position: absolute;
+  background: var(--card-leader);
+  pointer-events: none;
+}
+
+.say-sky-card:is([data-side="right"], [data-side="left"])::before {
+  top: calc(var(--card-f) * 100%);
+  width: calc(var(--card-gap) - 0.5rem);
+  height: 1px;
+}
+
+.say-sky-card:is([data-side="above"], [data-side="below"])::before {
+  left: calc(var(--card-f) * 100%);
+  width: 1px;
+  height: calc(var(--card-gap) - 0.5rem);
 }
 
 .say-sky-card[data-side="right"] {
   --card-x: var(--card-gap);
   --card-y: calc(var(--card-f) * -100%);
+  --card-origin: 0 calc(var(--card-f) * 100%);
+}
+
+.say-sky-card[data-side="right"]::before {
+  right: 100%;
 }
 
 .say-sky-card[data-side="left"] {
   --card-x: calc(-100% - var(--card-gap));
   --card-y: calc(var(--card-f) * -100%);
+  --card-origin: 100% calc(var(--card-f) * 100%);
+}
+
+.say-sky-card[data-side="left"]::before {
+  left: 100%;
 }
 
 .say-sky-card[data-side="above"] {
   --card-x: calc(var(--card-f) * -100%);
   --card-y: calc(-100% - var(--card-gap));
+  --card-origin: calc(var(--card-f) * 100%) 100%;
+}
+
+.say-sky-card[data-side="above"]::before {
+  top: 100%;
 }
 
 .say-sky-card[data-side="below"] {
   --card-x: calc(var(--card-f) * -100%);
   --card-y: var(--card-gap);
+  --card-origin: calc(var(--card-f) * 100%) 0;
+}
+
+.say-sky-card[data-side="below"]::before {
+  bottom: 100%;
+}
+
+:root[data-theme="light"] .say-sky-card {
+  --card-leader: color-mix(in srgb, var(--foreground) 35%, transparent);
 }
 
 .say-sky[data-shape="tall"] .say-sky-card {
+  --card-origin: 50% 100%;
   inset: auto var(--space-4) var(--space-4) !important;
   width: auto;
   translate: none;
 }
 
+.say-sky[data-shape="tall"] .say-sky-card::before {
+  display: none;
+}
+
 @keyframes say-sky-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: scale(0.94);
+    filter: blur(4px);
+  }
+}
+
+@keyframes say-sky-out {
+  to {
+    opacity: 0;
+    transform: scale(0.96);
     filter: blur(3px);
   }
 }
@@ -361,6 +428,10 @@
     animation-name: say-sky-fade;
   }
 
+  .say-sky-card[data-leaving] {
+    animation-name: say-sky-out-fade;
+  }
+
   .say-star-halo {
     animation: none;
   }
@@ -369,6 +440,12 @@
 
 @keyframes say-sky-fade {
   from {
+    opacity: 0;
+  }
+}
+
+@keyframes say-sky-out-fade {
+  to {
     opacity: 0;
   }
 }
