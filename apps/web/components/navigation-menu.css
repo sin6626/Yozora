@@ -309,9 +309,9 @@
 .nav-panel.is-posts { width: 38rem; }
 .nav-panel.is-notes { width: 36rem; }
 .nav-panel.is-timeline { width: 36rem; }
-/* 更多：两列小格子自带内边距，面板本身少留一点 */
+/* 更多：一栏上下排，每行自带内边距，面板本身少留一点 */
 .nav-panel.is-more {
-  width: 27rem;
+  width: 24rem;
   padding: 0.625rem;
 }
 
@@ -724,22 +724,17 @@ li[data-highlighted] > .nav-category .nav-category-name::before,
   letter-spacing: 0.04em;
 }
 
-/* 更多：两列小格子，每格一个图标 + 名字 + 一句说明；串门（去朋友家）占满一行 */
+/* 更多：一栏上下排，每行“图标 名字 …… 一句说明”，跃迁（去 travel.moe 别人的博客）名字后带 ↗ */
 .nav-more {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.25rem;
+  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.nav-more-wide {
-  grid-column: 1 / -1;
-}
-
 .nav-more-link {
-  gap: 0.75rem;
+  gap: var(--space-3);
   padding: 0.625rem 0.75rem;
   border-radius: var(--radius-md);
   transition: color var(--duration-fast), background-color var(--duration-fast);
@@ -752,27 +747,10 @@ li[data-highlighted] > .nav-category .nav-category-name::before,
 }
 
 .nav-more-icon {
-  display: grid;
+  display: inline-flex;
   flex: none;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--primary) 12%, transparent);
-  color: var(--primary);
-  transition: box-shadow var(--duration-fast);
-}
-
-@media (hover: hover) {
-  .nav-more-link:hover .nav-more-icon {
-    box-shadow: 0 0 14px var(--star-glow);
-  }
-}
-
-.nav-more-text {
-  display: grid;
-  gap: 0.125rem;
-  min-width: 0;
+  color: var(--muted-foreground);
+  transition: color var(--duration-fast), filter var(--duration-fast);
 }
 
 .nav-more-name {
@@ -783,14 +761,29 @@ li[data-highlighted] > .nav-category .nav-category-name::before,
   font-size: var(--text-sm);
   font-weight: 500;
   letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.nav-more-leader {
+  flex: 1;
+  min-width: 1.5rem;
+  border-bottom: 1px dotted color-mix(in srgb, var(--foreground) 22%, transparent);
+  translate: 0 -0.2em;
 }
 
 .nav-more-note {
   font-size: var(--text-xs);
-  line-height: 1.5;
+  white-space: nowrap;
 }
 
-.nav-more-link[data-active] .nav-more-name {
+@media (hover: hover) {
+  .nav-more-link:hover .nav-more-icon {
+    color: var(--primary);
+    filter: drop-shadow(0 0 6px var(--star-glow));
+  }
+}
+
+.nav-more-link[data-active] :is(.nav-more-name, .nav-more-icon) {
   color: var(--primary);
 }
 

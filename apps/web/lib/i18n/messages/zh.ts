@@ -46,13 +46,13 @@ const zh = {
     murmurs: "碎碎念",
     more: "更多",
     debug: "调试",
-    // “更多”面板里每一项的说明用自己的话写（原来那几句和 Innei 的站重了）；串门随机去一位朋友的站，在新标签页打开
+    // “更多”面板里每一项的说明用自己的话写（原来那几句和 Innei 的站重了）；跃迁是萌备“异次元之旅”travel.moe 的随机跳转（去萌备成员的博客，不是友链），说明沿用 Innei 的“空间跃迁门”
     moreLinks: {
       projects: { label: "作品", note: "夜里敲出来的小东西" },
       friends: { label: "友链", note: "夜空里的邻居们" },
       says: { label: "一言", note: "朋友们说过的好句子" },
       thinking: { label: "思考", note: "读到什么，想到什么" },
-      visit: { label: "串门", note: "随机敲开一位朋友的门" },
+      warp: { label: "跃迁", note: "空间跃迁门" },
     },
     // 首页面板左栏的字数、篇数：[数字, 单位]，数字用旧式数字显示
     words: (words: number): [string, string] => (words >= 10000 ? [(words / 10000).toFixed(1), "万字"] : [String(words), "字"]),

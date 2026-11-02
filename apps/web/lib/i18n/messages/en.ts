@@ -49,7 +49,7 @@ const en: Messages = {
       friends: { label: "Friends", note: "Neighbours in the night sky" },
       says: { label: "Quotes", note: "Good lines from friends" },
       thinking: { label: "Thoughts", note: "What I read, what I think" },
-      visit: { label: "Drop by", note: "Knock on a random friend's door" },
+      warp: { label: "Warp", note: "A portal for jumping elsewhere" },
     },
     words: (words: number): [string, string] => (words >= 1000 ? [`${(words / 1000).toFixed(1)}k`, "words"] : [String(words), "words"]),
     night: "nights",

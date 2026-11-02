@@ -49,7 +49,7 @@ const ja: Messages = {
       friends: { label: "リンク", note: "夜空のご近所さん" },
       says: { label: "ひとこと", note: "友だちの名言" },
       thinking: { label: "思考", note: "読んだこと、考えたこと" },
-      visit: { label: "寄り道", note: "友だちの家をランダムにノック" },
+      warp: { label: "ワープ", note: "空間ワープゲート" },
     },
     words: (words: number): [string, string] => (words >= 10000 ? [(words / 10000).toFixed(1), "万字"] : [String(words), "字"]),
     night: "夜",

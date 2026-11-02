@@ -11,7 +11,7 @@ import { openSearch } from "./command-search";
 import "./mobile-menu.css";
 
 // 二级链接：icon 是话题的后台图片（null 表示话题没设图片，留空位；其他链接不传）
-// external：去别人的站（串门），在新标签页打开、不预取
+// external：去别人的站（跃迁），在新标签页打开、不预取
 type MenuChild = { label: string; href: string; icon?: string | null; external?: boolean };
 export type MenuSection = { label: string; href?: string; children: MenuChild[] };
 

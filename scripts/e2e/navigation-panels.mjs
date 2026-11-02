@@ -36,21 +36,24 @@ try {
   for (const [label, className] of Object.entries(panels)) {
     await hover(label);
     assert.equal(await browser.evaluate(`!!document.querySelector(".navigation-Popup .nav-panel.${className}")`), true, `悬停“${label}”没有弹出面板`);
-    // 串门（/visit）在新标签页打开、会跳到朋友的站，不在这里逐个打开
+    // 跃迁（travel.moe）是别人的站，在新标签页打开，不在这里逐个打开
     for (const href of await browser.evaluate(`[...document.querySelectorAll(".navigation-Popup .nav-panel a[href^='/']:not([target='_blank'])")].map((a) => a.getAttribute("href"))`)) hrefs.set(href, label);
   }
 
-  // 更多（2026-11-01 重做，原来的说明和排版跟 Innei 的站重了）：两列小格子 + 串门，说明是自己的话
+  // 更多（2026-11-02 用户要求改回 Innei 那种一栏上下排，说明仍是自己的话）：每行“图标 名字 …… 说明”；
+  // 最后一项跃迁是萌备“异次元之旅”travel.moe 的随机跳转（去别人的博客，不是友链），说明沿用 Innei 的“空间跃迁门”
   await hover("更多");
-  const more = await browser.evaluate(`[...document.querySelectorAll(".navigation-Popup .nav-more-link")].map((a) => ({ text: a.innerText.replace(/\\s+/g, " ").trim(), href: a.getAttribute("href"), target: a.target, icon: Boolean(a.querySelector(".nav-more-icon svg")) }))`);
-  assert.deepEqual(more.map((item) => item.text), ["作品 夜里敲出来的小东西", "友链 夜空里的邻居们", "一言 朋友们说过的好句子", "思考 读到什么，想到什么", "串门 随机敲开一位朋友的门"], "更多面板的五项和说明");
-  assert.ok(more.every((item) => item.icon), "每一项都有图标");
-  assert.deepEqual([more.at(-1).href, more.at(-1).target], ["/visit", "_blank"], "串门在新标签页打开 /visit");
-  const friends = new Set(((await (await fetch(`${process.env.API_URL ?? "http://127.0.0.1:2333"}/links/all`)).json()).data ?? [])
-    .filter((link) => !link.hide && link.state === 0 && link.type === 0).map((link) => new URL(link.url).href));
-  const visit = await fetch(`${base}/visit`, { redirect: "manual" });
-  assert.equal(visit.status, 307, "/visit 是一次跳转");
-  assert.ok(friends.size === 0 || friends.has(visit.headers.get("location")), `串门跳到已通过的朋友的站（实际 ${visit.headers.get("location")}）`);
+  const more = await browser.evaluate(`[...document.querySelectorAll(".navigation-Popup .nav-more-link")].map((a) => {
+    const rect = a.getBoundingClientRect();
+    return { text: a.innerText.replace(/\\s+/g, " ").trim(), href: a.getAttribute("href"), target: a.target, rel: a.rel, icon: Boolean(a.querySelector(".nav-more-icon svg")),
+      leader: getComputedStyle(a.querySelector(".nav-more-leader")).borderBottomStyle, left: rect.left, top: rect.top, bottom: rect.bottom };
+  })`);
+  assert.deepEqual(more.map((item) => item.text), ["作品 夜里敲出来的小东西", "友链 夜空里的邻居们", "一言 朋友们说过的好句子", "思考 读到什么，想到什么", "跃迁 空间跃迁门"], "更多面板的五项和说明");
+  assert.ok(more.every((item) => item.icon && item.leader === "dotted"), "每一项都有图标和虚线");
+  assert.ok(more.every((item, i) => Math.abs(item.left - more[0].left) < 1 && (i === 0 || item.top >= more[i - 1].bottom - 1)), "一栏上下排");
+  assert.deepEqual([more.at(-1).href, more.at(-1).target], ["https://travel.moe/go.html", "_blank"], "跃迁在新标签页打开 travel.moe");
+  assert.ok(more.at(-1).rel.includes("noopener"), "跃迁带 noopener");
+  assert.equal((await fetch(`${base}/visit`, { redirect: "manual" })).status === 307, false, "旧的串门跳转已删");
 
   await hover("首页");
   // 首页面板（2026-10-31 改为海报大字）：左边旧式数字的“第几夜”，篇数、字数在它下面上下排开（也是旧式数字）；右边页面带后台填的副标题

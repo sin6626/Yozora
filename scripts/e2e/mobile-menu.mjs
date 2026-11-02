@@ -41,6 +41,7 @@ try {
   assert.ok(children["手记"].some((child) => child.href.includes("topic=") && child.icon), "手记下面应列出话题并带图片");
   assert.deepEqual(children["时间线"].map((child) => child.href), ["/timeline/posts", "/timeline/notes"]);
   assert.ok(["/projects", "/friends", "/says", "/thinking"].every((href) => children["更多"].some((child) => child.href === href)), "更多下面应有作品、友链、一言、思考");
+  assert.ok(children["更多"].some((child) => child.href === "https://travel.moe/go.html"), "更多下面应有跃迁（travel.moe）");
 
   const delays = opened.sections.map((section) => section.rise[0]);
   assert.ok(delays.every((delay, i) => typeof delay === "number" && (i === 0 || delay > delays[i - 1])), `各分组应依次浮上：${JSON.stringify(delays)}`);
