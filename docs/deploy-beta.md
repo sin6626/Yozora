@@ -26,6 +26,17 @@ ssh root@服务器IP 'bash -s' < scripts/deploy/server-inspect.sh > server-inspe
 
 扫一眼 `server-inspect.txt`，确认里面没有密码，再发给 Agent。下面第 3、4 步的具体命令按这份结果来定。
 
+## 2026-11-02 盘点结果（Agent 用 SSH 密钥只读查看）
+
+- 服务器：Ubuntu 24.04，2 核，内存 1.9G（另有 3.4G swap），硬盘 30G 只剩约 4G；宿主机 Node 20，没有 pnpm。
+- Core：Docker Compose（`/root/mx-space/core/docker-compose.yml`），镜像 `innei/mx-server`（10.x，容器里 Node 22），MongoDB 7、Redis 各一个容器，数据在 `/root/mx-space/core/data/`（库约 515M，Core 数据目录约 519M）；`ALLOWED_ORIGINS=https://sin6626.me,https://www.sin6626.me`；只监听 `127.0.0.1:2333`。
+- 旧 Shiro：Next standalone，`/root/mx-space/shiro-release/standalone`，端口 4860，由 PM2 守护（宿主机 PM2 不在 root 的 PATH 里）。
+- 反向代理：1Panel（v2）的 OpenResty 容器；站点 `sin6626.me` → 4860，`api.sin6626.me` → 2333，`s3.sin6626.me` → MinIO 9000。
+- DNS 在西部数码（`myhostadmin.net`），没有泛解析，`beta.sin6626.me` 要新加一条 A 记录指向 38.95.74.213。
+- Docker 构建缓存 4.4G 可以清掉（不影响正在跑的服务）。
+
+因为内存和硬盘都小，**不在服务器上编译**：Core 和前台都在本机构建好再传上去。Core 用现在的镜像做底、叠上本仓库编译好的代码，回滚就是把 compose 的镜像改回原来的；前台用 `node:24` 容器跑在 `127.0.0.1:2324`。
+
 ## 第 1 步：备份
 
 - MongoDB：`mongodump` 整库导出（Docker 跑的就在容器里执行再拷出来），放到服务器以外的地方再留一份。
