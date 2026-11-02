@@ -48,7 +48,7 @@ export type SkyLayout = { width: number; height: number; hit: number; glow: numb
 // 横屏（电脑）和竖屏（手机）各排一份，页面按屏幕方向显示其中一份
 export const skyFrames = {
   wide: { width: 1600, height: 760, padX: 110, padTop: 60, padBottom: 80 },
-  tall: { width: 390, height: 660, padX: 26, padTop: 70, padBottom: 236 },
+  tall: { width: 390, height: 660, padX: 44, padTop: 84, padBottom: 236 },
 } satisfies Record<string, SkyFrame>;
 
 // 按字符串播种的随机数：同一句话、同一个人每次都落在同一个位置

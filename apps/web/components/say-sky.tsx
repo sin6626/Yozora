@@ -74,6 +74,29 @@ export default function SaySky({ layouts, says, site, children }: { layouts: Rec
 
   return (
     <section ref={fieldRef} className="say-field" aria-label={t.sky}>
+      {/* 浅色主题的“星图图版”（says.css）：双线图框、四边刻度尺和刻度数、圆锥投影的赤纬圈与赤经线、左下“新—旧”星等图例、右下题签。熄灯时不显示 */}
+      <div className="say-plate" aria-hidden="true">
+        <svg className="say-plate-grid" viewBox="0 0 1600 760" preserveAspectRatio="xMidYMid slice">
+          {[1180, 1330, 1480, 1630].map((radius) => <circle key={radius} cx={800} cy={-950} r={radius} />)}
+          {[-36, -24, -12, 0, 12, 24, 36].map((angle) => {
+            const turn = (angle * Math.PI) / 180;
+            return <line key={angle} x1={800} y1={-950} x2={Math.round(800 + 2900 * Math.sin(turn))} y2={Math.round(-950 + 2900 * Math.cos(turn))} />;
+          })}
+        </svg>
+        <div className="say-plate-frame">
+          <span className="say-plate-ruler is-top">{["0ʰ", "2ʰ", "4ʰ", "6ʰ", "8ʰ", "10ʰ", "12ʰ"].map((mark) => <i key={mark}>{mark}</i>)}</span>
+          <span className="say-plate-ruler is-left">{["+60°", "+45°", "+30°", "+15°", "0°"].map((mark) => <i key={mark}>{mark}</i>)}</span>
+          <span className="say-plate-legend">
+            <i>{t.newer}</i>
+            {[9, 7, 5, 3.5].map((size) => <b key={size} style={{ width: size, height: size }} />)}
+            <i>{t.older}</i>
+          </span>
+          <span className="say-plate-title">
+            <em>Yozora</em>
+            {t.plate}
+          </span>
+        </div>
+      </div>
       {(["wide", "tall"] as const).map((shape) => {
         const layout = layouts[shape];
         const index = say ? layout.stars.findIndex((star) => star.id === say.id) : -1;
@@ -83,11 +106,6 @@ export default function SaySky({ layouts, says, site, children }: { layouts: Rec
           // 可悬停半径按设计尺寸算；画面比设计尺寸小时按比例缩（cqw/cqh 相对星空本身），免得互相盖住
           <div key={shape} className="say-sky" data-shape={shape} style={{ "--say-sky-glow": layout.glow, "--say-hit": `min(${layout.hit}px, ${((layout.hit / layout.width) * 100).toFixed(3)}cqw, ${((layout.hit / layout.height) * 100).toFixed(3)}cqh)` } as CSSProperties}>
             <svg className="say-sky-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-              {/* 浅色主题的“纸上星图”才显示的淡经纬弧线（says.css） */}
-              <g className="say-sky-graticule">
-                {[28, 52, 76].map((y) => <path key={`d${y}`} d={`M 0 ${y + 6} Q 50 ${y - 10} 100 ${y + 6}`} vectorEffect="non-scaling-stroke" />)}
-                {[14, 38, 62, 86].map((x) => <path key={`r${x}`} d={`M ${50 + (x - 50) * 0.7} 0 L ${x} 100`} vectorEffect="non-scaling-stroke" />)}
-              </g>
               {layout.groups.map((item, groupIndex) => (
                 <g key={groupIndex} data-active={groupIndex === activeGroup ? "" : undefined}>
                   {item.edges.map(([a, b]) => (
@@ -104,6 +122,7 @@ export default function SaySky({ layouts, says, site, children }: { layouts: Rec
                   data-id={item.id}
                   data-active={item.id === say?.id ? "" : undefined}
                   data-kin={item.group === activeGroup && item.id !== say?.id && (group?.stars.length ?? 0) > 1 ? "" : undefined}
+                  data-bright={item.b >= 0.95 ? "" : undefined}
                   style={{ left: `${item.x}%`, top: `${item.y}%`, "--r": `${item.r}px`, "--b": item.b, "--twinkle-delay": `${(starIndex * 0.73) % 4}s` } as CSSProperties}
                   onPointerEnter={(event) => event.pointerType === "mouse" && show(item.id)}
                   onPointerLeave={(event) => event.pointerType === "mouse" && hideSoon()}

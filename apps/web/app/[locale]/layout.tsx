@@ -34,6 +34,8 @@ const oldstyle = Cormorant_Garamond({
   variable: "--font-oldstyle",
   subsets: ["latin"],
   weight: "300",
+  // 斜体只给一言页浅色主题的星图图版（刻度数、题签）用，用到时才下载
+  style: ["normal", "italic"],
   preload: false,
   display: "swap",
 });

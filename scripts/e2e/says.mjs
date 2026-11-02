@@ -122,26 +122,28 @@ try {
   await sleep(300);
   assert.equal((await sky()).reading, undefined, "Esc 收起卡片");
 
-  // 星的样子：熄灯是带柔光的发光小圆点；开灯时不装夜空，画成纸上星图——墨色实心圆点 + 一圈白边、不发光，背后有淡淡的经纬弧线
-  // （2026-11-02 用户先嫌开灯时的深色小点像灰尘，又嫌四角星丑，讨论后选了“纸上星图”）。只影响这一页的星，页面底色不变
+  // 星的样子：熄灯是带柔光的发光小圆点；开灯时不装夜空，画成纸上星图——墨色实心圆点 + 一圈白边、不发光，背后是旧星图集式的图版
+  // （2026-11-02 用户先嫌开灯时的深色小点像灰尘，又嫌四角星丑，讨论后选了“纸上星图”，又嫌没气质，加了旧星图集式的图版）。只影响这一页，页面底色不变
   const starLook = () => browser.evaluate(`(() => {
     const sky = ${visible()};
     const core = sky.querySelector(".say-star-core");
     const cs = getComputedStyle(core);
     const [r, g, b] = cs.backgroundColor.match(/[\\d.]+/g).map(Number);
     return { clip: cs.clipPath, round: cs.borderRadius, ring: cs.boxShadow, light: (r + g + b) / 3, halo: getComputedStyle(core.parentElement.querySelector(".say-star-halo")).backgroundImage,
-      graticule: getComputedStyle(sky.querySelector(".say-sky-graticule")).display, page: getComputedStyle(document.body).backgroundColor };
+      plate: getComputedStyle(document.querySelector(".say-plate")).display, rulers: document.querySelectorAll(".say-plate-ruler i").length, legend: document.querySelectorAll(".say-plate-legend b").length,
+      page: getComputedStyle(document.body).backgroundColor };
   })()`);
   const darkStar = await starLook();
   assert.ok(darkStar.light > 180 && darkStar.halo.includes("radial-gradient"), "熄灯时是带柔光的亮色圆点");
-  assert.equal(darkStar.graticule, "none", "熄灯时没有经纬弧线");
+  assert.equal(darkStar.plate, "none", "熄灯时没有星图图版");
   await browser.evaluate(`localStorage.setItem("theme", "light")`);
   await browser.goto(`${base}/says`, 3000);
   const lightStar = await starLook();
   assert.ok(lightStar.light < 90 && lightStar.clip === "none" && lightStar.round !== "0px", `开灯时是墨色实心圆点（亮度 ${lightStar.light.toFixed(0)}）`);
   assert.ok(lightStar.ring !== "none", "开灯时星外面一圈白边");
   assert.equal(lightStar.halo, "none", "开灯时不发光");
-  assert.notEqual(lightStar.graticule, "none", "开灯时背后有经纬弧线");
+  assert.notEqual(lightStar.plate, "none", "开灯时背后是星图图版（图框、刻度、经纬线）");
+  assert.ok(lightStar.rulers >= 10 && lightStar.legend === 4, "图版有刻度数和“新—旧”星等图例");
   await browser.goto(`${base}/posts`, 2500);
   assert.equal(await browser.evaluate(`getComputedStyle(document.body).backgroundColor`), lightStar.page, "别的页面的浅色底色和一言页一样（只改了星）");
   await browser.evaluate(`localStorage.removeItem("theme")`);
@@ -235,7 +237,7 @@ try {
   assert.equal(await browser.evaluate(`document.querySelector('${scope} .say-star[data-active]')?.dataset.id`), blocked.hidden, "卡片收起后，原来被挡住的星能悬停到");
 
   assert.deepEqual(browser.errors, [], "页面不应当有报错");
-  console.log(`PASS 一言：整屏星空铺满宽、每句一颗星、一开始不选中、悬停换句与星座亮起、离开就收起（淡出动画）、移到卡片上不收、点别处和 Esc 收起、关弹窗卡片还在、被挡住的星收起后能悬停到、无圆盘说明抽一句和列表、开灯是纸上星图（墨点白边经纬线）、旧链接显示全部、没有列表和抽屉（读屏有隐藏列表）、金句卡片 1080×1350、手机竖排点星换句卡片在底部点别处收起、调试页 5/60/240 句都装得下且悬停不打架`);
+  console.log(`PASS 一言：整屏星空铺满宽、每句一颗星、一开始不选中、悬停换句与星座亮起、离开就收起（淡出动画）、移到卡片上不收、点别处和 Esc 收起、关弹窗卡片还在、被挡住的星收起后能悬停到、无圆盘说明抽一句和列表、开灯是星图图版（墨点白边、图框刻度经纬线、星等图例）、旧链接显示全部、没有列表和抽屉（读屏有隐藏列表）、金句卡片 1080×1350、手机竖排点星换句卡片在底部点别处收起、调试页 5/60/240 句都装得下且悬停不打架`);
 } finally {
   await browser.close();
 }

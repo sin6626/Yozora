@@ -127,26 +127,137 @@
   opacity: 0.9;
 }
 
-/* 开灯（浅色主题）：白天看不到发光的星，所以不装夜空，画成一张印在纸上的古典星图（2026-11-02 用户选的 B）——
-   星是墨色实心圆点，新的大、旧的小（--b 0.7–1 → 星半径的 2–3 倍），外面一圈页面底色的白边（星图上连线碰到星时留的空），
-   不发光、不闪；选中的星外面画一个细细的强调色圆圈；连线是细墨线；背后几条很淡的经纬弧线（.say-sky-graticule）。
-   只在这一页、只在浅色主题下生效，页面底色和别的页面都不受影响。 */
-.say-sky-graticule {
+/* ---------- 浅色主题的“星图图版”：像旧星图集里的一页——双线图框、四边刻度尺（刻度数用 Cormorant 斜体）、
+   圆锥投影的赤纬圈与赤经线、左下“新—旧”星等图例、右下题签。只在浅色主题、只在这一页；熄灯时整块不显示 ---------- */
+.say-plate {
   display: none;
 }
 
-/* 经纬弧线上下两头淡出，不在标题下面齐刷刷地断开 */
-:root[data-theme="light"] .say-sky-lines {
-  mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+:root[data-theme="light"] .say-plate {
+  --plate-ink: color-mix(in srgb, var(--foreground) 82%, var(--primary));
+  position: absolute;
+  inset: 0;
+  display: block;
+  color: var(--plate-ink);
+  pointer-events: none;
 }
 
-:root[data-theme="light"] .say-sky-graticule {
-  display: inline;
+.say-plate-grid {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   fill: none;
-  stroke: color-mix(in srgb, var(--foreground) 9%, transparent);
+  stroke: color-mix(in srgb, var(--plate-ink) 12%, transparent);
   stroke-width: 1;
+  mask-image: linear-gradient(to bottom, transparent, #000 10%, #000 90%, transparent);
 }
 
+/* 图框：外粗内细两道线，中间夹着刻度尺 */
+.say-plate-frame {
+  position: absolute;
+  inset: var(--space-4) clamp(var(--space-4), 3vw, var(--space-12)) var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--plate-ink) 40%, transparent);
+  /* 图框里铺一层淡淡的纸色，把图版从天色里托出来 */
+  background: color-mix(in srgb, var(--background) 45%, transparent);
+}
+
+.say-plate-frame::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border: 1px solid color-mix(in srgb, var(--plate-ink) 22%, transparent);
+  /* 刻度：上下边每 24px 一道短竖线，左右边每 24px 一道短横线，画在两道框线之间 */
+  background:
+    repeating-linear-gradient(to right, color-mix(in srgb, var(--plate-ink) 30%, transparent) 0 1px, transparent 1px 24px) top / 100% 5px no-repeat,
+    repeating-linear-gradient(to right, color-mix(in srgb, var(--plate-ink) 30%, transparent) 0 1px, transparent 1px 24px) bottom / 100% 5px no-repeat,
+    repeating-linear-gradient(to bottom, color-mix(in srgb, var(--plate-ink) 30%, transparent) 0 1px, transparent 1px 24px) left / 5px 100% no-repeat,
+    repeating-linear-gradient(to bottom, color-mix(in srgb, var(--plate-ink) 30%, transparent) 0 1px, transparent 1px 24px) right / 5px 100% no-repeat;
+}
+
+.say-plate-ruler {
+  position: absolute;
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-oldstyle), serif;
+  font-size: 15px;
+  font-style: italic;
+  opacity: 0.65;
+}
+
+.say-plate-ruler i {
+  font-style: inherit;
+}
+
+.say-plate-ruler.is-top {
+  top: 14px;
+  right: 3rem;
+  left: 3rem;
+}
+
+.say-plate-ruler.is-left {
+  top: 3rem;
+  bottom: 4rem;
+  left: 16px;
+  flex-direction: column;
+}
+
+/* 左下：星等图例（新的大、旧的小），右下：题签 */
+.say-plate-legend,
+.say-plate-title {
+  position: absolute;
+  bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+}
+
+.say-plate-legend {
+  left: 22px;
+  opacity: 0.7;
+}
+
+.say-plate-legend i {
+  font-style: normal;
+}
+
+.say-plate-legend b {
+  border-radius: var(--radius-full);
+  background: var(--plate-ink);
+  box-shadow: 0 0 0 1.5px var(--background);
+}
+
+.say-plate-title {
+  right: 22px;
+  gap: 0.75rem;
+  opacity: 0.75;
+}
+
+.say-plate-title em {
+  font-family: var(--font-oldstyle), serif;
+  font-size: 1.125rem;
+  font-style: italic;
+  letter-spacing: 0.04em;
+}
+
+@media (orientation: portrait) {
+  .say-plate-ruler,
+  .say-plate-legend {
+    display: none;
+  }
+
+  .say-plate-title {
+    top: 18px;
+    bottom: auto;
+  }
+}
+
+/* 开灯（浅色主题）：白天看不到发光的星，所以不装夜空，画成一张印在纸上的古典星图（2026-11-02 用户选的 B）——
+   星是墨色实心圆点，新的大、旧的小（--b 0.7–1 → 星半径的 2–3 倍），外面一圈页面底色的白边（星图上连线碰到星时留的空），
+   不发光、不闪；选中的星外面画一个细细的强调色圆圈；连线是细墨线；最新的几句带四道短芒；背后是上面的星图图版（.say-plate）。
+   只在这一页、只在浅色主题下生效，页面底色和别的页面都不受影响。 */
 :root[data-theme="light"] .say-star {
   opacity: 1;
 }
@@ -154,7 +265,7 @@
 :root[data-theme="light"] .say-star-core {
   width: calc(var(--r) * 2.2 * (var(--b) * 1.6 - 0.2));
   height: calc(var(--r) * 2.2 * (var(--b) * 1.6 - 0.2));
-  background: color-mix(in srgb, var(--foreground) 88%, var(--primary));
+  background: color-mix(in srgb, var(--foreground) 82%, var(--primary));
   box-shadow: 0 0 0 1.5px var(--background);
   transition: scale var(--duration-base) var(--ease-out);
 }
@@ -169,8 +280,20 @@
   animation: none;
 }
 
+/* 最新的几句像星图上的一等星：圆点外面四道短芒 */
 :root[data-theme="light"] .say-star-spikes {
   display: none;
+}
+
+:root[data-theme="light"] .say-star[data-bright] .say-star-spikes {
+  display: block;
+  width: calc(var(--r) * 6);
+  height: calc(var(--r) * 6);
+  background:
+    linear-gradient(color-mix(in srgb, var(--foreground) 82%, var(--primary)), color-mix(in srgb, var(--foreground) 82%, var(--primary))) center / 1px 100% no-repeat,
+    linear-gradient(color-mix(in srgb, var(--foreground) 82%, var(--primary)), color-mix(in srgb, var(--foreground) 82%, var(--primary))) center / 100% 1px no-repeat;
+  mask: none;
+  opacity: 0.9;
 }
 
 :root[data-theme="light"] .say-star:hover .say-star-halo {
@@ -318,6 +441,9 @@
   font-size: var(--text-lg);
   font-weight: 300;
   line-height: 1.6;
+  /* 中文只在标点处换行，“垂头丧气”这种词不被拆开 */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .say-sky-card footer {
