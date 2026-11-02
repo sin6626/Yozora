@@ -58,6 +58,11 @@ export default function SaySky({ layouts, says, site, children }: { layouts: Rec
           // 可悬停半径按设计尺寸算；画面比设计尺寸小时按比例缩（cqw/cqh 相对星空本身），免得互相盖住
           <div key={shape} className="say-sky" data-shape={shape} style={{ "--say-sky-glow": layout.glow, "--say-hit": `min(${layout.hit}px, ${((layout.hit / layout.width) * 100).toFixed(3)}cqw, ${((layout.hit / layout.height) * 100).toFixed(3)}cqh)` } as CSSProperties}>
             <svg className="say-sky-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              {/* 浅色主题的“纸上星图”才显示的淡经纬弧线（says.css） */}
+              <g className="say-sky-graticule">
+                {[28, 52, 76].map((y) => <path key={`d${y}`} d={`M 0 ${y + 6} Q 50 ${y - 10} 100 ${y + 6}`} vectorEffect="non-scaling-stroke" />)}
+                {[14, 38, 62, 86].map((x) => <path key={`r${x}`} d={`M ${50 + (x - 50) * 0.7} 0 L ${x} 100`} vectorEffect="non-scaling-stroke" />)}
+              </g>
               {layout.groups.map((item, groupIndex) => (
                 <g key={groupIndex} data-active={groupIndex === activeGroup ? "" : undefined}>
                   {item.edges.map(([a, b]) => (

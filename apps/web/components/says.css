@@ -127,40 +127,73 @@
   opacity: 0.9;
 }
 
-/* 开灯时天是亮的，深色小圆点看着像灰尘、不像星（2026-11-02 用户反馈）：换成四角星的形状（月光色），
-   后面衬一团白光、外面一圈淡淡的月光色晕，像黄昏天上最早亮起的星；慢慢一闪一闪地缩放 */
+/* 开灯（浅色主题）：白天看不到发光的星，所以不装夜空，画成一张印在纸上的古典星图（2026-11-02 用户选的 B）——
+   星是墨色实心圆点，新的大、旧的小（--b 0.7–1 → 星半径的 2–3 倍），外面一圈页面底色的白边（星图上连线碰到星时留的空），
+   不发光、不闪；选中的星外面画一个细细的强调色圆圈；连线是细墨线；背后几条很淡的经纬弧线（.say-sky-graticule）。
+   只在这一页、只在浅色主题下生效，页面底色和别的页面都不受影响。 */
+.say-sky-graticule {
+  display: none;
+}
+
+/* 经纬弧线上下两头淡出，不在标题下面齐刷刷地断开 */
+:root[data-theme="light"] .say-sky-lines {
+  mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+}
+
+:root[data-theme="light"] .say-sky-graticule {
+  display: inline;
+  fill: none;
+  stroke: color-mix(in srgb, var(--foreground) 9%, transparent);
+  stroke-width: 1;
+}
+
+:root[data-theme="light"] .say-star {
+  opacity: 1;
+}
+
 :root[data-theme="light"] .say-star-core {
-  width: calc(var(--r) * 7);
-  height: calc(var(--r) * 7);
-  border-radius: 0;
-  /* 竖长横短的四角星，比正十字更像星光 */
-  clip-path: polygon(50% 0%, 56% 44%, 84% 50%, 56% 56%, 50% 100%, 44% 56%, 16% 50%, 44% 44%);
-  animation: say-sky-sparkle 4s ease-in-out var(--twinkle-delay) infinite;
+  width: calc(var(--r) * 2.2 * (var(--b) * 1.6 - 0.2));
+  height: calc(var(--r) * 2.2 * (var(--b) * 1.6 - 0.2));
+  background: color-mix(in srgb, var(--foreground) 88%, var(--primary));
+  box-shadow: 0 0 0 1.5px var(--background);
   transition: scale var(--duration-base) var(--ease-out);
 }
 
 :root[data-theme="light"] .say-star-halo {
-  width: calc(var(--r) * 9);
-  height: calc(var(--r) * 9);
-  background: radial-gradient(circle, rgb(255 255 255 / 95%) 0, rgb(255 255 255 / 60%) 28%, color-mix(in srgb, var(--moonlight) 18%, transparent) 48%, transparent 72%);
-  opacity: 0.9;
+  width: calc(var(--r) * 2.2 * (var(--b) * 1.6 - 0.2) + 10px);
+  height: calc(var(--r) * 2.2 * (var(--b) * 1.6 - 0.2) + 10px);
+  border: 1px solid var(--primary);
+  background: none;
+  opacity: 0;
+  scale: 0.8;
   animation: none;
 }
 
-@keyframes say-sky-sparkle {
-  50% {
-    scale: 0.82;
-  }
+:root[data-theme="light"] .say-star-spikes {
+  display: none;
+}
+
+:root[data-theme="light"] .say-star:hover .say-star-halo {
+  opacity: 0.45;
+  scale: 1;
+}
+
+:root[data-theme="light"] .say-star[data-active] .say-star-halo {
+  opacity: 1;
+  scale: 1;
 }
 
 :root[data-theme="light"] .say-star:hover .say-star-core,
 :root[data-theme="light"] .say-star[data-active] .say-star-core {
-  scale: 1.35;
-  animation: none;
+  scale: 1.15;
 }
 
-:root[data-theme="light"] .say-star[data-active] .say-star-spikes {
-  opacity: 0.55;
+:root[data-theme="light"] .say-sky-lines line {
+  stroke: color-mix(in srgb, var(--foreground) 30%, transparent);
+}
+
+:root[data-theme="light"] .say-sky-lines g[data-active] line {
+  stroke: color-mix(in srgb, var(--foreground) 70%, transparent);
 }
 
 /* ---------- 星旁边的那句话：左右两边 × 居中/靠上/靠下里挑不出画面、盖住别的星最少的位置（lib/says.ts 的 placeCard）；竖屏（手机）固定在星空底部 ---------- */
@@ -328,9 +361,8 @@
     animation-name: say-sky-fade;
   }
 
-  .say-star-halo,
-  .say-star-core {
-    animation: none !important;
+  .say-star-halo {
+    animation: none;
   }
 
 }
