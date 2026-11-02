@@ -1,7 +1,7 @@
 // 浏览器回归测试：一言页（components/say-list.tsx、say-sky.tsx、say-tools.tsx）。
-// 按人看（?author=名字，胶囊计数、只剩这个人说的、没有这个人时 404）；金句星图（每句一颗星，鼠标移到星上读星面板翻出这句、星和星座亮起，
-// 按人看时其他星座变暗，抽一句先划过一颗流星再落到抽中的星上，再抽换一句）；金句卡片图（弹窗里是 1080×1350 的图，能保存；
-// 引文卡片右上角的按钮悬停才出现）。只读，不写库。
+// 金句星图（每句一颗星，鼠标移到星上读星面板翻出这句、星和星座亮起，抽一句先划过一颗流星再落到抽中的星上，再抽换一句）；
+// 按人看就是看星座，不再有“按人看”胶囊（它和星图各管一份选中状态，点胶囊后星图还停在上一句），旧的 ?author= 链接显示全部；
+// 金句卡片图（弹窗里是 1080×1350 的图，能保存；引文卡片右上角的按钮悬停才出现）。只读，不写库。
 // 需要先运行 pnpm dev。用法：pnpm e2e
 import assert from "node:assert/strict";
 import { openBrowser, sleep } from "../headless-browser.mjs";
@@ -25,38 +25,26 @@ const sky = () => browser.evaluate(`({
   stars: document.querySelectorAll(".say-sky-star").length,
   active: [...document.querySelectorAll(".say-sky-star[data-active]")].map((g) => g.dataset.id),
   activeGroups: document.querySelectorAll(".say-sky-group[data-active]").length,
-  dimStars: [...document.querySelectorAll(".say-sky-star[data-dim]")].map((g) => g.dataset.id),
   spikes: document.querySelector(".say-sky-star[data-active] .say-sky-spikes") && getComputedStyle(document.querySelector(".say-sky-star[data-active] .say-sky-spikes")).opacity,
 })`);
 const page = () => browser.evaluate(`({
   count: document.querySelector(".page-heading .post-meta")?.textContent,
-  chips: [...document.querySelectorAll(".say-authors .tag-chip")].map((a) => ({ text: a.innerText.replace(/\\s+/g, " ").trim(), current: a.getAttribute("aria-current") })),
-  authors: [...document.querySelectorAll(".say-list .say-card footer span")].map((s) => s.textContent),
+  chips: document.querySelectorAll(".say-authors, .say-toolbar").length,
   texts: [...document.querySelectorAll(".say-list .say-card blockquote > p")].map((p) => p.textContent),
   notFound: Boolean(document.querySelector(".site-content .empty-state")),
 })`);
 
 try {
-  assert.ok(all.length >= 2, "本地库至少要有两条一言才能测（抽一句不重复、按人看）");
+  assert.ok(all.length >= 2, "本地库至少要有两条一言才能测（抽一句不重复）");
   await browser.setViewport(1280, 900);
   await browser.goto(`${base}/says`, 3000);
   const full = await page();
   assert.equal(full.count, `共 ${all.length} 条`);
-  assert.deepEqual(full.chips[0], { text: `全部 ${all.length}`, current: "page" }, "第一枚是“全部”，当前选中");
-  const counts = new Map();
-  for (const say of all) if (say.author?.trim()) counts.set(say.author.trim(), (counts.get(say.author.trim()) ?? 0) + 1);
-  assert.equal(full.chips.length, counts.size + 1, "每个说话的人一枚胶囊");
-
-  const [name, count] = [...counts].sort((a, b) => b[1] - a[1])[0];
-  await click(`.say-authors .tag-chip[href*="author="]`);
-  await sleep(1500);
-  assert.equal(await browser.evaluate("decodeURIComponent(location.search)"), `?author=${name}`, "点胶囊按人筛选");
-  const one = await page();
-  assert.equal(one.count, `共 ${count} 条`);
-  assert.ok(one.authors.length === count && one.authors.every((author) => author.trim() === name), "只剩这个人说的");
-  assert.equal(one.chips.find((chip) => chip.current)?.text, `${name} ${count}`, "这枚胶囊是当前选中");
-  await browser.goto(`${base}/says?author=${encodeURIComponent("没有这个人")}`, 2500);
-  assert.equal((await page()).notFound, true, "没有这个人时 404");
+  assert.equal(full.chips, 0, "没有“按人看”胶囊，按人看就看星座");
+  await browser.goto(`${base}/says?author=${encodeURIComponent(all.find((say) => say.author?.trim())?.author?.trim() ?? "x")}`, 2500);
+  const legacy = await page();
+  assert.equal(legacy.notFound, false, "旧的 ?author= 链接不 404");
+  assert.equal(legacy.count, `共 ${all.length} 条`, "旧的 ?author= 链接显示全部");
 
   // 金句星图：每句一颗星；鼠标移到哪颗星上，读星面板就翻出哪句，这颗星带星芒、它的星座亮起
   const textOf = new Map(all.map((say) => [say.id, say.text]));
@@ -88,16 +76,6 @@ try {
   const second = await reading();
   assert.ok(second && second !== first, "再抽一句换了一句");
 
-  // 按人看：其他人的星变暗，抽一句只在这个人说的里面抽
-  await browser.goto(`${base}/says?author=${encodeURIComponent(name)}`, 3000);
-  const focused = await sky();
-  const mine = all.filter((say) => say.author?.trim() === name).map((say) => say.id);
-  assert.equal(focused.stars, all.length, "按人看时星图仍是整片天");
-  assert.deepEqual(focused.dimStars.sort(), all.map((say) => say.id).filter((id) => !mine.includes(id)).sort(), "别人的星变暗");
-  await click(".say-sky-intro .say-draw-button");
-  await sleep(1200);
-  assert.ok(mine.includes((await sky()).active[0]), "按人看时只抽这个人说的");
-
   await browser.goto(`${base}/says`, 3000);
   await click(".say-sky-intro .say-draw-button");
   await sleep(1200);
@@ -125,7 +103,7 @@ try {
   assert.equal(await opacity(), "1", "悬停卡片时出现");
 
   assert.deepEqual(browser.errors, [], "页面不应当有报错");
-  console.log(`PASS 一言：按人看（${name} ${count} 条）、没这个人 404、星图悬停读星与星座亮起、抽一句流星落点与不重复、按人看变暗且只抽这个人、金句卡片 1080×1350 可保存、Esc 关闭、悬停才出现卡片按钮`);
+  console.log(`PASS 一言：没有按人看胶囊、旧 ?author= 显示全部、星图悬停读星与星座亮起、抽一句流星落点与不重复、金句卡片 1080×1350 可保存、Esc 关闭、悬停才出现卡片按钮`);
 } finally {
   await browser.close();
 }

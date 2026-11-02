@@ -1,8 +1,8 @@
-// 一言（朋友们说过的好句子）的几样纯逻辑：按人分组、抽一句、金句卡片图上的折行。页面在 components/say-list.tsx、say-tools.tsx。
+// 一言（朋友们说过的好句子）的几样纯逻辑：按人分组、抽一句、金句卡片图上的折行、金句星图排布。页面在 components/say-list.tsx、say-sky.tsx、say-tools.tsx。
 
 export type Say = { id: string; text: string; author?: string; source?: string; created: string };
 
-// 按说话的人分组计数：说得多的在前，一样多时按列表里先出现的（新的）在前；没写作者的不算
+// 按说话的人分组计数（金句星图的星座）：说得多的在前，一样多时按列表里先出现的（新的）在前；没写作者的不算
 export function authorsOf(says: Say[]) {
   const counts = new Map<string, number>();
   for (const say of says) {

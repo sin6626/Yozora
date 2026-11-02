@@ -430,8 +430,6 @@ const en: Messages = {
     title: "Quotes",
     count: (count: number) => `${count} ${count === 1 ? "quote" : "quotes"}`,
     empty: "No quotes yet.",
-    byAuthor: "By person",
-    all: "All",
     draw: "Draw one",
     drawAgain: "Draw again",
     sky: "Quote constellations",

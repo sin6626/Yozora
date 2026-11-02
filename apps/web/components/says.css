@@ -1,16 +1,4 @@
-/* 一言页（say-list.tsx、say-tools.tsx）：工具栏（按人看 + 抽一句）、抽到的那句、每张引文卡片的“做成卡片”按钮和卡片弹窗 */
-.say-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-  margin-bottom: var(--space-6);
-}
-
-.say-authors {
-  min-width: 0;
-}
-
+/* 一言页（say-list.tsx、say-sky.tsx、say-tools.tsx）：金句星图、每张引文卡片的“做成卡片”按钮和卡片弹窗 */
 /* ---------- 金句星图（say-sky.tsx）：左边圆形星盘，右边读星面板；窄屏上下排 ---------- */
 .say-sky {
   display: grid;
@@ -51,11 +39,7 @@
   pointer-events: none;
 }
 
-/* 星座：连线和名字平时淡，选中的星所在的星座亮起；“按人看”时别的星座变暗 */
-.say-sky-group {
-  transition: opacity var(--duration-base) var(--ease-out);
-}
-
+/* 星座：连线和名字平时淡，选中的星所在的星座亮起 */
 .say-sky-line {
   stroke: var(--constellation-line);
   stroke-width: 1;
@@ -78,14 +62,9 @@
   fill: var(--foreground);
 }
 
-:is(.say-sky-group, .say-sky-star)[data-dim] {
-  opacity: 0.22;
-}
-
 /* 一颗星：亮核 + 一圈柔光（慢慢闪）；选中时柔光变亮、带十字星芒 */
 .say-sky-star {
   cursor: pointer;
-  transition: opacity var(--duration-base) var(--ease-out);
 }
 
 .say-sky-core {

@@ -430,8 +430,6 @@ const ja: Messages = {
     title: "ひとこと",
     count: (count: number) => `全 ${count} 件`,
     empty: "ひとことはまだありません。",
-    byAuthor: "人で見る",
-    all: "すべて",
     draw: "ひとつ引く",
     drawAgain: "もう一度引く",
     sky: "名言の星図",

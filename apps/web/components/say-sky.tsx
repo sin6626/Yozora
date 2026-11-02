@@ -9,11 +9,11 @@ import { SayCardButton } from "./say-tools";
 
 // 金句星图（一言页顶部，样式在 says.css）：左边一张圆形星盘，每句话是一颗星，同一个人说的用细线连成星座（排布见 lib/says.ts 的 skyLayout，
 // 在服务端算好，刷新不跳）；右边是“读星”面板。鼠标移到一颗星上（触屏点一下）就选中它，这颗星和它的星座亮起，面板翻出这句话；
-// “抽一句”时一颗流星划过星盘落到抽中的星上。“按人看”选了某个人时，其他星座变暗，抽一句也只在这个人说的里面抽。
+// “抽一句”时一颗流星划过星盘落到抽中的星上。按人看就看星座，不另做筛选。
 // 星盘只给鼠标和触屏用（对读屏隐藏），同样的内容在下面的普通列表里都有。
 const flightMs = 700;
 
-export default function SaySky({ layout, says, author, site }: { layout: SkyLayout; says: Say[]; author?: string; site: string }) {
+export default function SaySky({ layout, says, site }: { layout: SkyLayout; says: Say[]; site: string }) {
   const t = useT().says;
   const byId = useMemo(() => new Map(says.map((say) => [say.id, say])), [says]);
   const starOf = useMemo(() => new Map(layout.stars.map((star) => [star.id, star])), [layout]);
@@ -22,13 +22,11 @@ export default function SaySky({ layout, says, author, site }: { layout: SkyLayo
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
 
-  const focusGroup = author ? layout.groups.findIndex((group) => group.name === author) : -1;
   const activeGroup = selected ? starOf.get(selected)?.group : undefined;
   const say = selected ? byId.get(selected) : undefined;
-  const pool = author ? says.filter((item) => item.author?.trim() === author) : says;
 
   const draw = () => {
-    const next = drawSay(pool, selected ?? undefined);
+    const next = drawSay(says, selected ?? undefined);
     const star = next && starOf.get(next.id);
     if (!next || !star) return;
     clearTimeout(timer.current);
@@ -53,7 +51,7 @@ export default function SaySky({ layout, says, author, site }: { layout: SkyLayo
   return (
     <section className="say-sky" aria-label={t.sky}>
       <div className="say-sky-chart" aria-hidden="true">
-        <svg viewBox={`0 0 ${layout.size} ${layout.size}`} data-focus={focusGroup >= 0 ? "" : undefined}>
+        <svg viewBox={`0 0 ${layout.size} ${layout.size}`}>
           <defs>
             <radialGradient id="say-sky-glow">
               <stop offset="0" style={{ stopColor: "var(--moonlight)", stopOpacity: 0.85 }} />
@@ -85,7 +83,7 @@ export default function SaySky({ layout, says, author, site }: { layout: SkyLayo
             <circle key={i} className="say-sky-dust" cx={dot.x} cy={dot.y} r={dot.r} opacity={dot.o} />
           ))}
           {layout.groups.map((group, index) => (
-            <g key={index} className="say-sky-group" data-active={index === activeGroup ? "" : undefined} data-dim={focusGroup >= 0 && index !== focusGroup ? "" : undefined}>
+            <g key={index} className="say-sky-group" data-active={index === activeGroup ? "" : undefined}>
               {group.edges.map(([a, b]) => (
                 <line key={`${a}-${b}`} className="say-sky-line" x1={layout.stars[a].x} y1={layout.stars[a].y} x2={layout.stars[b].x} y2={layout.stars[b].y} />
               ))}
@@ -102,7 +100,6 @@ export default function SaySky({ layout, says, author, site }: { layout: SkyLayo
               className="say-sky-star"
               data-id={star.id}
               data-active={star.id === selected ? "" : undefined}
-              data-dim={focusGroup >= 0 && star.group !== focusGroup ? "" : undefined}
               transform={`translate(${star.x} ${star.y})`}
               style={{ "--twinkle-delay": `${(index * 0.73) % 4}s` } as CSSProperties}
               onPointerEnter={(event) => event.pointerType === "mouse" && setSelected(star.id)}
@@ -149,7 +146,7 @@ export default function SaySky({ layout, says, author, site }: { layout: SkyLayo
             <h2>{t.sky}</h2>
             <p>{t.skyHint}</p>
             <p className="post-meta">{t.skyCount(layout.stars.length, named)}</p>
-            {pool.length > 0 && (
+            {says.length > 0 && (
               <button type="button" className="btn btn-sm say-draw-button" onClick={draw}>
                 <Dices size={14} aria-hidden="true" />
                 {t.draw}

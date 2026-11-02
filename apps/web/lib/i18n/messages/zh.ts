@@ -437,8 +437,6 @@ const zh = {
     count: (count: number) => `共 ${count} 条`,
     empty: "还没有一言。",
     // 按人看、抽一句、金句卡片（say-list.tsx、say-tools.tsx）
-    byAuthor: "按人看",
-    all: "全部",
     draw: "抽一句",
     drawAgain: "再抽一句",
     // 金句星图（say-sky.tsx）
