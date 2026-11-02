@@ -8,7 +8,7 @@ import { SayCardButton } from "./say-tools";
 
 // 金句星图（一言页，样式在 says.css）：一整屏星空，每句话是一颗暖色的星，同一个人说的用很淡的线连成星座（排布见 lib/says.ts 的
 // skyLayout，在服务端算好，刷新不跳，句子再多也装得下）。横屏、竖屏各排一份，按屏幕方向显示一份（shapes）。
-// 鼠标移到一颗星上（触屏点一下）就在它旁边浮出那句话（卡片顶上写着是谁的星座），这颗星和它的星座亮起；鼠标离开后卡片还留着，
+// 鼠标移到一颗星上（触屏点一下）就在它旁边浮出那句话（不写“某某座”，2026-11-02 用户要求），这颗星和它的星座亮起；鼠标离开后卡片还留着，
 // 点星和卡片以外的地方或按 Esc 才收起。一开始没有选中的星（2026-11-02 用户要求）。新的句子亮，旧的暗一些。
 // 星只给鼠标和触屏用（对读屏隐藏），全部句子在 children（右下角“全部 N 条”抽屉）里。
 type Shape = "wide" | "tall";
@@ -91,7 +91,6 @@ export default function SaySky({ layouts, says, site, children }: { layouts: Rec
                 data-side={place.side}
                 style={{ left: `${star.x}%`, top: `${star.y}%`, "--card-f": place.f } as CSSProperties}
               >
-                <p className="say-sky-eyebrow" lang={group?.name ? "zh-CN" : undefined}>{group?.name ? t.constellation(group.name) : t.lone}</p>
                 <blockquote lang="zh-CN">
                   <p>{say.text}</p>
                   <footer className="post-meta">

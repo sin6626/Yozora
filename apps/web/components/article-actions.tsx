@@ -17,7 +17,7 @@ export default function ArticleActions({ title, like, comments, subscribe }: {
   title: string;
   like: Like | null;
   comments: ReactNode;
-  subscribe: { apiUrl: string; siteName: string; types: ("post_c" | "note_c")[]; mailIcon: ReactNode } | null;
+  subscribe: { apiUrl: string; types: ("post_c" | "note_c")[] } | null;
 }) {
   const t = useT().articleActions;
   const progress = useIsland((state) => state.reading?.progress ?? 0);

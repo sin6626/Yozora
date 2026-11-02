@@ -55,9 +55,6 @@
   --sky-fallback-low: light-dark(#ffcdc6, #150e29);
   --love: light-dark(#e1617b, #f08aa0);               /*“喜欢本站”的心和飘出的爱心*/
   --love-foreground: light-dark(#ffffff, #2b0f18);    /*压在 --love 底上的字*/
-  --badge-from: light-dark(#c06bb8, #f0b4ec);         /*订阅浮层信封图标的渐变底*/
-  --badge-to: light-dark(#8f4a9e, #b97ee0);
-  --badge-foreground: light-dark(#ffffff, #2a1630);
 
   /* 柔光：代替硬投影，熄灯时是淡淡的粉紫光晕 */
   --shadow-soft: 0 1px 2px light-dark(rgb(35 29 51 / 6%), rgb(0 0 0 / 30%)), 0 8px 24px -12px light-dark(rgb(155 79 150 / 22%), rgb(224 166 232 / 18%));
@@ -153,9 +150,6 @@
   --sky-fallback-low: light-dark(#eeeff1, #08090b);
   --love: light-dark(#111113, #f7f7f9);
   --love-foreground: light-dark(#ffffff, #09090a);
-  --badge-from: light-dark(#2a2a2e, #ffffff);
-  --badge-to: light-dark(#0b0b0c, #b9b9c0);
-  --badge-foreground: light-dark(#ffffff, #0b0b0c);
   /* 柔光换成中性的暗影，不再带粉紫 */
   --shadow-soft: 0 1px 2px light-dark(rgb(0 0 0 / 6%), rgb(0 0 0 / 50%)), 0 8px 24px -12px light-dark(rgb(0 0 0 / 14%), rgb(0 0 0 / 70%));
   --shadow-popup: 0 2px 6px light-dark(rgb(0 0 0 / 8%), rgb(0 0 0 / 55%)), 0 16px 40px -12px light-dark(rgb(0 0 0 / 22%), rgb(0 0 0 / 80%));
@@ -196,9 +190,6 @@
   --band-star: light-dark(rgb(255 255 255 / 90%), rgb(235 240 255 / 88%));
   --sky-fallback-top: light-dark(#8f93d6, #04071a);
   --sky-fallback-low: light-dark(#e6dbf5, #2a1d4d);
-  --badge-from: light-dark(#6d5ce0, #c4b2ff);
-  --badge-to: light-dark(#4054c8, #7f8cff);
-  --badge-foreground: light-dark(#ffffff, #15113a);
   --shadow-soft: 0 1px 2px light-dark(rgb(27 29 58 / 6%), rgb(0 0 0 / 35%)), 0 8px 24px -12px light-dark(rgb(88 72 194 / 22%), rgb(140 150 255 / 18%));
   --shadow-popup: 0 2px 6px light-dark(rgb(27 29 58 / 8%), rgb(0 0 0 / 45%)), 0 16px 40px -12px light-dark(rgb(88 72 194 / 28%), rgb(140 150 255 / 22%));
 }

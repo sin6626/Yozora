@@ -176,13 +176,6 @@
   }
 }
 
-.say-sky-eyebrow {
-  margin: 0 0 var(--space-2);
-  color: var(--primary);
-  font-size: var(--text-xs);
-  letter-spacing: 0.2em;
-}
-
 .say-sky-card blockquote > p {
   margin: 0;
   font-family: "LXGW WenKai", "PingFang SC", var(--font-cjk-sans), sans-serif;

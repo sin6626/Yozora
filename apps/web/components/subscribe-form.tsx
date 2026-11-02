@@ -1,18 +1,22 @@
 "use client";
 
-import { Check } from "lucide-react";
-import { useState, type FormEvent, type Ref } from "react";
+import { ArrowRight } from "lucide-react";
+import { Fragment, useState, type FormEvent, type Ref } from "react";
 import { useLocale, useT } from "./locale-provider";
 
 type SubscribeType = "post_c" | "note_c";
+// 句子里先说文章、再说手记（Core 给的顺序不固定）
+const order: SubscribeType[] = ["post_c", "note_c"];
 
 // 邮件订阅：直接提交到 Core（POST /subscribe）。有新内容时 Core 发邮件，邮件里带退订链接（指向 Core，不需要前端页面）。
 // 注意 Core 不验证邮箱归属，同一邮箱重复订阅只会更新订阅类型。
-// 外观是首屏“订阅”浮层里的样子：说明、整行邮箱、可点选的胶囊（文章 / 手记）、RSS 提示、整行订阅按钮。
-export default function SubscribeForm({ apiUrl, types, siteName, emailRef }: { apiUrl: string; types: SubscribeType[]; siteName?: string; emailRef?: Ref<HTMLInputElement> }) {
+// 外观（2026-11-02 重做，原来的渐变图标、胶囊和整行大按钮太像模板）：一句文楷写的话，“文章”“手记”就嵌在句子里，点一下取消、再点选回；
+// 下面一条信纸横线写邮箱，横线末端是寄出的箭头；最后一行小字 RSS。
+export default function SubscribeForm({ apiUrl, types, emailRef }: { apiUrl: string; types: SubscribeType[]; emailRef?: Ref<HTMLInputElement> }) {
   const t = useT().subscribe;
   const locale = useLocale();
   const [status, setStatus] = useState<{ type: "idle" | "sending" } | { type: "done" | "error"; message: string }>({ type: "idle" });
+  const [before, after] = t.letter.split("{types}");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -40,22 +44,29 @@ export default function SubscribeForm({ apiUrl, types, siteName, emailRef }: { a
 
   return (
     <form className="subscribe-form" onSubmit={submit} aria-label={t.formLabel}>
-      <p className="subscribe-hint">{t.hint(siteName ?? t.defaultSite)}</p>
-      <input ref={emailRef} className="field subscribe-email" aria-label={t.email} name="email" type="email" required maxLength={50} placeholder={t.emailPlaceholder} autoComplete="email" />
-      <fieldset className="subscribe-types">
-        <legend>{t.legend}</legend>
-        {types.map((type) => (
-          <label key={type} className="subscribe-type">
-            <input type="checkbox" name="types" value={type} defaultChecked />
-            <Check size={14} strokeWidth={2.5} aria-hidden="true" />
-            {t.types[type]}
-          </label>
+      <p className="subscribe-letter" role="group" aria-label={t.legend}>
+        {before}
+        {order.filter((type) => types.includes(type)).map((type, index) => (
+          <Fragment key={type}>
+            {index > 0 && t.and}
+            <label className="subscribe-word">
+              <input type="checkbox" name="types" value={type} defaultChecked />
+              {t.types[type]}
+            </label>
+          </Fragment>
         ))}
-      </fieldset>
-      <p className="subscribe-rss">{t.rssBefore}<a href="/feed.xml">RSS</a>{t.rssAfter}</p>
-      <button className="btn btn-primary subscribe-submit" type="submit" disabled={status.type === "sending"}>{status.type === "sending" ? t.sending : t.submit}</button>
-      {(status.type === "done" || status.type === "error") && (
+        {after}
+      </p>
+      <div className="subscribe-line">
+        <input ref={emailRef} className="subscribe-email" aria-label={t.email} name="email" type="email" required maxLength={50} placeholder={t.emailPlaceholder} autoComplete="email" />
+        <button className="subscribe-send" type="submit" disabled={status.type === "sending"} aria-label={status.type === "sending" ? t.sending : t.submit} title={t.submit}>
+          <ArrowRight size={18} strokeWidth={1.75} aria-hidden="true" />
+        </button>
+      </div>
+      {status.type === "done" || status.type === "error" ? (
         <p className={`subscribe-status is-${status.type}`} role={status.type === "error" ? "alert" : "status"}>{status.message}</p>
+      ) : (
+        <p className="subscribe-rss">{t.rssBefore}<a href="/feed.xml">RSS</a>{t.rssAfter}</p>
       )}
     </form>
   );

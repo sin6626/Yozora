@@ -2,12 +2,12 @@
 
 import { Toast } from "@base-ui/react/toast";
 import { Bell, Heart } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { useLocale, useT } from "./locale-provider";
 import SubscribePopover from "./subscribe-popover";
 import "./site-actions.css";
 
-type Props = { apiUrl: string; siteName: string; likes: number | null; subscribeTypes: ("post_c" | "note_c")[] | null; mailIcon: ReactNode };
+type Props = { apiUrl: string; likes: number | null; subscribeTypes: ("post_c" | "note_c")[] | null };
 type FloatingHeart = { id: number; x: number; rise: number; rotate: number; size: number; delay: number };
 
 const likedKey = "site-liked-on";
@@ -51,7 +51,7 @@ function LikeToasts() {
   ));
 }
 
-function Actions({ apiUrl, siteName, likes, subscribeTypes, mailIcon }: Props) {
+function Actions({ apiUrl, likes, subscribeTypes }: Props) {
   const t = useT().siteActions;
   const locale = useLocale();
   const [count, setCount] = useState(likes);
@@ -126,7 +126,7 @@ function Actions({ apiUrl, siteName, likes, subscribeTypes, mailIcon }: Props) {
         </Toast.Viewport>
       </div>
       {subscribeTypes && (
-        <SubscribePopover apiUrl={apiUrl} siteName={siteName} types={subscribeTypes} mailIcon={mailIcon} triggerClassName="site-action is-subscribe">
+        <SubscribePopover apiUrl={apiUrl} types={subscribeTypes} triggerClassName="site-action is-subscribe">
           {t.subscribe}
           <Bell size={16} aria-hidden="true" />
         </SubscribePopover>

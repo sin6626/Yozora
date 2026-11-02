@@ -1,12 +1,11 @@
 import { unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
-import { getSiteSettings, getSubscribeOptions, siteName } from "../lib/blog-data";
+import { getSubscribeOptions } from "../lib/blog-data";
 import { getApiUrl } from "../lib/config";
 import ArticleActions from "./article-actions";
 import ArticleToc from "./article-toc";
 import CommentChat from "./comment-chat";
 import type { CommentRefType } from "./comment-form";
-import IconifyIcon from "./iconify-icon";
 import { getT } from "../lib/i18n/server";
 
 type Props = {
@@ -29,18 +28,15 @@ export default async function ArticleAside({ title, like, comments }: Props) {
   );
 }
 
-// 订阅开关和站名读不到时，订阅按钮不显示，其余照常
+// 订阅开关读不到时，订阅按钮不显示，其余照常
 async function Actions({ title, like, comments }: Props) {
   const apiUrl = getApiUrl();
-  let loaded: [Awaited<ReturnType<typeof getSubscribeOptions>>, Awaited<ReturnType<typeof getSiteSettings>> | null] | null = null;
+  let options: Awaited<ReturnType<typeof getSubscribeOptions>> | null = null;
   try {
-    loaded = await Promise.all([getSubscribeOptions(), getSiteSettings().catch(() => null)]);
+    options = await getSubscribeOptions();
   } catch (error) {
     unstable_rethrow(error);
   }
-  const [options, settings] = loaded ?? [null, null];
-  const subscribe = options?.enabled
-    ? { apiUrl, siteName: settings?.name ?? siteName, types: options.types, mailIcon: <IconifyIcon icon="mingcute:mail-send-fill" size={20} /> }
-    : null;
+  const subscribe = options?.enabled ? { apiUrl, types: options.types } : null;
   return <ArticleActions title={title} like={like ? { apiUrl, ...like } : null} comments={<CommentChat {...comments} title={title} />} subscribe={subscribe} />;
 }

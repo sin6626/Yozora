@@ -84,6 +84,7 @@ try {
     await sleep(600);
     const now = await sky();
     assert.equal(now.reading, textOf.get(id), "悬停星：旁边换成这一句");
+    assert.equal(await browser.evaluate(`${visible()}.querySelector(".say-sky-card").firstElementChild.tagName`), "BLOCKQUOTE", "卡片开头就是那句话，不写“某某座”");
     assert.deepEqual(now.active, [id], "悬停的这颗星亮起");
     assert.equal(now.spikes, "0.9", "亮起的星带十字星芒");
     const author = all.find((say) => say.id === id).author?.trim();

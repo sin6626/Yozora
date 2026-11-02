@@ -1,13 +1,13 @@
 import { ChevronDown } from "lucide-react";
 import { unstable_rethrow } from "next/navigation";
 import { Suspense, type CSSProperties } from "react";
-import { getOwner, getSiteDescription, getSiteLikes, getSiteSettings, getSubscribeOptions, siteDescription, siteName, siteOwnerName } from "../lib/blog-data";
+import { getOwner, getSiteDescription, getSiteLikes, getSubscribeOptions, siteDescription, siteOwnerName } from "../lib/blog-data";
 import { getApiUrl } from "../lib/config";
 import type { SocialCard, SocialLink } from "../lib/social";
 import ContactCard from "./contact-card";
 import OwnerName from "./owner-name";
 import { getLocale, getT } from "../lib/i18n/server";
-import IconifyIcon, { SocialIcon } from "./iconify-icon";
+import { SocialIcon } from "./iconify-icon";
 import ScrollHint from "./scroll-hint";
 import SocialTooltip, { SocialTooltipGroup } from "./social-tooltip";
 import SiteActions from "./site-actions";
@@ -74,16 +74,8 @@ async function Portrait() {
 
 // 喜欢本站的计数和订阅开关都是缓存数据，读不到时按钮照常显示（计数隐藏、订阅按钮不出现）。
 async function Actions() {
-  const [likes, subscribe, settings] = await Promise.all([getSiteLikes().catch(() => null), getSubscribeOptions().catch(() => null), getSiteSettings().catch(() => null)]);
-  return (
-    <SiteActions
-      apiUrl={getApiUrl()}
-      siteName={settings?.name ?? siteName}
-      likes={likes}
-      subscribeTypes={subscribe?.enabled ? subscribe.types : null}
-      mailIcon={<IconifyIcon icon="mingcute:mail-send-fill" size={20} />}
-    />
-  );
+  const [likes, subscribe] = await Promise.all([getSiteLikes().catch(() => null), getSubscribeOptions().catch(() => null)]);
+  return <SiteActions apiUrl={getApiUrl()} likes={likes} subscribeTypes={subscribe?.enabled ? subscribe.types : null} />;
 }
 
 // 丛雨抱着名字：身体（后层、闭眼帧）在字后面，手臂（前层）在字前面，三张图画布一致、叠在同一位置。
