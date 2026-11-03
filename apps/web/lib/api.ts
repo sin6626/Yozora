@@ -6,6 +6,9 @@ import { getApiUrl } from "./config";
 
 // lang：外文页面向 Core 要内容时带上 ?lang=en|ja，Core 会把已有的译文换进去（文章、手记的标题和正文、分类名、话题、心情、天气，
 // 来自后台的 AI 翻译和“翻译条目”）；没有译文的保持中文。用查询参数而不是 x-lang 请求头：Core 的接口缓存按地址区分。
+// 每个请求最多等 8 秒；在本机构建部署包时要隔着慢线路取线上数据，scripts/deploy/build-web.mjs 用 MIX_SPACE_TIMEOUT_MS 放宽。
+const timeout = Number(process.env.MIX_SPACE_TIMEOUT_MS) || 8000;
+
 function adapterFor(lang?: string): typeof fetchAdaptor {
   return {
     ...fetchAdaptor,
@@ -14,7 +17,7 @@ function adapterFor(lang?: string): typeof fetchAdaptor {
       return fetchAdaptor.get(target, {
         ...options,
         cache: "no-store",
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(timeout),
       });
     },
   };
