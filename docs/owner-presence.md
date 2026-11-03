@@ -22,11 +22,13 @@ node scripts/install-ps-function.mjs
 
 第一次运行会生成密钥，存在 `.local/presence.json`（不进 git，权限 600）。重复运行只更新函数代码、密钥不变；`--rotate-key` 换新密钥；`--prod` 装到线上（读 `.local/publish.json` 的 prod 配置）；`--dry-run` 只看不写。
 
+2026-11-03 已装到线上（`NODE_USE_ENV_PROXY=1 node scripts/install-ps-function.mjs --prod`，本机直连线上常被断开所以走系统代理），线上密钥是 `.local/presence.json` 的 `prod.key`，和本地的分开。复制线上密钥（不显示在终端里）：`node -e 'process.stdout.write(require("./.local/presence.json").prod.key)' | pbcopy`。Companion 只能填一个地址，改成线上后本地开发的页头就收不到状态了。
+
 ## 配置 Yohaku Companion
 
 在 Companion 的 Settings → Destinations → MixSpace 里填：
 
-- Endpoint：`http://127.0.0.1:2333/fn/ps/update`（线上换成 Core 的 https 地址，Companion 只允许本机用 http）
+- Endpoint：`http://127.0.0.1:2333/fn/ps/update`（线上是 `https://api.sin6626.me/api/v2/fn/ps/update`，注意带 `/api/v2`；Companion 只允许本机用 http）
 - API Token：`.local/presence.json` 里对应环境的 `key`
 - Request Method：POST
 
