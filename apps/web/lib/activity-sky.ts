@@ -1,5 +1,6 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
+import { getApiClient } from "./api";
 import { buildSky, parseGitHub, parseLeetCode } from "./sky-calendar";
 
 // 页脚星带的数据：站长在力扣（中国站）刷题和在 GitHub 写代码的每日提交。两边都是不需要登录的公开页面/接口
@@ -31,6 +32,13 @@ async function leetCode(from: number) {
   return new Map(calendars.flatMap(({ submissionCalendar }) => [...parseLeetCode(submissionCalendar)]));
 }
 
+// 线上服务器在洛杉矶，力扣中国站的 Cloudflare 对它一律返回人机验证（403）；取不到时读站长 Mac 每天同步进 Core 的那份
+// （scripts/sync-leetcode.mjs，配置片段 theme/leetcode-calendar，日历和力扣返回的一样是字符串）。本地开发在国内，直接取得到。
+async function leetCodeFromCore() {
+  const { submissionCalendar } = await getApiClient().snippet.getByReferenceAndName<{ submissionCalendar: string }>("theme", "leetcode-calendar");
+  return parseLeetCode(submissionCalendar);
+}
+
 async function gitHub(from: number, to: number) {
   const pages = await Promise.all(Array.from({ length: to - from + 1 }, async (_, index) => {
     const year = from + index;
@@ -47,7 +55,7 @@ export async function getActivitySky() {
   cacheTag("activity-sky");
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date());
   const thisYear = Number(today.slice(0, 4));
-  const [leetcode, github] = await Promise.allSettled([leetCode(thisYear - years + 1), gitHub(thisYear - years + 1, thisYear)]);
+  const [leetcode, github] = await Promise.allSettled([leetCode(thisYear - years + 1).catch(() => leetCodeFromCore()), gitHub(thisYear - years + 1, thisYear)]);
   if (leetcode.status === "rejected" && github.status === "rejected") throw new Error("activity sky unavailable", { cause: [leetcode.reason, github.reason] });
   const value = (result: PromiseSettledResult<Map<string, number>>) => (result.status === "fulfilled" ? result.value : new Map<string, number>());
   return buildSky(value(leetcode), value(github), today, years * 53);

@@ -10,6 +10,7 @@ import { cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import net from "node:net";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { systemProxy } from "../lib/system-proxy.mjs";
 
 const [checkout, output] = process.argv.slice(2).map((path) => path && resolve(path));
 if (!checkout || !output) {
@@ -20,16 +21,6 @@ const apiUrl = process.env.DEPLOY_API_URL || "https://api.sin6626.me/api/v2";
 const sshTarget = process.env.DEPLOY_SSH || "root@38.95.74.213";
 const sshKey = process.env.DEPLOY_SSH_KEY || join(homedir(), ".ssh/id_ed25519_windows");
 const apiHost = `${new URL(apiUrl).hostname}:443`;
-
-function systemProxy() {
-  const fromEnv = process.env.HTTPS_PROXY || process.env.https_proxy;
-  if (fromEnv) return new URL(fromEnv);
-  if (process.platform !== "darwin") return null;
-  const out = execFileSync("scutil", ["--proxy"], { encoding: "utf8" });
-  const host = out.match(/HTTPSProxy : (\S+)/)?.[1];
-  const port = out.match(/HTTPSPort : (\d+)/)?.[1];
-  return /HTTPSEnable : 1/.test(out) && host && port ? new URL(`http://${host}:${port}`) : null;
-}
 
 const freePort = () =>
   new Promise((done) => {
