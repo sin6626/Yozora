@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // 部署用：next build 额外产出 .next/standalone（自带运行所需的 node_modules），服务器上直接 node server.js，见 docs/deploy-beta.md
+  output: "standalone",
   experimental: {
     agentFeedback: true,
   },
