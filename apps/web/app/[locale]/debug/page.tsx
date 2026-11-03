@@ -167,22 +167,12 @@ export default function DebugPage() {
           </li>
           <li id="debug-sky">
             <h2>今晚的天空</h2>
-            <p className="post-meta">components/sky-menu.tsx：页头月亮按钮的候选。点开挑配色（夜紫 / 银河 / 墨黑）和浅色 / 深色，整页 0.6 秒渐变，背景星空跟着换。左边是三块小天空预览（推荐），右边是文字列表对照；上面的按钮是真实浮层，下面是它展开的样子</p>
+            <p className="post-meta">components/sky-menu.tsx：页头的候选。望远镜按钮点开三块小天空（夜紫 / 银河 / 墨黑），点哪块换哪套配色，整页 0.6 秒渐变，背景星空跟着换；浅色 / 深色仍是旁边的月亮按钮。上面是真实按钮，下面是展开的样子</p>
             <div className="debug-sky">
-              <figure>
-                <SkyMenu variant="tiles" />
-                <div className="sky-popup">
-                  <SkyPanel variant="tiles" />
-                </div>
-                <figcaption className="post-meta">小天空预览</figcaption>
-              </figure>
-              <figure>
-                <SkyMenu variant="list" />
-                <div className="sky-popup">
-                  <SkyPanel variant="list" />
-                </div>
-                <figcaption className="post-meta">文字列表</figcaption>
-              </figure>
+              <SkyMenu />
+              <div className="sky-popup">
+                <SkyPanel />
+              </div>
             </div>
           </li>
           <li id="debug-search">

@@ -7,7 +7,7 @@ import "./theme-switcher.css";
 
 // 浅色 / 深色主题：一个按钮来回切换。默认深色，选了浅色存 theme=light。
 // 以前的“跟随系统”已去掉，存储里遗留的 system 按深色处理。
-export type Theme = "light" | "dark";
+type Theme = "light" | "dark";
 const storageKey = "theme";
 const listeners = new Set<() => void>();
 
@@ -41,8 +41,8 @@ export function withThemeTransition(update: () => void) {
   else document.startViewTransition({ update, types: ["theme"] });
 }
 
-export function setTheme(next: Theme) {
-  if (next === read()) return;
+export function toggleTheme() {
+  const next: Theme = read() === "dark" ? "light" : "dark";
   try {
     if (next === "dark") localStorage.removeItem(storageKey);
     else localStorage.setItem(storageKey, next);
@@ -51,10 +51,6 @@ export function setTheme(next: Theme) {
     document.documentElement.dataset.theme = next;
     listeners.forEach((listener) => listener());
   });
-}
-
-export function toggleTheme() {
-  setTheme(read() === "dark" ? "light" : "dark");
 }
 
 export function useTheme() {

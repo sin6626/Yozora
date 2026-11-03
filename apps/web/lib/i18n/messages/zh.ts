@@ -194,15 +194,8 @@ const zh = {
     toLight: "切换到浅色主题",
     toDark: "切换到深色主题",
     sky: "今晚的天空",
-    skyButton: (palette: string, mode: string) => `今晚的天空：${palette}，${mode}`,
-    brightness: "明暗",
-    light: "浅色",
-    dark: "深色",
-    palettes: {
-      night: { name: "夜紫", note: "紫黑的天，淡粉紫的银河" },
-      galaxy: { name: "银河", note: "深海军蓝的天，一条亮银河" },
-      ink: { name: "墨黑", note: "真实夜空的黑，星光是白的" },
-    },
+    skyButton: (palette: string) => `今晚的天空：${palette}`,
+    palettes: { night: "夜紫", galaxy: "银河", ink: "墨黑" },
   },
   moon: {
     label: "今晚的月亮",

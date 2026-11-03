@@ -3,11 +3,11 @@
 import { Popover } from "@base-ui/react/popover";
 import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
-import { Check, Moon, Sun } from "lucide-react";
+import { Telescope } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { useIsland } from "../lib/island-store";
 import { useT } from "./locale-provider";
-import { setTheme, useTheme, withThemeTransition, type Theme } from "./theme-switcher";
+import { withThemeTransition } from "./theme-switcher";
 import "./sky-menu.css";
 
 // 三套配色：夜紫是默认（<html> 不带 data-palette），银河、墨黑在 globals.css 的 :root[data-palette] 上覆盖颜色变量
@@ -46,58 +46,40 @@ export function setPalette(next: Palette) {
   });
 }
 
-// “今晚的天空”面板：上面挑配色，下面挑浅色 / 深色。
-// tiles：三块小天空预览（天色、银河、几颗星、一枚各自月光色的月亮）；list：文字列表（色点 + 名字 + 一句说明），给 /debug 对照用
-export function SkyPanel({ variant = "tiles" }: { variant?: "tiles" | "list" }) {
+// “今晚的天空”面板：三块小天空预览（天色、银河或星云、几颗星、一枚各自月光色的月亮），点哪块换成哪套配色。
+// 浅色 / 深色仍由旁边的月亮按钮（theme-switcher.tsx）管，这里不重复
+export function SkyPanel() {
   const palette = usePalette();
-  const theme = useTheme();
   const t = useT().theme;
   return (
-    <div className="sky-panel" data-variant={variant}>
+    <div className="sky-panel">
       <p className="sky-label">{t.sky}</p>
       <RadioGroup className="sky-options" value={palette} onValueChange={(value) => setPalette(value as Palette)} aria-label={t.sky}>
         {palettes.map((item) => (
           <Radio.Root key={item} value={item} className="sky-option" data-sky={item}>
             <span className="sky-preview" aria-hidden="true" />
-            <span className="sky-name">{t.palettes[item].name}</span>
-            {variant === "list" && <span className="sky-note">{t.palettes[item].note}</span>}
-            {variant === "list" && (
-              <Radio.Indicator className="sky-check" keepMounted>
-                <Check size={15} strokeWidth={2} aria-hidden="true" />
-              </Radio.Indicator>
-            )}
+            <span className="sky-name">{t.palettes[item]}</span>
           </Radio.Root>
         ))}
-      </RadioGroup>
-      <RadioGroup className="sky-brightness" value={theme} onValueChange={(value) => setTheme(value as Theme)} aria-label={t.brightness}>
-        <Radio.Root value="light" className="sky-brightness-option">
-          <Sun size={15} strokeWidth={1.75} aria-hidden="true" />
-          {t.light}
-        </Radio.Root>
-        <Radio.Root value="dark" className="sky-brightness-option">
-          <Moon size={15} strokeWidth={1.75} aria-hidden="true" />
-          {t.dark}
-        </Radio.Root>
       </RadioGroup>
     </div>
   );
 }
 
-// 页头的入口：还是一个月亮（浅色时是太阳）图标按钮，点开是上面的面板。host：页头那份，浮层开着时夜航岛保持展开
-export default function SkyMenu({ variant = "tiles", host = false, side = "bottom" }: { variant?: "tiles" | "list"; host?: boolean; side?: "bottom" | "top" }) {
+// 入口：一个望远镜图标按钮（不用月亮，免得和切换深浅的按钮混在一起），点开是上面的面板。host：页头那份，浮层开着时夜航岛保持展开
+export default function SkyMenu({ host = false, side = "bottom" }: { host?: boolean; side?: "bottom" | "top" }) {
   const palette = usePalette();
-  const theme = useTheme();
   const t = useT().theme;
   const setNavOpen = useIsland((state) => state.setNavOpen);
   return (
     <Popover.Root onOpenChange={(open) => { if (host) setNavOpen(open); }}>
-      <Popover.Trigger className="icon-button sky-trigger" aria-label={t.skyButton(t.palettes[palette].name, theme === "dark" ? t.dark : t.light)}>
-        {theme === "dark" ? <Moon size={18} strokeWidth={1.75} aria-hidden="true" /> : <Sun size={18} strokeWidth={1.75} aria-hidden="true" />}
+      <Popover.Trigger className="icon-button sky-trigger" aria-label={t.skyButton(t.palettes[palette])}>
+        <Telescope size={18} strokeWidth={1.75} aria-hidden="true" />
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner className="sky-positioner" side={side} align="end" sideOffset={10} collisionPadding={12}>
-          <Popover.Popup className="sky-popup" data-variant={variant}>
-            <SkyPanel variant={variant} />
+          <Popover.Popup className="sky-popup">
+            <SkyPanel />
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>
