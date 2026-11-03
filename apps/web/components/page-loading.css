@@ -1,0 +1,127 @@
+/* 读取区铺满页头以下的一屏，火箭在正中略偏上；200ms 内读完就什么都看不到 */
+.page-loading {
+  --rocket: color-mix(in srgb, var(--foreground) 80%, var(--background)); /*不透明：尾翼和机身相接处线条重叠时不会叠深*/
+  --flame: var(--moonlight);
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1.25rem;
+  min-height: calc(100dvh - var(--header-height));
+  padding: 0 1rem 10vh;
+  animation: page-loading-in 0.4s ease-out 200ms both;
+}
+
+:root[data-theme="light"] .page-loading {
+  --flame: var(--primary);
+}
+
+.page-loading[data-compact] {
+  min-height: 24rem;
+  padding-bottom: 0;
+}
+
+@keyframes page-loading-in {
+  from { opacity: 0; }
+}
+
+.page-loading-rocket {
+  width: 80px;
+  height: auto;
+  overflow: visible;
+}
+
+.page-loading-rocket .body {
+  fill: none;
+  stroke: var(--rocket);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 火箭轻轻上下浮，火苗一伸一缩，三道尾迹一直往下流：看起来在一直往上飞 */
+.page-loading-rocket .craft {
+  animation: page-loading-hover 1.2s ease-in-out infinite;
+}
+
+.page-loading-rocket .flame {
+  fill: var(--flame);
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: page-loading-flicker 0.18s ease-in-out infinite alternate;
+}
+
+.page-loading-rocket .trail line {
+  stroke: var(--rocket);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  opacity: 0;
+  animation: page-loading-trail 0.9s linear infinite;
+}
+
+.page-loading-rocket .trail line:nth-child(2) { animation-delay: -0.3s; }
+.page-loading-rocket .trail line:nth-child(3) { animation-delay: -0.6s; }
+
+@keyframes page-loading-hover {
+  0%, 100% { translate: 0 0.6px; }
+  50% { translate: 0 -1.4px; }
+}
+
+@keyframes page-loading-flicker {
+  from { scale: 1 0.78; opacity: 0.8; }
+  to { scale: 0.92 1.12; opacity: 1; }
+}
+
+@keyframes page-loading-trail {
+  0% { translate: 0 0; opacity: 0; }
+  15% { opacity: 0.75; }
+  100% { translate: 0 7px; opacity: 0; }
+}
+
+.page-loading-quote {
+  max-width: min(36rem, 90vw);
+  margin: 0;
+  color: var(--muted-foreground);
+  font-family: var(--font-serif);
+  font-size: 0.875rem;
+  font-style: italic;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-wrap: balance;
+  word-break: keep-all; /*窄屏只在逗号处换行*/
+  overflow-wrap: anywhere;
+}
+
+/* 十秒还没读完才出现；之前只是看不见，不占用也不改变排版 */
+.page-loading-retry {
+  padding: 0.4rem 1rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--foreground) 10%, transparent);
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  transition: background-color var(--duration-base);
+  animation: page-loading-retry 0.4s var(--ease-out) 10s both;
+}
+
+.page-loading-retry:hover {
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+@keyframes page-loading-retry {
+  from { visibility: hidden; opacity: 0; translate: 0 4px; }
+  to { visibility: visible; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-loading-rocket .craft,
+  .page-loading-rocket .flame {
+    animation: none;
+  }
+
+  .page-loading-rocket .trail line {
+    animation: none;
+    opacity: 0.45;
+  }
+}

@@ -17,6 +17,7 @@ import HomePanelPreviews from "./home-panel-preview";
 import HeroEntrancePreview from "./hero-entrance";
 import { OpenSearchButton } from "@/components/command-search";
 import { ActiveFilter } from "@/components/list-filters";
+import PageLoading from "@/components/page-loading";
 import StyleGuide from "./style-guide";
 import IslandButtons from "./island-buttons";
 import BrandTickerPreview from "./brand-ticker";
@@ -99,8 +100,6 @@ export default function DebugPage() {
           </li>
           <li>
             <h2>文章列表</h2>
-            <p className="post-meta">posts/page.tsx 的加载占位</p>
-            <p className="post-list-content" role="status">正在读取文章…</p>
             <p className="post-meta">post-list.tsx 的读取失败</p>
             <p className="post-list-content" role="alert">文章读取失败。<Link href="/debug">重试</Link></p>
             <p className="post-meta">post-list.tsx 的空列表</p>
@@ -109,10 +108,14 @@ export default function DebugPage() {
           </li>
           <li>
             <h2>首页</h2>
-            <p className="post-meta">app/page.tsx 的加载占位，home-latest.tsx 单块读取失败与无内容</p>
-            <p className="post-list-content" role="status">正在读取最新内容…</p>
+            <p className="post-meta">home-latest.tsx 单块读取失败与无内容（加载占位见下面“读取中”）</p>
             <p className="post-empty" role="alert">最新文章读取失败，请稍后刷新。</p>
             <p className="post-empty">暂无内容。</p>
+          </li>
+          <li id="debug-page-loading">
+            <h2>读取中</h2>
+            <p className="post-meta">page-loading.tsx：各页面 Suspense 的读取占位，往上飞的小火箭 + Innei 首页那句话（读屏念“正在读取…”），出现前等 200ms，十秒还没读完露出“重试”。页面里铺满页头以下一屏，这里和首页一样用 compact</p>
+            <PageLoading compact />
           </li>
           <li>
             <h2>搜索与筛选</h2>
@@ -126,9 +129,6 @@ export default function DebugPage() {
           </li>
           <li>
             <h2>手记与作品</h2>
-            <p className="post-meta">notes/page.tsx、projects/page.tsx 的加载占位</p>
-            <p className="post-list-content" role="status">正在读取手记…</p>
-            <p className="post-list-content" role="status">正在读取作品…</p>
             <p className="post-meta">note-list.tsx、project-list.tsx 的读取失败与空列表</p>
             <p className="post-list-content" role="alert">手记读取失败。<Link href="/debug">重试</Link></p>
             <p className="post-empty">还没有公开的手记。</p>
@@ -138,10 +138,8 @@ export default function DebugPage() {
           </li>
           <li>
             <h2>时间线、友链、一言与思考</h2>
-            <p className="post-meta">timeline/friends/says/thinking 的加载占位，timeline-list.tsx、friend-list.tsx、say-list.tsx、thinking-list.tsx 的读取失败与空列表</p>
-            <p className="post-list-content" role="status">正在读取时间线…</p>
+            <p className="post-meta">timeline-list.tsx、friend-list.tsx、say-list.tsx、thinking-list.tsx 的读取失败与空列表</p>
             <p className="post-empty">还没有内容。</p>
-            <p className="post-list-content" role="status">正在读取友链…</p>
             <p className="post-list-content" role="alert">友链读取失败。<Link href="/debug">重试</Link></p>
             <p className="post-empty">还没有友链。</p>
             <p className="post-empty">还没有一言。</p>
