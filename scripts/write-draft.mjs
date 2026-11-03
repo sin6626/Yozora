@@ -2,6 +2,7 @@
 // 用法：pnpm draft <文章.md> [--prod] [--dry-run]
 //   默认写本地 Core；--prod 才写线上；--dry-run 只转换、检查并打印结果，不上传图片、不写草稿。
 // 文件格式、令牌配置见 docs/writing-drafts.md。
+import { coreUrl } from "./lib/core-url.mjs";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
@@ -79,7 +80,7 @@ if (!dryRun && !server?.token) fail(`没有 ${target} 的配置，先按 docs/wr
 if (target === "prod") console.error(`! 目标是线上：${server?.api}`);
 
 async function request(path, init = {}) {
-  const res = await fetch(new URL(path, server.api), { ...init, headers: { "x-api-key": server.token, ...init.headers } });
+  const res = await fetch(coreUrl(server.api, path), { ...init, headers: { "x-api-key": server.token, ...init.headers } });
   const data = await res.json().catch(() => null);
   return { ok: res.ok, status: res.status, data };
 }

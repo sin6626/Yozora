@@ -2,6 +2,7 @@
 // 第一次安装时生成密钥，存进 .local/presence.json（不进 git、权限 600），Mac 上的 Yohaku Companion 填这个密钥；
 // 重复运行只更新函数代码，密钥不变；加 --rotate-key 换一个新密钥（Companion 里也要跟着改）。
 // 用法：node scripts/install-ps-function.mjs [--prod] [--dry-run] [--rotate-key]，Core 地址和后台令牌读 .local/publish.json（同 pnpm draft）
+import { coreUrl } from "./lib/core-url.mjs";
 import { randomBytes } from "node:crypto";
 import { chmodSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 
@@ -17,7 +18,7 @@ if (!server?.token) {
 if (target === "prod") console.error(`! 目标是线上：${server.api}`);
 
 async function request(path, init = {}) {
-  const res = await fetch(new URL(path, server.api), { ...init, headers: { "x-api-key": server.token, "content-type": "application/json", ...init.headers } });
+  const res = await fetch(coreUrl(server.api, path), { ...init, headers: { "x-api-key": server.token, "content-type": "application/json", ...init.headers } });
   const data = await res.json().catch(() => null);
   if (!res.ok) throw new Error(`${init.method ?? "GET"} ${path} 失败：HTTP ${res.status} ${JSON.stringify(data)}`);
   return data;
@@ -50,5 +51,5 @@ if (!dryRun) {
     chmodSync(keysPath, 0o600);
   }
 }
-console.log(`Companion 的 MixSpace 地址：${new URL("/fn/ps/update", server.api)}`);
+console.log(`Companion 的 MixSpace 地址：${coreUrl(server.api, "/fn/ps/update")}`);
 console.log(`密钥在 .local/presence.json 的 ${target}.key`);

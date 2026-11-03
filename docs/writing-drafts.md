@@ -9,6 +9,8 @@ pnpm draft .local/writing/某篇.md --dry-run  # 只转换和检查，打印结�
 pnpm draft .local/writing/某篇.md --prod     # 写进线上后台（需要先配好 prod）
 ```
 
+线上 Core 是生产模式，接口挂在 `/api/v2` 下，`api` 要带上这个前缀（本地开发模式没有）。
+
 成功后会打印后台编辑页链接（`后台地址/#/posts/edit?draftId=…` 或 `#/notes/edit?draftId=…`），点开就是编辑器。
 
 ## 令牌配置
@@ -19,7 +21,7 @@ pnpm draft .local/writing/某篇.md --prod     # 写进线上后台（需要先�
 ```json
 {
   "local": { "api": "http://127.0.0.1:2333", "admin": "http://127.0.0.1:9528", "token": "txo…" },
-  "prod": { "api": "https://线上 Core 地址", "admin": "https://线上后台地址", "token": "txo…" }
+  "prod": { "api": "https://api.sin6626.me/api/v2", "admin": "https://api.sin6626.me/proxy/qaqdmin", "token": "txo…" }
 }
 ```
 
