@@ -55,6 +55,22 @@
   --sky-fallback-low: light-dark(#ffcdc6, #150e29);
   --love: light-dark(#e1617b, #f08aa0);               /*“喜欢本站”的心和飘出的爱心*/
   --love-foreground: light-dark(#ffffff, #2b0f18);    /*压在 --love 底上的字*/
+  /* “今晚的天空”面板（components/sky-menu.tsx）里三块小天空预览的颜色：取各自配色首屏天空的天色、银河和月光色，
+     只写在这里、不在 :root[data-palette] 里覆盖，所以不管现在是哪套配色，三块都各画自己那片天 */
+  --preview-star: light-dark(rgb(255 255 255 / 80%), rgb(255 255 255 / 90%));
+  --preview-night-top: light-dark(#9e8cd1, #040310);
+  --preview-night-low: light-dark(#ffcdc6, #150e29);
+  --preview-night-glow: light-dark(rgb(255 255 255 / 45%), rgb(204 117 194 / 42%));
+  --preview-night-moon: light-dark(#ffffff, #f6ead0);
+  --preview-galaxy-top: light-dark(#8f93d6, #04071a);
+  --preview-galaxy-low: light-dark(#e6dbf5, #2a1d4d);
+  --preview-galaxy-glow: light-dark(rgb(255 255 255 / 40%), rgb(70 100 235 / 50%));
+  --preview-galaxy-core: light-dark(rgb(255 255 255 / 75%), rgb(255 219 245 / 62%));
+  --preview-galaxy-moon: light-dark(#ffffff, #ffc9a3);
+  --preview-ink-top: light-dark(#c8ccd4, #000000);
+  --preview-ink-low: light-dark(#eeeff1, #08090b);
+  --preview-ink-glow: light-dark(rgb(255 255 255 / 40%), rgb(160 160 170 / 16%));
+  --preview-ink-moon: light-dark(#ffffff, #f0dba5);
 
   /* 柔光：代替硬投影，熄灯时是淡淡的粉紫光晕 */
   --shadow-soft: 0 1px 2px light-dark(rgb(35 29 51 / 6%), rgb(0 0 0 / 30%)), 0 8px 24px -12px light-dark(rgb(155 79 150 / 22%), rgb(224 166 232 / 18%));

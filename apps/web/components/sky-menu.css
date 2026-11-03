@@ -1,0 +1,210 @@
+/* “今晚的天空”（sky-menu.tsx）：按钮沿用 .icon-button（theme-switcher.css），浮层和语言菜单同一套样子 */
+.sky-positioner {
+  z-index: var(--z-popup);
+}
+
+.sky-popup {
+  width: min(19rem, calc(100vw - 1.5rem));
+  padding: var(--space-3);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-popup);
+  outline: 0;
+  transform-origin: var(--transform-origin);
+  transition: opacity var(--duration-base) var(--ease-out), scale var(--duration-base) var(--ease-out);
+}
+
+.sky-popup[data-starting-style],
+.sky-popup[data-ending-style] {
+  opacity: 0;
+  scale: 0.96;
+}
+
+.sky-label {
+  margin: 0 0 var(--space-2);
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+}
+
+/* 每块预览画自己那片天（颜色在 globals.css 的 --preview-*）：夜紫左下一团粉紫星云，银河一条斜过来的亮带，墨黑只有很淡的灰雾 */
+.sky-option[data-sky="night"] {
+  --top: var(--preview-night-top);
+  --low: var(--preview-night-low);
+  --moon: var(--preview-night-moon);
+  --band: radial-gradient(ellipse 70% 55% at 22% 88%, var(--preview-night-glow), transparent 70%);
+}
+
+.sky-option[data-sky="galaxy"] {
+  --top: var(--preview-galaxy-top);
+  --low: var(--preview-galaxy-low);
+  --moon: var(--preview-galaxy-moon);
+  --band: linear-gradient(118deg, transparent 28%, var(--preview-galaxy-glow) 44%, var(--preview-galaxy-core) 52%, var(--preview-galaxy-glow) 60%, transparent 76%);
+}
+
+.sky-option[data-sky="ink"] {
+  --top: var(--preview-ink-top);
+  --low: var(--preview-ink-low);
+  --moon: var(--preview-ink-moon);
+  --band: linear-gradient(140deg, transparent 30%, var(--preview-ink-glow) 55%, transparent 80%);
+}
+
+.sky-preview {
+  display: block;
+  background:
+    radial-gradient(circle at 76% 30%, var(--moon) 0 3.5px, color-mix(in srgb, var(--moon) 30%, transparent) 4.5px, transparent 10px),
+    radial-gradient(circle at 16% 24%, var(--preview-star) 0 0.7px, transparent 1.3px),
+    radial-gradient(circle at 38% 14%, var(--preview-star) 0 0.5px, transparent 1.1px),
+    radial-gradient(circle at 52% 46%, var(--preview-star) 0 0.8px, transparent 1.4px),
+    radial-gradient(circle at 30% 62%, var(--preview-star) 0 0.5px, transparent 1.1px),
+    radial-gradient(circle at 88% 70%, var(--preview-star) 0 0.6px, transparent 1.2px),
+    radial-gradient(circle at 64% 82%, var(--preview-star) 0 0.5px, transparent 1.1px),
+    var(--band),
+    linear-gradient(to bottom, var(--top), var(--low));
+  box-shadow: inset 0 0 0 1px var(--glass-border);
+}
+
+.sky-option {
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  outline: 0;
+}
+
+.sky-option[data-checked] .sky-name {
+  color: var(--foreground);
+}
+
+/* ---------- tiles：三块小天空并排，名字在下面；选中的那块外面一圈强调色 ---------- */
+.sky-panel[data-variant="tiles"] .sky-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.sky-panel[data-variant="tiles"] .sky-option {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding-top: 3px;
+}
+
+.sky-panel[data-variant="tiles"] .sky-preview {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-sm);
+  transition: box-shadow var(--duration-fast), translate var(--duration-fast) var(--ease-out);
+}
+
+.sky-panel[data-variant="tiles"] .sky-option[data-checked] .sky-preview {
+  box-shadow: inset 0 0 0 1px var(--glass-border), 0 0 0 2px var(--surface), 0 0 0 3.5px var(--primary);
+}
+
+@media (hover: hover) {
+  .sky-panel[data-variant="tiles"] .sky-option:hover .sky-preview {
+    translate: 0 -2px;
+  }
+}
+
+.sky-panel[data-variant="tiles"] .sky-option:focus-visible .sky-preview {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+}
+
+/* ---------- list：文字列表对照（色点 + 名字 + 一句说明 + 对勾） ---------- */
+.sky-panel[data-variant="list"] .sky-options {
+  display: grid;
+  gap: 2px;
+}
+
+.sky-panel[data-variant="list"] .sky-option {
+  display: grid;
+  grid-template-columns: 1.75rem 1fr 1rem;
+  column-gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.sky-panel[data-variant="list"] .sky-preview {
+  grid-row: span 2;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-full);
+}
+
+.sky-panel[data-variant="list"] .sky-name {
+  color: var(--foreground);
+  font-size: var(--text-sm);
+}
+
+.sky-note {
+  grid-column: 2;
+}
+
+.sky-check {
+  display: grid;
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  place-items: center;
+  color: var(--primary);
+  opacity: 0;
+  transition: opacity var(--duration-fast);
+}
+
+.sky-check[data-checked] {
+  opacity: 1;
+}
+
+.sky-panel[data-variant="list"] .sky-option:focus-visible,
+.sky-panel[data-variant="list"] .sky-option[data-checked] {
+  background: var(--accent);
+}
+
+@media (hover: hover) {
+  .sky-panel[data-variant="list"] .sky-option:hover {
+    background: var(--accent);
+  }
+}
+
+/* ---------- 浅色 / 深色：一条两段的胶囊开关 ---------- */
+.sky-brightness {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-1);
+  margin-top: var(--space-4);
+  padding: 3px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+}
+
+.sky-brightness-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 1.875rem;
+  border-radius: var(--radius-full);
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  outline: 0;
+  transition: background-color var(--duration-fast), color var(--duration-fast);
+}
+
+.sky-brightness-option[data-checked] {
+  background: var(--surface);
+  color: var(--foreground);
+  box-shadow: var(--shadow-soft);
+}
+
+/* 深色时浮层本身就是深色，选中的那段再用更深的底看着像“按下去没亮”，改成提亮一点 */
+:root[data-theme="dark"] .sky-brightness-option[data-checked] {
+  background: color-mix(in srgb, var(--foreground) 12%, transparent);
+  box-shadow: none;
+}
+
+.sky-brightness-option:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}

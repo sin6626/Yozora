@@ -188,6 +188,16 @@ const en: Messages = {
   theme: {
     toLight: "Switch to light theme",
     toDark: "Switch to dark theme",
+    sky: "Tonight's sky",
+    skyButton: (palette: string, mode: string) => `Tonight's sky: ${palette}, ${mode}`,
+    brightness: "Brightness",
+    light: "Light",
+    dark: "Dark",
+    palettes: {
+      night: { name: "Violet", note: "Violet-black sky, a pale pink Milky Way" },
+      galaxy: { name: "Galaxy", note: "Deep navy sky, one bright Milky Way" },
+      ink: { name: "Ink", note: "True night black, white starlight" },
+    },
   },
   moon: {
     label: "Tonight's moon",

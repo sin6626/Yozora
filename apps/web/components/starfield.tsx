@@ -191,7 +191,7 @@ void main() {
 }
 `;
 
-// 三套配色（2026-10-29 起对比用，<html data-palette> 由地址参数决定，见 layout.tsx）：
+// 三套配色（<html data-palette>，由地址参数或“今晚的天空”面板决定，见 layout.tsx 与 sky-menu.tsx）：
 // night = 原来的夜紫（紫黑天空、粉紫银河、偏粉的星）；ink = 墨黑，人眼看到的真实夜空：中性的黑，地平线附近一点冷灰的大气辉光，
 // 银河是很淡的灰白雾，星星几乎纯白（零星极淡的蓝白和暖白），数量、亮度与夜紫相同（用户 10-29：加多加亮显得刻意），少数亮星带细十字星芒，月亮光晕不带颜色。
 type Vec3 = [number, number, number];
@@ -319,14 +319,17 @@ export default function Starfield() {
       well: gl.getUniformLocation(program, "uWell"),
     };
     gl.uniform1f(uniforms.phase, moonPhase(Date.now()));
-    // 配色在页面打开时由地址参数定下（layout.tsx 的 themeScript），这里读一次
-    const chosen = document.documentElement.dataset.palette;
-    const palette = palettes[chosen === "ink" || chosen === "galaxy" ? chosen : "night"];
-    for (const [name, value] of Object.entries(palette)) {
-      const location = gl.getUniformLocation(program, name);
-      if (typeof value === "number") gl.uniform1f(location, value);
-      else gl.uniform3f(location, ...value);
-    }
+    // 配色看 <html data-palette>：页面打开时由 layout.tsx 的 themeScript 定下，“今晚的天空”面板（sky-menu.tsx）换配色时下面的观察器再读一次
+    const setPalette = () => {
+      const chosen = document.documentElement.dataset.palette;
+      const palette = palettes[chosen === "ink" || chosen === "galaxy" ? chosen : "night"];
+      for (const [name, value] of Object.entries(palette)) {
+        const location = gl.getUniformLocation(program, name);
+        if (typeof value === "number") gl.uniform1f(location, value);
+        else gl.uniform3f(location, ...value);
+      }
+    };
+    setPalette();
     const setPage = () => gl.uniform3f(uniforms.page, ...pageColor());
     setPage();
 
@@ -442,9 +445,9 @@ export default function Starfield() {
     });
     resizeObserver.observe(canvas);
     document.addEventListener("visibilitychange", wake);
-    // 主题变了，页面底色跟着变
-    const themeObserver = new MutationObserver(() => requestAnimationFrame(() => { setPage(); drawn = ""; }));
-    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    // 主题或配色变了，天空和页面底色跟着变（换的那一下整页在做 0.6 秒的视图过渡，新旧天空跟着一起渐变）
+    const themeObserver = new MutationObserver(() => requestAnimationFrame(() => { setPalette(); setPage(); drawn = ""; wake(); }));
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-palette"] });
     resize();
     wake();
 

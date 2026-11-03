@@ -7,7 +7,7 @@ import "./theme-switcher.css";
 
 // 浅色 / 深色主题：一个按钮来回切换。默认深色，选了浅色存 theme=light。
 // 以前的“跟随系统”已去掉，存储里遗留的 system 按深色处理。
-type Theme = "light" | "dark";
+export type Theme = "light" | "dark";
 const storageKey = "theme";
 const listeners = new Set<() => void>();
 
@@ -35,19 +35,26 @@ function subscribe(onChange: () => void) {
 }
 
 // 整页颜色约 0.6 秒渐变（视图过渡，类型 theme，样式在 globals.css 末尾）；
-// 不支持视图过渡或开了“减少动态效果”时直接切换。
-export function toggleTheme() {
-  const next: Theme = read() === "dark" ? "light" : "dark";
+// 不支持视图过渡或开了“减少动态效果”时直接切换。换配色（sky-menu.tsx）也用它。
+export function withThemeTransition(update: () => void) {
+  if (!document.startViewTransition || window.matchMedia("(prefers-reduced-motion: reduce)").matches) update();
+  else document.startViewTransition({ update, types: ["theme"] });
+}
+
+export function setTheme(next: Theme) {
+  if (next === read()) return;
   try {
     if (next === "dark") localStorage.removeItem(storageKey);
     else localStorage.setItem(storageKey, next);
   } catch {}
-  const update = () => {
+  withThemeTransition(() => {
     document.documentElement.dataset.theme = next;
     listeners.forEach((listener) => listener());
-  };
-  if (!document.startViewTransition || window.matchMedia("(prefers-reduced-motion: reduce)").matches) update();
-  else document.startViewTransition({ update, types: ["theme"] });
+  });
+}
+
+export function toggleTheme() {
+  setTheme(read() === "dark" ? "light" : "dark");
 }
 
 export function useTheme() {

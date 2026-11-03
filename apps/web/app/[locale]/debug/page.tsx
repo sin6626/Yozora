@@ -16,6 +16,7 @@ import SocialIconsPreview from "./social-icons";
 import HomePanelPreviews from "./home-panel-preview";
 import HeroEntrancePreview from "./hero-entrance";
 import { OpenSearchButton } from "@/components/command-search";
+import SkyMenu, { SkyPanel } from "@/components/sky-menu";
 import { ActiveFilter } from "@/components/list-filters";
 import PageLoading from "@/components/page-loading";
 import StyleGuide from "./style-guide";
@@ -163,6 +164,26 @@ export default function DebugPage() {
             <h2>首页入场动画</h2>
             <p className="post-meta">home-hero.css：首屏天空从暗处亮起，标题两行、说明、社交图标、头像、底部依次对焦浮上，最后“Sin”“大三学生”亮一下；首页下半部分用 components/reveal.tsx，滚到才出现、只播一次，离开首页再回来重置。开灯时“大三学生”是粗体，光晕是 --emphasis-halo（每套配色一种）。地址加 ?palette=night / galaxy / ink 换配色对比</p>
             <HeroEntrancePreview />
+          </li>
+          <li id="debug-sky">
+            <h2>今晚的天空</h2>
+            <p className="post-meta">components/sky-menu.tsx：页头月亮按钮的候选。点开挑配色（夜紫 / 银河 / 墨黑）和浅色 / 深色，整页 0.6 秒渐变，背景星空跟着换。左边是三块小天空预览（推荐），右边是文字列表对照；上面的按钮是真实浮层，下面是它展开的样子</p>
+            <div className="debug-sky">
+              <figure>
+                <SkyMenu variant="tiles" />
+                <div className="sky-popup">
+                  <SkyPanel variant="tiles" />
+                </div>
+                <figcaption className="post-meta">小天空预览</figcaption>
+              </figure>
+              <figure>
+                <SkyMenu variant="list" />
+                <div className="sky-popup">
+                  <SkyPanel variant="list" />
+                </div>
+                <figcaption className="post-meta">文字列表</figcaption>
+              </figure>
+            </div>
           </li>
           <li id="debug-search">
             <h2>⌘K 搜索</h2>

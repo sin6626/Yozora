@@ -188,6 +188,16 @@ const ja: Messages = {
   theme: {
     toLight: "ライトテーマに切り替え",
     toDark: "ダークテーマに切り替え",
+    sky: "今夜の空",
+    skyButton: (palette: string, mode: string) => `今夜の空：${palette}、${mode}`,
+    brightness: "明るさ",
+    light: "ライト",
+    dark: "ダーク",
+    palettes: {
+      night: { name: "紫夜", note: "紫がかった夜空に、淡い桃色の天の川" },
+      galaxy: { name: "銀河", note: "濃紺の空に、明るい天の川がひとすじ" },
+      ink: { name: "墨夜", note: "本物の夜の黒と、白い星明かり" },
+    },
   },
   moon: {
     label: "今夜の月",
