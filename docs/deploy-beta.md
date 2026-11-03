@@ -77,6 +77,39 @@ cd /root/mx-space/core && docker compose up -d --no-deps app
 
 新加的迁移只新增数据，旧 Core 不受影响；只有数据出问题时才需要用备份恢复。
 
+## 2026-11-03 已做：新前台在服务器上跑起来
+
+服务器内存只有 1.9G，不在上面构建：本机构建 Next 的 standalone（`apps/web/next.config.ts` 的 `output: "standalone"`），服务器只用 `node:24-alpine` 容器运行。
+
+**构建**（本机，约 3 分钟，不影响正在开的 `pnpm dev`）：
+
+```bash
+git worktree add --detach /tmp/yozora-build HEAD
+cd /tmp/yozora-build && pnpm install --frozen-lockfile --prefer-offline
+node scripts/deploy/build-web.mjs /tmp/yozora-build ~/Documents/Project/SinProject/SinPersonalSpace/.local/deploy/yozora-web.tgz
+```
+
+构建时要预渲染页面、从线上 Core 取数据。本机直连服务器并发一多就有一半 TLS 连接被重置，走 Clash 也会断，线路只有约 150KB/s。`build-web.mjs` 开一条 SSH 隧道到服务器本机的 443，Core 域名的连接走隧道，其他（Google 字体、力扣、GitHub）照旧走系统代理；每个请求的超时放宽到 90 秒（`MIX_SPACE_TIMEOUT_MS`，只在构建时）；Next 预渲染失败会重试 3 次（`staticGenerationRetryCount`）。Core 地址必须带 `/api/v2`（生产模式的 Core 挂在这个前缀下，本地开发模式没有），它会写进预渲染好的页面里，所以构建和运行时要一致。
+
+**上传与运行**（服务器 `/root/mx-space/yozora-web/`，权限 700）：
+
+- 包传到 `yozora-web.tgz`，解压到 `releases/<提交号>/`，`chown -R 1000:1000`，`current` 软链指向它。
+- `web.env`（权限 600）里是 `MIX_SPACE_WEBHOOK_SECRET`，后台加 Webhook 时 Secret 填这个值（`cat /root/mx-space/yozora-web/web.env`）。
+- 启动：
+
+```bash
+W=/root/mx-space/yozora-web
+docker run -d --name yozora-web --restart unless-stopped --memory 400m --user 1000:1000 \
+  -p 127.0.0.1:2324:3000 --env-file $W/web.env \
+  -e NODE_ENV=production -e HOSTNAME=0.0.0.0 -e PORT=3000 -e TZ=Asia/Shanghai -e NEXT_TELEMETRY_DISABLED=1 \
+  -e MIX_SPACE_API_URL=https://api.sin6626.me/api/v2 -e SITE_NOINDEX=1 -e NODE_OPTIONS=--max-old-space-size=300 \
+  -v $(readlink -f $W/current):/app -w /app/apps/web node:24-alpine node server.js
+```
+
+- 更新：传新包、解压到新的 `releases/<提交号>/`、改 `current`，`docker rm -f yozora-web` 后再执行上面的启动命令。回滚就是把 `current` 指回上一个版本再重建容器。停掉 beta：`docker rm -f yozora-web`。
+- 第一次（`releases/7dd878b`）：本机 `127.0.0.1:2324` 首页、文章、手记、碎碎念、一言、时间线、英日文页面都是 200，`robots.txt` 整站禁止，页面带 `noindex, nofollow`。容器约 205MB 内存，之后服务器可用内存约 200MB（另有 3.4G swap）。
+- 容器里的前台在服务端取数据也走公网地址 `https://api.sin6626.me/api/v2`（服务器自己绕回来），Core 看到的是容器 IP，和旧 Shiro 分开限流。
+
 ## 第 1 步：备份
 
 - MongoDB：`mongodump` 整库导出（Docker 跑的就在容器里执行再拷出来），放到服务器以外的地方再留一份。
@@ -97,6 +130,8 @@ cd /root/mx-space/core && docker compose up -d --no-deps app
 - 换完先看旧 Shiro 和线上后台是否一切照常，再继续。
 
 ## 第 4 步：部署新前台到 beta 子域名
+
+（实际做法改成了本机构建、服务器只运行，见上面“新前台在服务器上跑起来”一节；下面是最初的设想。）
 
 在服务器上（Node 24、pnpm 12）：
 

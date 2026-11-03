@@ -95,7 +95,7 @@ try {
   cpSync(join(web, "public"), join(standalone, "apps/web/public"), { recursive: true });
   mkdirSync(dirname(output), { recursive: true });
   rmSync(output, { force: true });
-  execFileSync("tar", ["--no-mac-metadata", "-czf", output, "-C", standalone, "."], { env: { ...process.env, COPYFILE_DISABLE: "1" } });
+  execFileSync("tar", ["--no-mac-metadata", "--no-xattrs", "-czf", output, "-C", standalone, "."], { env: { ...process.env, COPYFILE_DISABLE: "1" } });
   console.log(`打包完成：${output}`);
 } finally {
   proxy.close();
