@@ -2,7 +2,7 @@
 
 2026-11-02 用户定：新前台和旧 Shiro 放在同一台服务器，新前台用子域名（下面写作 `beta.你的域名`），只给自己用、不让搜索引擎收录；线上 Core 换成本仓库的版本，新旧两个前台读同一份线上数据。主域名继续是旧 Shiro，自己用一两周没问题再切换。
 
-Agent 不登录服务器、不使用聊天里给的 root 密码，服务器上的操作都由站长自己执行；Agent 负责准备脚本、配置和清单，并根据站长贴回来的输出调整。
+Agent 不使用聊天里给的 root 密码。站长把本机公钥装进了服务器，Agent 用这把密钥登录：只读检查随时可做，改线上数据、配置、服务之前先说清要执行什么和怎么回滚，站长同意后再执行。
 
 ## 为什么线上 Core 要换
 
@@ -45,6 +45,17 @@ ssh root@服务器IP 'bash -s' < scripts/deploy/server-inspect.sh > server-inspe
 - 正在跑的 Core 镜像另打了固定标签 `innei/mx-server:running-20261102`，回滚用。
 - 注意：线上 compose 文件写的是 `innei/mx-server:latest`（现在是 v11.1.2），而正在跑的容器是旧的 `:10`（库里的迁移记录到 v10.4.3）。谁在那个目录执行 `docker compose up -d`，Core 就会直接跳到 v11 并跑一串迁移。
 - 安全：`/var/log/btmp` 记录了两万多次 SSH 登录失败（有人在扫密码），而服务器开着 root 密码登录。建议改成只允许密钥登录。
+
+## 2026-11-03 已做：新 Core 和旧 Shiro 的兼容性测试
+
+站长担心换了 Core 旧 Shiro 会坏，所以先在旁边起一个测试 Core，不碰线上：
+
+- 镜像：服务器上 `/root/mx-space/beta-core/Dockerfile` 以正在跑的 `innei/mx-server:running-20261102` 为底，删掉里面的 `*.mjs`，换成本机 `apps/core/out` 的构建产物（sharp 等原生依赖沿用镜像里的），打成 `yozora/mx-server:beta-test`。
+- 数据：用 11-02 的备份恢复成另一个库 `mx-space-beta`（`mongorestore --nsFrom='mx-space.*' --nsTo='mx-space-beta.*'`，4088 条），配独立的 Redis 容器，测试 Core 只监听 `127.0.0.1:2334`。
+- 启动要点：我们这版 Core 用 Better Auth，生产模式下没有密钥会拒绝启动，要沿用线上 compose 的 `JWT_SECRET`（从线上容器原样传入，不落盘）。启动只跑了一个新迁移 `v10.5.3-api-key-reference`（只新增）。测试库的图片引用记录全是 active，测试 Core 的整点孤儿图片清理不会删图床文件。
+- 对比：`scripts/deploy/compare-cores.mjs`（在服务器上用宿主机 Node 跑，只发不带登录的 GET）把旧 Shiro 源码里用到的 37 个接口在 2333 和 2334 上逐个比：状态码全部一致，旧 Shiro 读的字段一个都没少。取值不同的只有两处，都是预期内：文章/手记/页面的 `available_translations` 不再列出原文语言 `zh`（Shiro 源码没用这个字段）；标签篇数不再把草稿算进去（本仓库的修复）。另外抽了 10 篇有评论的文章和手记，评论条数和字段一致；Socket.IO `/web` 两边都能握手。`/fn/built-in/ip` 两边都是 500（线上原本就报 `ctx.res.throws is not a function`），不是新问题。
+- 后台：Core 优先用数据目录里的 `admin/`。线上数据目录里是站长更新过的 mx-admin 6.4.7，镜像自带的是 6.4.0。本仓库的 `apps/admin` 是 6.4.0 加我们的修改（碎碎念菜单、社交名片、手记衬线字体等）。换 Core 时数据目录不变，所以后台先还是 6.4.7；要用碎碎念等新菜单，再单独把本仓库的后台放进去。
+- 测试完已删掉两个测试容器；测试库 `mx-space-beta` 留着（很小），以后可再用。全程线上 Core、Shiro、两个公网域名都是 200。
 
 ## 第 1 步：备份
 
