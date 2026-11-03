@@ -6,6 +6,7 @@ import Link, { useLocalePathname, useT } from "./locale-provider";
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { OnlineCount } from "./notifications";
 import LanguageMenu from "./language-menu";
+import SkyMenu from "./sky-menu";
 import ThemeToggle from "./theme-switcher";
 import { openSearch } from "./command-search";
 import "./mobile-menu.css";
@@ -84,6 +85,7 @@ export default function MobileMenu({ sections, account }: { sections: MenuSectio
             </button>
             {account}
             <LanguageMenu side="top" />
+            <SkyMenu side="top" />
             <ThemeToggle />
             <OnlineCount />
           </div>

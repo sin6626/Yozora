@@ -14,6 +14,7 @@ import "./sky-menu.css";
 export const palettes = ["night", "galaxy", "ink"] as const;
 export type Palette = (typeof palettes)[number];
 
+const storageKey = "palette";
 const listeners = new Set<() => void>();
 
 function readPalette(): Palette {
@@ -21,10 +22,23 @@ function readPalette(): Palette {
   return value === "galaxy" || value === "ink" ? value : "night";
 }
 
+function apply(next: Palette) {
+  if (next === "night") delete document.documentElement.dataset.palette;
+  else document.documentElement.dataset.palette = next;
+  listeners.forEach((listener) => listener());
+}
+
 function subscribe(onChange: () => void) {
+  // 其他标签页换了配色，这里同步
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== storageKey) return;
+    apply(event.newValue === "galaxy" || event.newValue === "ink" ? event.newValue : "night");
+  };
   listeners.add(onChange);
+  window.addEventListener("storage", onStorage);
   return () => {
     listeners.delete(onChange);
+    window.removeEventListener("storage", onStorage);
   };
 }
 
@@ -33,17 +47,14 @@ export function usePalette() {
 }
 
 // 换配色和换深浅一样整页 0.6 秒渐变，背景星空（starfield.tsx）盯着 data-palette 跟着换。
-// ponytail: 还是对比阶段的 sessionStorage（layout.tsx 的 themeScript 读它），放进页头时改成 localStorage 并由服务端先输出
+// 记在 localStorage（夜紫是默认，不存），下次打开时 layout.tsx 的 themeScript 在绘制前套上
 export function setPalette(next: Palette) {
   if (next === readPalette()) return;
   try {
-    sessionStorage.setItem("palette", next);
+    if (next === "night") localStorage.removeItem(storageKey);
+    else localStorage.setItem(storageKey, next);
   } catch {}
-  withThemeTransition(() => {
-    if (next === "night") delete document.documentElement.dataset.palette;
-    else document.documentElement.dataset.palette = next;
-    listeners.forEach((listener) => listener());
-  });
+  withThemeTransition(() => apply(next));
 }
 
 // “今晚的天空”面板：三块小天空预览（天色、银河或星云、几颗星、一枚各自月光色的月亮），点哪块换成哪套配色。

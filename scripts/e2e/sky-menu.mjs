@@ -1,7 +1,8 @@
-// 浏览器回归测试：“今晚的天空”面板（components/sky-menu.tsx，2026-11-03 在 /debug 做给用户看的页头候选）。
+// 浏览器回归测试：“今晚的天空”面板（components/sky-menu.tsx，2026-11-03 放进页头月亮按钮左边、手机菜单底部）。
 // ① 面板只有三块小天空，按 夜紫 / 银河 / 墨黑 排，没有浅色 / 深色开关（那是旁边月亮按钮的事，用户 11-03 要求去掉）；
-// ② 点一块天空：<html data-palette> 换掉（夜紫是去掉）、记进 sessionStorage、显示选中，背景星空真的换了颜色（量截图里的天空），深浅不变；
-// ③ 望远镜按钮打开真实浮层，读屏名字里有当前配色，方向键换配色，Esc 关；④ 刷新后配色还在；无页面报错。
+// ② 点一块天空：<html data-palette> 换掉（夜紫是去掉）、记进 localStorage（夜紫不存）、显示选中，背景星空真的换了颜色（量截图里的天空），深浅不变；
+// ③ 望远镜按钮打开真实浮层，读屏名字里有当前配色，方向键换配色，Esc 关；④ 刷新后配色还在；
+// ⑤ 页头工具区里望远镜紧挨在月亮按钮左边，从页头选的配色在别的页面也保持；手机菜单底部也有；无页面报错。
 // 需要先运行 pnpm dev（默认 http://127.0.0.1:2323，可用 WEB_URL 覆盖）。用法：pnpm e2e
 import assert from "node:assert/strict";
 import { openBrowser, sleep } from "../headless-browser.mjs";
@@ -16,7 +17,7 @@ const panel = () => browser.evaluate(`(() => {
     radios: panel.querySelectorAll('[role="radio"]').length,
   };
 })()`);
-const state = () => browser.evaluate(`({ palette: document.documentElement.dataset.palette ?? null, stored: sessionStorage.getItem("palette"), theme: document.documentElement.dataset.theme, storedTheme: localStorage.getItem("theme") })`);
+const state = () => browser.evaluate(`({ palette: document.documentElement.dataset.palette ?? null, stored: localStorage.getItem("palette"), theme: document.documentElement.dataset.theme, storedTheme: localStorage.getItem("theme") })`);
 const pick = async (sky) => {
   await browser.evaluate(`document.querySelector('.debug-sky .sky-panel [data-sky="${sky}"]').click()`);
   await sleep(1200);
@@ -69,7 +70,7 @@ try {
   await sleep(800);
 
   await pick("night");
-  assert.equal((await state()).palette, null, "夜紫是去掉 data-palette");
+  assert.deepEqual([(await state()).palette, (await state()).stored], [null, null], "夜紫是去掉 data-palette、不存");
 
   // 真实浮层：望远镜按钮的读屏名字带当前配色；打开后焦点进面板，方向键换配色，Esc 关
   const label = await browser.evaluate(`document.querySelector(".debug-sky .sky-trigger").getAttribute("aria-label")`);
@@ -87,9 +88,29 @@ try {
   await sleep(500);
   assert.ok(await browser.evaluate(`!document.querySelector(".sky-positioner .sky-popup")`), "Esc 关掉浮层");
 
+  // 页头：望远镜紧挨在月亮按钮左边；从这里选墨黑，换到别的页面整页打开也保持
+  await browser.goto(`${base}/posts?palette=night`);
+  await sleep(1000);
+  const tools = await browser.evaluate(`[...document.querySelector(".site-header-tools").children].map((el) => el.classList.contains("sky-trigger") ? "sky" : el.classList.contains("theme-toggle") ? "theme" : "other")`);
+  assert.deepEqual(tools.slice(-2), ["sky", "theme"], `页头工具区最后两个是望远镜和月亮：${tools}`);
+  await browser.evaluate(`document.querySelector(".site-header-tools .sky-trigger").click()`);
+  await sleep(600);
+  assert.equal(await browser.evaluate(`document.querySelector(".site-header").dataset.mode`), "bar");
+  await browser.evaluate(`document.querySelector('.sky-positioner [data-sky="ink"]').click()`);
+  await sleep(1200);
+  await browser.goto(`${base}/notes`);
+  assert.deepEqual([(await state()).palette, (await state()).stored], ["ink", "ink"], "页头选的墨黑换页后还在");
+
+  // 手机：菜单底部也有望远镜
+  await browser.setViewport(390, 844);
+  await browser.goto(`${base}/posts`);
+  await browser.evaluate(`document.querySelector(".mobile-menu-trigger").click()`);
+  await sleep(800);
+  assert.ok(await browser.evaluate(`!!document.querySelector(".mobile-menu-bottom .sky-trigger")`), "手机菜单底部有望远镜");
+
   assert.deepEqual(browser.errors, [], `页面报错：${browser.errors.join("\n")}`);
-  console.log(`PASS 今晚的天空：三块天空的顺序、没有深浅开关、点选换 data-palette 并记住且不动深浅、背景星空跟着换（夜紫 ${nightSky} → 银河 ${galaxySky} → 墨黑 ${inkSky}）、真实浮层读屏名字、方向键换配色、Esc 关闭`);
+  console.log(`PASS 今晚的天空：三块天空的顺序、没有深浅开关、点选换 data-palette 并记在 localStorage 且不动深浅、背景星空跟着换（夜紫 ${nightSky} → 银河 ${galaxySky} → 墨黑 ${inkSky}）、浮层读屏名字、方向键换配色、Esc 关闭、页头紧挨月亮且换页保持、手机菜单也有`);
 } finally {
-  await browser.evaluate(`sessionStorage.setItem("palette", "night"); localStorage.removeItem("theme")`).catch(() => {});
+  await browser.evaluate(`localStorage.removeItem("palette"); localStorage.removeItem("theme")`).catch(() => {});
   browser.close();
 }

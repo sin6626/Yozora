@@ -63,9 +63,9 @@ const notoSerif = Noto_Serif_SC({
 });
 
 // 服务端默认输出 data-theme="dark"（熄灯）；保存过“开灯”时在绘制前改掉。
-// 配色对比（2026-10-29 起，选定之前临时用）：地址带 ?palette=night / ink / galaxy 时记在这个标签页的 sessionStorage，
-// 之后在站内怎么跳都保持；几个标签页各开一种互不影响，方便并排对比。默认夜紫，墨黑、银河在 <html data-palette> 上覆盖颜色变量。
-const themeScript = `try{var t=localStorage.getItem("theme"),d=document.documentElement;if(t==="light")d.dataset.theme="light";var q=new URLSearchParams(location.search).get("palette");if(q==="ink"||q==="night"||q==="galaxy")sessionStorage.setItem("palette",q);var p=sessionStorage.getItem("palette");if(p==="ink"||p==="galaxy")d.dataset.palette=p}catch(e){}`;
+// 配色：默认夜紫，访客在页头“今晚的天空”（sky-menu.tsx）选的银河 / 墨黑存在 localStorage 的 palette，这里在绘制前套到 <html data-palette>；
+// 地址带 ?palette=night / galaxy / ink 时等于替访客选了一次（测试和对比截图用）。
+const themeScript = `try{var t=localStorage.getItem("theme"),d=document.documentElement;if(t==="light")d.dataset.theme="light";var q=new URLSearchParams(location.search).get("palette");if(q==="night")localStorage.removeItem("palette");else if(q==="ink"||q==="galaxy")localStorage.setItem("palette",q);var p=localStorage.getItem("palette");if(p==="ink"||p==="galaxy")d.dataset.palette=p}catch(e){}`;
 
 // 子页面的标题会套用模板，例如“文章 - Sin’s Yozora”。站名是后台“个人资料”的名字拼上 Yozora，描述取后台 SEO 设置；
 // metadataBase 取后台“网站地址”，让分享链接、RSS 自动发现等相对地址变成完整网址；读取失败时省略。

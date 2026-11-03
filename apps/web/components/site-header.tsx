@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState, type FocusEvent, type ReactNode } from "react";
 import { useIsland, type IslandActivityIcon } from "../lib/island-store";
 import LanguageMenu from "./language-menu";
+import SkyMenu from "./sky-menu";
 import ThemeToggle from "./theme-switcher";
 import "./site-header.css";
 
@@ -271,6 +272,7 @@ export default function SiteHeader({ brand, presence, nav, search, account, acti
             {search}
             {account}
             <LanguageMenu host />
+            <SkyMenu host />
             <ThemeToggle />
           </motion.div>
         </motion.div>

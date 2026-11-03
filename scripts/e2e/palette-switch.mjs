@@ -1,6 +1,6 @@
-// 浏览器回归测试：配色对比开关（2026-10-29 起，夜紫 / 墨黑 / 银河选定之前临时用，见 layout.tsx 的 themeScript）。
+// 浏览器回归测试：地址上的配色参数（layout.tsx 的 themeScript；访客平时用页头“今晚的天空”选，测试和对比截图用这个参数）。
 // 地址带 ?palette=ink 切到墨黑（<html data-palette="ink">，背景是中性的黑），之后站内点链接、整页打开别的页面都保持；
-// ?palette=night 切回夜紫。记在 sessionStorage，所以只影响当前标签页，另开的标签页各自独立。
+// ?palette=night 切回夜紫。和在页头选一样记在 localStorage。
 // 需要先运行 pnpm dev（默认 http://127.0.0.1:2323，可用 WEB_URL 覆盖）。用法：pnpm e2e
 import assert from "node:assert/strict";
 import { openBrowser, sleep } from "../headless-browser.mjs";
