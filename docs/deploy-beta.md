@@ -117,6 +117,25 @@ docker run -d --name yozora-web --restart unless-stopped --memory 400m --user 10
 - 页脚星带在服务器上没有力扣的星：力扣中国站对这台洛杉矶服务器的 IP 一律返回 Cloudflare 人机验证（403 “Just a moment...”），带浏览器请求头也一样，不是跨域问题；GitHub 正常。本机（国内）取得到。不绕过人机验证。
 - 本机脚本（`pnpm draft`、`migrate-murmurs.mjs`、`install-ps-function.mjs`）原来用 `new URL("/xxx", api)` 拼地址，会丢掉线上的 `/api/v2`；已改用 `scripts/lib/core-url.mjs`。线上要先在后台建 API Token，填进 `.local/publish.json` 的 `prod`（`api` 写 `https://api.sin6626.me/api/v2`）。
 
+## 2026-11-03 已做：线上后台换成本仓库版本、力扣同步
+
+**后台**：Core 优先用数据目录的 `admin/`，首页每次请求都从磁盘读（并把脚本、样式路径改写成 `/proxy/...`），所以替换目录即生效，不用重启 Core。
+
+```bash
+# 本机：在构建目录里 pnpm --filter mx-admin build，打包 apps/admin/dist
+COPYFILE_DISABLE=1 tar --no-mac-metadata --no-xattrs -czf .local/deploy/yozora-admin.tgz -C /tmp/yozora-build/apps/admin/dist .
+# 服务器：解压到新目录，再换名
+D=/root/mx-space/core/data/mx-space
+mkdir -p $D/admin-yozora-<提交号> && tar -xzf yozora-admin.tgz -C $D/admin-yozora-<提交号>
+mv $D/admin $D/admin-<旧版本>-<日期> && mv $D/admin-yozora-<提交号> $D/admin
+```
+
+现在线上是本仓库的 mx-admin 6.4.0（a781a05 构建），原来的 6.4.7 在 `admin-6.4.7-20261103`，回滚把名字换回来即可。登录页正常；`/proxy/Sin` 404 是后台“登录页背景”填了文字 `Sin` 而不是图片地址，旧后台也一样。
+
+**力扣同步**：`scripts/sync-leetcode.mjs` 在 Mac 上从力扣中国站取全部年份的提交日历，存进 Core 的公开 JSON 配置片段 `theme/leetcode-calendar`（`{ updatedAt, submissionCalendar }`，日历是字符串，和力扣返回的一样），内容没变不写；连线上时自动走系统代理并重试。页脚星带（`apps/web/lib/activity-sky.ts`）先直接问力扣，取不到（线上服务器被 Cloudflare 拦）再读这个片段。`--install` 装 launchd 定时任务 `me.sin6626.yozora.leetcode-sync`（`~/Library/LaunchAgents/`，每天 13:00，睡眠错过醒来补跑，日志 `.local/logs/leetcode-sync.log`），`--uninstall` 卸掉；plist 里写死了 `/usr/local/bin/node` 和仓库路径，换 Node 安装位置或挪仓库后重新 `--install`。第一次同步 460 天；beta 页脚现在有力扣 460 天、GitHub 112 天的星。
+
+beta 前台已更新到 `releases/1b5a6d4`（上一个 `7dd878b` 留着）。
+
 ## 第 1 步：备份
 
 - MongoDB：`mongodump` 整库导出（Docker 跑的就在容器里执行再拷出来），放到服务器以外的地方再留一份。
