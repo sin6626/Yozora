@@ -136,6 +136,18 @@ mv $D/admin $D/admin-<旧版本>-<日期> && mv $D/admin-yozora-<提交号> $D/a
 
 beta 前台已更新到 `releases/1b5a6d4`（上一个 `7dd878b` 留着）。
 
+## 2026-11-03 已做：线上 Webhook、社交账号、本地内容迁移
+
+- **Webhook**：用后台令牌经接口新建（`POST /webhooks`），地址 `https://beta.sin6626.me/api/webhooks/mix-space`，事件与本地相同的 30 个，scope 5，Secret 是服务器 `web.env` 里那个（只在内存里传）。用同一密钥签名的 `health_check` 返回 200，错误签名 401。注意 Core 返回的字段是蛇形写法（`payload_url`）。
+- **社交账号**：`PATCH /owner` 只改 `socialIds`，线上从 GitHub、哔哩哔哩补齐到和本地一样（加 X、微信、QQ 名片），其他资料不动。二维码在图床 `dev/` 前缀下，公开可访问。
+- **内容迁移**：先只读对比（`scripts/deploy/diff-db.mjs`，经 SSH 隧道连线上 Mongo，结果 `.local/deploy/db-diff-20261103.txt`），再用 `scripts/deploy/migrate-content.mjs`（默认试运行，`--apply` 才写，按 `_id` 覆盖写入，可重复跑）。迁移前整库备份 `/root/backups/2026-11-03/mongo-before-migration.archive.gz`。共写入 84 条：
+  - 碎碎念 56 条（去掉“测试碎碎念（可删除）”和只写了“ces”加图的两条测试）、一言 5 条；
+  - 页面“关于我 / 关于本站”只改副标题（这里的主人 / 这个站是如何来的；正文 content 两边一样，`text` 是本地 Core 重新生成的纯文本副本，不搬）；
+  - 6 条修正过的日文 AI 摘要，9 条本地改过的 AI 译文（两个页面三种语言、累有感英日、FRP 英文）、3 条新补的译文、“瞎扯淡”分类的英日译名 2 条、首页配置片段 `theme/sin-space`。
+- **没迁**：Test 1/2、富文本组件对照演示文章及其摘要译文、6 条测试评论、草稿、思考（速记，24 条已全部复制成碎碎念）、会话账号令牌、统计日志、云函数与 Shiro 主题配置，以及**站点设置（options）**：本地与线上有 18 项不同（网站地址、OAuth、图床、SEO 标题、评论、AI、备份等），其中网站地址、OAuth、图床是本地开发用的，SEO 标题本地已是 Sin’s Yozora 而线上 Shiro 仍用旧标题，正式切换时逐项决定。
+- **为什么不迁文章手记的“改动”**：本地库是从线上导入的，导入时图片地址被改成了本机 `http://127.0.0.1:2333/objects/image/import-*`，对比出来的“不同”全是这个；线上那份才是对的。本地补的译文若带这种地址，迁移脚本按两边正文里图片出现的顺序换回线上 S3 地址（38 个），写入前检查不得含指向本地 Core（端口 2333）的地址。
+- 直接改库不会触发 Webhook：迁移后清掉 Redis 的 `mx-api-cache:*`、`mx:snippet_cache*`、`mx:translation_entry_dict*`，再在服务器上用 `web.env` 的密钥签一个 `CONTENT_REFRESH` 发给 `127.0.0.1:2324/api/webhooks/mix-space`，beta 的缓存整体作废。核对：线上碎碎念 56、一言 5、新副标题、`sin-space` 200、分类英文名 Ramblings；Shiro 首页和关于页 200。
+
 ## 第 1 步：备份
 
 - MongoDB：`mongodump` 整库导出（Docker 跑的就在容器里执行再拷出来），放到服务器以外的地方再留一份。
