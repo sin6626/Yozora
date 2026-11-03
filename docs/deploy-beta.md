@@ -57,6 +57,26 @@ ssh root@服务器IP 'bash -s' < scripts/deploy/server-inspect.sh > server-inspe
 - 后台：Core 优先用数据目录里的 `admin/`。线上数据目录里是站长更新过的 mx-admin 6.4.7，镜像自带的是 6.4.0。本仓库的 `apps/admin` 是 6.4.0 加我们的修改（碎碎念菜单、社交名片、手记衬线字体等）。换 Core 时数据目录不变，所以后台先还是 6.4.7；要用碎碎念等新菜单，再单独把本仓库的后台放进去。
 - 测试完已删掉两个测试容器；测试库 `mx-space-beta` 留着（很小），以后可再用。全程线上 Core、Shiro、两个公网域名都是 200。
 
+## 2026-11-03 已做：线上 Core 换成本仓库版本
+
+站长同意后执行：
+
+- 换之前再整库备份一次：服务器 `/root/backups/2026-11-03/`（`mongo-mx-space.archive.gz`，文章 13、手记 10、评论 38，与线上库一致；原 compose 文件也拷在这里）。
+- 镜像固定标签 `yozora/mx-server:20261103`（就是测试用的 `beta-test`）。
+- `/root/mx-space/core/docker-compose.yml` 只改两行：`image` 从 `innei/mx-server:latest` 改为 `yozora/mx-server:20261103`（顺带消除了“有人 `docker compose up -d` 就会跳到 v11”的隐患）；`ALLOWED_ORIGINS` 加上 `https://beta.sin6626.me`。`JWT_SECRET` 等其他配置、数据目录都不变。
+- `docker compose up -d --no-deps app`，只重建 Core 容器，MongoDB 和 Redis 没动。停机约 17 秒，启动只跑了 `v10.5.3-api-key-reference` 一个迁移，无报错，健康检查 healthy。
+- 检查：公网 `api.sin6626.me` 的接口 200；Shiro 首页、文章、手记、列表、时间线 200 且标题都在；浏览器真实打开文章页，3 条评论正常显示、在线人数有数、控制台无报错；后台仍是数据目录里的 mx-admin 6.4.7；Socket.IO 公网握手正常。
+
+回滚（约 20 秒）：
+
+```bash
+cp -p /root/backups/2026-11-03/docker-compose.yml /root/mx-space/core/docker-compose.yml
+sed -i 's#image: innei/mx-server:latest#image: innei/mx-server:running-20261102#' /root/mx-space/core/docker-compose.yml
+cd /root/mx-space/core && docker compose up -d --no-deps app
+```
+
+新加的迁移只新增数据，旧 Core 不受影响；只有数据出问题时才需要用备份恢复。
+
 ## 第 1 步：备份
 
 - MongoDB：`mongodump` 整库导出（Docker 跑的就在容器里执行再拷出来），放到服务器以外的地方再留一份。
