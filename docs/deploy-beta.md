@@ -110,6 +110,13 @@ docker run -d --name yozora-web --restart unless-stopped --memory 400m --user 10
 - 第一次（`releases/7dd878b`）：本机 `127.0.0.1:2324` 首页、文章、手记、碎碎念、一言、时间线、英日文页面都是 200，`robots.txt` 整站禁止，页面带 `noindex, nofollow`。容器约 205MB 内存，之后服务器可用内存约 200MB（另有 3.4G swap）。
 - 容器里的前台在服务端取数据也走公网地址 `https://api.sin6626.me/api/v2`（服务器自己绕回来），Core 看到的是容器 IP，和旧 Shiro 分开限流。
 
+## 2026-11-03 已做：beta.sin6626.me 上线与跨域修复
+
+- 站长在 1Panel 建了反向代理站点 `beta.sin6626.me`（监听 80/443，转发 `http://127.0.0.1:2324`），Let's Encrypt 证书（HTTP 验证，自动续签），HTTP 跳 HTTPS。申请证书时不要勾“IP 证书”，否则报 `x509: cannot parse IP address of length 0`；勾错后编辑也改不掉，要删掉重建。
+- 跨域白名单写法：Core 拿请求来源的域名部分（`new URL(origin).host`）和 `ALLOWED_ORIGINS` 逐项通配比对，所以**只能写域名**：`sin6626.me,www.sin6626.me,beta.sin6626.me`。原来线上写的是带 `https://` 的完整地址，永远比对不上，只是旧 Shiro 走同域的 `sin6626.me/api/v2` 没受影响；新前台从浏览器直连 `api.sin6626.me`（点赞、评论、阅读数、订阅、在线人数、正在用），全部被跨域拦下。Better Auth 的可信来源会把只写域名的条目补成 `https://`、`http://` 两种，登录不受影响。改后重启 Core（停机约 16 秒），改前的 compose 在 `/root/backups/2026-11-03/docker-compose.before-origins.yml`。
+- 页脚星带在服务器上没有力扣的星：力扣中国站对这台洛杉矶服务器的 IP 一律返回 Cloudflare 人机验证（403 “Just a moment...”），带浏览器请求头也一样，不是跨域问题；GitHub 正常。本机（国内）取得到。不绕过人机验证。
+- 本机脚本（`pnpm draft`、`migrate-murmurs.mjs`、`install-ps-function.mjs`）原来用 `new URL("/xxx", api)` 拼地址，会丢掉线上的 `/api/v2`；已改用 `scripts/lib/core-url.mjs`。线上要先在后台建 API Token，填进 `.local/publish.json` 的 `prod`（`api` 写 `https://api.sin6626.me/api/v2`）。
+
 ## 第 1 步：备份
 
 - MongoDB：`mongodump` 整库导出（Docker 跑的就在容器里执行再拷出来），放到服务器以外的地方再留一份。
