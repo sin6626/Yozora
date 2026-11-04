@@ -2,15 +2,15 @@
 
 原则：Core 是唯一的数据来源，后台（mx-admin）是编辑入口，Yozora 只读取和展示。样式、布局、动画和通用界面文案留在前台代码里。
 
-“立即”指 Core 发 Webhook，前台对应的缓存标签马上失效。事件和标签的对照在 `apps/web/lib/webhook-events.ts`，后台 Webhook 要勾上这些事件。没勾的事件只能等缓存自然过期，过期时间写在 `apps/web/lib/blog-data.ts` 各函数里。
+“立即”指 Core 先清掉自己的公开接口缓存，再发 Webhook，前台对应的缓存标签马上失效（2026-11-04 复查后修：原来 Core 自己的接口缓存 15 秒到 10 分钟，前台会重新读回旧值）。事件和标签的对照在 `apps/web/lib/webhook-events.ts`，后台 Webhook 要勾上这些事件。没勾的事件只能等缓存自然过期，过期时间写在 `apps/web/lib/blog-data.ts` 各函数里。
 
 ## 已统一
 
 | 前台内容 | Core 里的权威字段 | 后台入口 | 前台位置 | 更新 |
 |---|---|---|---|---|
 | 文章：标题、正文、摘要、分类、标签、置顶 | posts | 文章 | 列表、详情、首页、导航、时间线、RSS | 立即（POST_*） |
-| 文章关联阅读 | posts.related | 文章 → 关联阅读 | 详情文末（只列已发布的） | 立即（POST_*） |
-| 文章版权说明 | posts.copyright（开关）+ 片段 `copyright`（文字） | 文章 → 版权注明；配置与云函数 → theme/yozora | 详情文末 | 立即（POST_* / SNIPPET_*） |
+| 文章关联阅读 | posts.related | 文章 → 关联阅读 | 详情文末（只列已发布的；Core 的公开接口和推给访客的消息都不带草稿） | 立即（POST_*） |
+| 文章版权说明 | posts.copyright（开关）+ 片段 `copyright`（文字） | 文章 → 版权注明；附加功能 → Yozora 主题 | 详情文末 | 立即（POST_* / SNIPPET_*） |
 | 手记、心情、天气、回忆项、加密 | notes | 手记 | 列表、详情、首页 | 立即（NOTE_*） |
 | 话题：名字、图标、简介、详细描述 | topics | 手记 → 话题 | 手记话题筛选页、导航、详情面包屑 | 立即（TOPIC_*） |
 | 分类、页面（标题、副标题、排序） | categories、pages | 分类、页面 | 导航、分类页、页面详情 | 立即 |
@@ -23,20 +23,21 @@
 | 站点描述 | options.seo.description（外文在片段 `i18n.<lang>.siteDescription`） | 设置 → SEO → 网站描述 | 首屏底部、首页标题、meta | 立即 |
 | 网站地址、评论开关、订阅开关、登录方式、友链申请开关 | options | 设置 | sitemap/RSS、评论区、订阅、登录、友链申请 | 立即（OPTION_UPDATE） |
 | 站长名字、头像、社交账号与名片 | owner（readers + owner_profiles） | 设置 → 用户 | 首屏、页脚落款、页头头像、导航面板 | 立即（OWNER_UPDATE） |
-| 首屏标题与说明 | 片段 theme/yozora 的 `hero` | 配置与云函数 → theme/yozora | 首屏 | 立即（SNIPPET_*） |
+| 首屏标题与说明 | 片段 theme/yozora 的 `hero` | 附加功能 → Yozora 主题（三种语言） | 首屏 | 立即（SNIPPET_*） |
 | 页脚那句话、萌备号 | 片段 `footer.motto`、`footer.icp` | 同上 | 页脚 | 立即 |
-| 页脚星带读谁的账号 | 片段 `accounts.github`、`accounts.leetcode` | 同上 | 页脚星带；`scripts/sync-leetcode.mjs` 也读它 | 立即 |
-| 首页技术栈 | 片段 `techStack` | 同上 | 首页 | 立即 |
+| 页脚星带读谁的账号 | 片段 `accounts.github`、`accounts.leetcode` | 同上 | 页脚星带；`scripts/sync-leetcode.mjs` 也读它，同步的日历记着账号，账号不一致就不用 | 立即 |
+| 首页技术栈 | 片段 `techStack`（标题、说明在 Yozora 主题页改；图标行在“配置与云函数”里改 `techStack.rows`） | 同上 | 首页；`rows` 清空就整块不显示 | 立即 |
 | 作品名与介绍的外文版 | 片段 `i18n.<lang>.projects` | 同上 | 外文作品页 | 立即 |
 
-theme/yozora 片段的格式写在 `apps/web/lib/theme-config.ts` 开头。外文版本放在 `i18n.en`、`i18n.ja` 下面。
+theme/yozora 片段的格式写在 `apps/web/lib/theme-config.ts` 开头。外文版本放在 `i18n.en`、`i18n.ja` 下面。日常在后台“附加功能 → Yozora 主题”表单里改，它只写改过的字段，片段里其他内容不动。
 
 读取规则如下：
 - 片段读不到时，用代码里的占位。
 - 某一项没写时，也用代码里的占位。
-- 某一项写成空字符串、空数组或 null，就是故意不显示，旧值不会冒回来。
+- 某一项写成空字符串、空数组或 null（包括整组写成 null），就是故意不显示，旧值不会冒回来。
+- 外文页面每一项单独找译文，没有译文的那一项显示中文并单独标 zh-CN。
 
-检查脚本是 `scripts/verify-site-content.mjs`。
+检查脚本是 `scripts/verify-site-content.mjs` 和 `scripts/verify-admin-theme-form.mjs`。
 
 ## 仍是例外
 
