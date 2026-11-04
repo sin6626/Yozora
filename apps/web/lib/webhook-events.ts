@@ -20,7 +20,7 @@ const kinds: Record<string, { tags: readonly string[]; actions?: readonly string
   TRANSLATION: { tags: ["blog:ai", "blog:posts", "blog:notes", "blog:pages"], actions: ["CREATE", "UPDATE"] },
   // AI 摘要生成、在后台修改或删除：详情页摘要和列表摘要（getPosts/getNotes 也挂着 blog:ai）
   AI_SUMMARY: { tags: ["blog:ai"] },
-  // 配置片段：theme/sin-space（技术栈、外文描述与作品译文）和 theme/leetcode-calendar（页脚力扣星带）
+  // 配置片段：theme/yozora（技术栈、外文描述与作品译文）和 theme/leetcode-calendar（页脚力扣星带）
   SNIPPET: { tags: ["blog:theme", "activity-sky"] },
   // 后台“设置”任意一项（SEO、网站地址、评论、订阅、OAuth、友链申请开关……）
   OPTION: { tags: ["blog:navigation", "blog:links"], actions: ["UPDATE"] },

@@ -1,4 +1,4 @@
-// 站点主题配置：后台“附加功能 → 配置片段”里引用 theme、名称 sin-space 的 JSON 片段（getThemeConfig 读取）。
+// 站点主题配置：后台“附加功能 → 配置片段”里引用 theme、名称 yozora 的 JSON 片段（getThemeConfig 读取）。
 // 片段对访客公开，只放公开内容。后台手写 JSON 容易填错，这里逐项丢掉格式不对的，整块不可用时返回 null，由页面退回写死的默认值。
 export type Tech = { name: string; icon: string };
 export type TechStackConfig = { title?: string; description?: string; rows: Tech[][] };

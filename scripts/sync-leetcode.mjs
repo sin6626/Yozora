@@ -95,12 +95,12 @@ async function request(path, init = {}) {
   return data;
 }
 
-// 账号和前台星带同一个来源：Core 配置片段 theme/sin-space 的 accounts.leetcode（后台“配置与云函数”里改）
+// 账号和前台星带同一个来源：Core 配置片段 theme/yozora 的 accounts.leetcode（后台“配置与云函数”里改）
 const themeSnippets = (await retry("Core", () => request("/snippets/group/theme"))).data ?? [];
-const siteConfig = themeSnippets.find((item) => item.name === "sin-space");
+const siteConfig = themeSnippets.find((item) => item.name === "yozora");
 const account = siteConfig ? JSON.parse(siteConfig.raw).accounts?.leetcode : undefined;
 if (!account) {
-  console.log(`${new Date().toISOString()} ${target}：配置片段 theme/sin-space 没有填 accounts.leetcode，跳过`);
+  console.log(`${new Date().toISOString()} ${target}：配置片段 theme/yozora 没有填 accounts.leetcode，跳过`);
   process.exit(0);
 }
 const { activeYears } = await retry("力扣", () => leetCodeYear(account, null));

@@ -5,7 +5,7 @@ import IconifyIcon, { isIconName } from "./iconify-icon";
 import Reveal from "./reveal";
 
 // 首页底部的技术栈：两行只显示图标的横向无限滚动（单数行向左、双数行向右），鼠标停上去暂停并显示名字；
-// “减少动态效果”时不滚动，改成可以手动横向拖动。内容在后台配置片段 theme/sin-space 的 techStack 里改（格式见 lib/theme-config.ts），
+// “减少动态效果”时不滚动，改成可以手动横向拖动。内容在后台配置片段 theme/yozora 的 techStack 里改（格式见 lib/theme-config.ts），
 // 片段没建、读取失败或格式不对时用下面写死的默认值。图标名是 Iconify 的“图标集:名字”，只认 iconify-icon.tsx 里装了的几套，
 // 填了没装的图标时显示名字首字。
 const defaultRows: Tech[][] = [

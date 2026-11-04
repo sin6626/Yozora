@@ -93,11 +93,11 @@ for (const name of ["ai_summaries", "ai_translations"]) {
   }
 }
 
-// 翻译条目（分类名等的译名）、首页配置片段 theme/sin-space：线上没有的加上
+// 翻译条目（分类名等的译名）、首页配置片段 theme/yozora：线上没有的加上
 const prodEntries = byId(await all(p, "translation_entries"));
 for (const entry of await all(l, "translation_entries")) if (!prodEntries.has(String(entry._id))) add("translation_entries", "insert", entry, `${entry.keyPath} [${entry.lang}] ${entry.translatedText}`);
-const sinSpace = await l.collection("snippets").findOne({ reference: "theme", name: "sin-space" });
-if (sinSpace && !(await p.collection("snippets").findOne({ reference: "theme", name: "sin-space" }))) add("snippets", "insert", sinSpace, "theme/sin-space");
+const yozoraSnippet = await l.collection("snippets").findOne({ reference: "theme", name: "yozora" });
+if (yozoraSnippet && !(await p.collection("snippets").findOne({ reference: "theme", name: "yozora" }))) add("snippets", "insert", yozoraSnippet, "theme/yozora");
 
 for (const post of excludedPosts) skipped.push(`posts 测试：${post.title}`);
 

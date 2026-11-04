@@ -13,7 +13,7 @@ const sourceRepo = "https://github.com/sin6626/Yozora";
 // 页脚：最上面一条星带（每天刷题和写代码的记录，读取失败时不显示），下面左边是一弯小月亮加“头顶的星空，是心里的星空”
 // （化用康德，站长 2026-10-31 定；后台那句站点描述只留在首屏底部，不在页脚重复）、细字的英文落款，
 // 右边是几个小链接和在线人数。
-// 那句话和萌备号来自后台配置片段 theme/sin-space 的 footer（getSiteContent）；萌备审核要求电脑和手机都显示备案链接
+// 那句话和萌备号来自后台配置片段 theme/yozora 的 footer（getSiteContent）；萌备审核要求电脑和手机都显示备案链接
 export default async function SiteFooter() {
   const [t, { footer }] = await Promise.all([getT().then((all) => all.footer), getLocale().then(getSiteContent)]);
   return (

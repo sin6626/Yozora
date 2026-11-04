@@ -7,7 +7,7 @@
 | 文章、手记、页面的标题、正文、摘要、标签 | `ai_translations`（后台“AI 翻译”） | 列表带 `?lang=` 时 Core 直接换进去；详情页读 `getArticleTranslation` |
 | 列表里的 AI 摘要 | `ai_summaries`（后台“AI 摘要”） | `getArticleAi(id, lang)`，只读已生成的 |
 | 分类名、话题名与介绍、手记心情、天气 | `translation_entries`（后台“AI → 翻译条目”） | 带 `?lang=` 时 Core 换进去；时间线、导航面板等用 `getLocalizedNames` 按 id 查 |
-| 站点那句话（SEO 描述）、作品名和介绍 | 配置片段 theme / sin-space 的 `i18n` | `getSiteDescription`、`getProjects`（`lib/theme-config.ts` 的 `parseContentTranslations`） |
+| 站点那句话（SEO 描述）、作品名和介绍 | 配置片段 theme / yozora 的 `i18n` | `getSiteDescription`、`getProjects`（`lib/theme-config.ts` 的 `parseContentTranslations`） |
 
 站长和读者自己写的话（碎碎念、思考、一言、评论、友链介绍）不翻译，外文页面上标 `lang="zh-CN"`。
 
@@ -45,6 +45,6 @@ AI 摘要在 `ai_summaries`，按 `refId` + `lang` 一条；有过 AI 把日文�
 
 - 文章：富文本组件对照（英、日）、FRP + Vite 踩坑记录（英，覆盖了过期的旧译文）、第一次面试的心得（日）；手记：2026 年 4 月 18 号建站第一天（英、日）。累有感已有有效的 AI 译文，没动。
 - 分类“瞎扯淡”：英 Ramblings、日 雑談。
-- 配置片段 sin-space 的 `i18n`：站点那句话、两个作品（改前备份 `.local/backups/snippet-sin-space-20261030.json`）。
+- 配置片段 yozora 的 `i18n`：站点那句话、两个作品（改前备份 `.local/backups/snippet-sin-space-20261030.json`）。
 - 6 篇日文 AI 摘要改成真正的日文。
 - 本地 Webhook 订阅加上 TRANSLATION_CREATE、TRANSLATION_UPDATE（共 30 个事件）。

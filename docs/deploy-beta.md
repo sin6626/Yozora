@@ -143,10 +143,10 @@ beta 前台已更新到 `releases/1b5a6d4`（上一个 `7dd878b` 留着）。
 - **内容迁移**：先只读对比（`scripts/deploy/diff-db.mjs`，经 SSH 隧道连线上 Mongo，结果 `.local/deploy/db-diff-20261103.txt`），再用 `scripts/deploy/migrate-content.mjs`（默认试运行，`--apply` 才写，按 `_id` 覆盖写入，可重复跑）。迁移前整库备份 `/root/backups/2026-11-03/mongo-before-migration.archive.gz`。共写入 84 条：
   - 碎碎念 56 条（去掉“测试碎碎念（可删除）”和只写了“ces”加图的两条测试）、一言 5 条；
   - 页面“关于我 / 关于本站”只改副标题（这里的主人 / 这个站是如何来的；正文 content 两边一样，`text` 是本地 Core 重新生成的纯文本副本，不搬）；
-  - 6 条修正过的日文 AI 摘要，9 条本地改过的 AI 译文（两个页面三种语言、累有感英日、FRP 英文）、3 条新补的译文、“瞎扯淡”分类的英日译名 2 条、首页配置片段 `theme/sin-space`。
+  - 6 条修正过的日文 AI 摘要，9 条本地改过的 AI 译文（两个页面三种语言、累有感英日、FRP 英文）、3 条新补的译文、“瞎扯淡”分类的英日译名 2 条、首页配置片段 `theme/yozora`。
 - **没迁**：Test 1/2、富文本组件对照演示文章及其摘要译文、6 条测试评论、草稿、思考（速记，24 条已全部复制成碎碎念）、会话账号令牌、统计日志、云函数与 Shiro 主题配置，以及**站点设置（options）**：本地与线上有 18 项不同（网站地址、OAuth、图床、SEO 标题、评论、AI、备份等），其中网站地址、OAuth、图床是本地开发用的，SEO 标题本地已是 Sin’s Yozora 而线上 Shiro 仍用旧标题，正式切换时逐项决定。
 - **为什么不迁文章手记的“改动”**：本地库是从线上导入的，导入时图片地址被改成了本机 `http://127.0.0.1:2333/objects/image/import-*`，对比出来的“不同”全是这个；线上那份才是对的。本地补的译文若带这种地址，迁移脚本按两边正文里图片出现的顺序换回线上 S3 地址（38 个），写入前检查不得含指向本地 Core（端口 2333）的地址。
-- 直接改库不会触发 Webhook：迁移后清掉 Redis 的 `mx-api-cache:*`、`mx:snippet_cache*`、`mx:translation_entry_dict*`，再在服务器上用 `web.env` 的密钥签一个 `CONTENT_REFRESH` 发给 `127.0.0.1:2324/api/webhooks/mix-space`，beta 的缓存整体作废。核对：线上碎碎念 56、一言 5、新副标题、`sin-space` 200、分类英文名 Ramblings；Shiro 首页和关于页 200。
+- 直接改库不会触发 Webhook：迁移后清掉 Redis 的 `mx-api-cache:*`、`mx:snippet_cache*`、`mx:translation_entry_dict*`，再在服务器上用 `web.env` 的密钥签一个 `CONTENT_REFRESH` 发给 `127.0.0.1:2324/api/webhooks/mix-space`，beta 的缓存整体作废。核对：线上碎碎念 56、一言 5、新副标题、`yozora` 200、分类英文名 Ramblings；Shiro 首页和关于页 200。
 
 ## 2026-11-04 已做：beta 前台更新到 2131c7a、清掉线上测试数据
 
@@ -210,7 +210,7 @@ MIX_SPACE_API_URL=https://Core的公网地址 SITE_NOINDEX=1 pnpm build
 
 ## 第 6 步：把本地才有的东西搬上线
 
-- 配置片段 `sin-space`（首页技术栈、英文日文的站点描述、作品译名）：在线上后台“附加功能 → 配置片段”按本地那份新建；没有时前台用写死的默认值。
+- 配置片段 `yozora`（首页技术栈、英文日文的站点描述、作品译名）：在线上后台“附加功能 → 配置片段”按本地那份新建；没有时前台用写死的默认值。
 - “正在用 / 在听”的云函数：在 `.local/publish.json` 里配好线上的 API Token 后执行 `node scripts/install-ps-function.mjs --prod`，再把 Yohaku Companion 的地址改成线上 Core（见 [owner-presence.md](./owner-presence.md)）。
 - 碎碎念：线上原来的速记要复制成碎碎念的话，先 `node scripts/migrate-murmurs.mjs --prod --dry-run` 看一遍，再去掉 `--dry-run`（只复制不删）。
 - 英文、日文译文：本地补的那些在本地库里，要的话用 [manual-translation.md](./manual-translation.md) 的工具写到线上。

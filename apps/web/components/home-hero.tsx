@@ -115,7 +115,7 @@ export default async function HomeHero() {
                 </strong>
                 <span>{t.nameSuffix}</span>
               </span>
-              {/* 标题第二行和说明来自后台配置片段 theme/sin-space 的 hero（getSiteContent），**…** 是强调的字 */}
+              {/* 标题第二行和说明来自后台配置片段 theme/yozora 的 hero（getSiteContent），**…** 是强调的字 */}
               {hero.title.length > 0 && <br />}
               {hero.title.map((part, index) => (part.strong ? <strong key={index} lang={hero.lang}>{part.text}</strong> : <span key={index} lang={hero.lang}>{part.text}</span>))}
             </h1>

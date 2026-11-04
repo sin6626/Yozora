@@ -7,7 +7,7 @@ import { buildSky, parseGitHub, parseLeetCode } from "./sky-calendar";
 // 页脚星带的数据：站长在力扣（中国站）刷题和在 GitHub 写代码的每日提交。两边都是不需要登录的公开页面/接口
 // （不是官方承诺的公开 API，格式可能会变）。服务端取、缓存几个小时，访客的浏览器不直接连第三方。
 // 一边读取失败只显示另一边；两边都失败时抛错，由页脚隐藏星带，下次请求再试（失败不进缓存）。
-// 读谁的账号在后台配置片段 theme/sin-space 的 accounts（getSiteContent），留空就不显示那一类星
+// 读谁的账号在后台配置片段 theme/yozora 的 accounts（getSiteContent），留空就不显示那一类星
 
 const years = 3;
 

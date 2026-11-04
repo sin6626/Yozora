@@ -10,7 +10,7 @@
 |---|---|---|---|---|
 | 文章：标题、正文、摘要、分类、标签、置顶 | posts | 文章 | 列表、详情、首页、导航、时间线、RSS | 立即（POST_*） |
 | 文章关联阅读 | posts.related | 文章 → 关联阅读 | 详情文末（只列已发布的） | 立即（POST_*） |
-| 文章版权说明 | posts.copyright（开关）+ 片段 `copyright`（文字） | 文章 → 版权注明；配置与云函数 → theme/sin-space | 详情文末 | 立即（POST_* / SNIPPET_*） |
+| 文章版权说明 | posts.copyright（开关）+ 片段 `copyright`（文字） | 文章 → 版权注明；配置与云函数 → theme/yozora | 详情文末 | 立即（POST_* / SNIPPET_*） |
 | 手记、心情、天气、回忆项、加密 | notes | 手记 | 列表、详情、首页 | 立即（NOTE_*） |
 | 话题：名字、图标、简介、详细描述 | topics | 手记 → 话题 | 手记话题筛选页、导航、详情面包屑 | 立即（TOPIC_*） |
 | 分类、页面（标题、副标题、排序） | categories、pages | 分类、页面 | 导航、分类页、页面详情 | 立即 |
@@ -23,13 +23,13 @@
 | 站点描述 | options.seo.description（外文在片段 `i18n.<lang>.siteDescription`） | 设置 → SEO → 网站描述 | 首屏底部、首页标题、meta | 立即 |
 | 网站地址、评论开关、订阅开关、登录方式、友链申请开关 | options | 设置 | sitemap/RSS、评论区、订阅、登录、友链申请 | 立即（OPTION_UPDATE） |
 | 站长名字、头像、社交账号与名片 | owner（readers + owner_profiles） | 设置 → 用户 | 首屏、页脚落款、页头头像、导航面板 | 立即（OWNER_UPDATE） |
-| 首屏标题与说明 | 片段 theme/sin-space 的 `hero` | 配置与云函数 → theme/sin-space | 首屏 | 立即（SNIPPET_*） |
+| 首屏标题与说明 | 片段 theme/yozora 的 `hero` | 配置与云函数 → theme/yozora | 首屏 | 立即（SNIPPET_*） |
 | 页脚那句话、萌备号 | 片段 `footer.motto`、`footer.icp` | 同上 | 页脚 | 立即 |
 | 页脚星带读谁的账号 | 片段 `accounts.github`、`accounts.leetcode` | 同上 | 页脚星带；`scripts/sync-leetcode.mjs` 也读它 | 立即 |
 | 首页技术栈 | 片段 `techStack` | 同上 | 首页 | 立即 |
 | 作品名与介绍的外文版 | 片段 `i18n.<lang>.projects` | 同上 | 外文作品页 | 立即 |
 
-theme/sin-space 片段的格式写在 `apps/web/lib/theme-config.ts` 开头。外文版本放在 `i18n.en`、`i18n.ja` 下面。
+theme/yozora 片段的格式写在 `apps/web/lib/theme-config.ts` 开头。外文版本放在 `i18n.en`、`i18n.ja` 下面。
 
 读取规则如下：
 - 片段读不到时，用代码里的占位。

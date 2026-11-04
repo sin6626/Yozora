@@ -1,4 +1,4 @@
-// 站长维护的站点内容（首屏标题与说明、页脚那句话、萌备、贡献星带账号、文章版权说明）都在 Core 的配置片段 theme/sin-space 里，
+// 站长维护的站点内容（首屏标题与说明、页脚那句话、萌备、贡献星带账号、文章版权说明）都在 Core 的配置片段 theme/yozora 里，
 // 检查 lib/theme-config.ts 的 parseSiteContent：片段读不到用占位、某项没写用占位、写成空就不显示（旧值不会冒回来）、
 // 外文页面用 i18n 里的译文，没有译文时显示中文并标 zh-CN。用法：node scripts/verify-site-content.mjs（已并入 pnpm verify）
 import assert from 'node:assert/strict'
@@ -51,4 +51,4 @@ assert.deepEqual(cleared.accounts, { github: null, leetcode: null })
 assert.equal(cleared.copyright, null)
 assert.equal(plain(parseSiteContent({ footer: { icp: { label: 'x', href: 'javascript:alert(1)' } } }, 'zh')).footer.icp, null, '萌备链接只放行 http(s)')
 assert.equal(fallback.copyright, null, '版权说明默认不显示（许可要站长自己选）')
-console.log('PASS site content from the theme/sin-space snippet: fallback, missing, cleared, emphasis, translations, link safety')
+console.log('PASS site content from the theme/yozora snippet: fallback, missing, cleared, emphasis, translations, link safety')
