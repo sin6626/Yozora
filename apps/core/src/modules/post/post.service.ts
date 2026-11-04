@@ -35,7 +35,7 @@ import { CommentModel } from '../comment/comment.model'
 import { DraftRefType } from '../draft/draft.model'
 import type { DraftService } from '../draft/draft.service'
 import { SlugTrackerService } from '../slug-tracker/slug-tracker.service'
-import { PostModel } from './post.model'
+import { PostModel, relatedPostsPopulate } from './post.model'
 
 @Injectable()
 export class PostService implements OnApplicationBootstrap {
@@ -196,12 +196,7 @@ export class PostService implements OnApplicationBootstrap {
     slug: string,
     isAuthenticated?: boolean,
   ) {
-    // Visitors must not see the titles of unpublished related posts
-    const relatedPopulate = {
-      path: 'related',
-      select: 'title slug id _id categoryId category',
-      ...(isAuthenticated ? {} : { match: { isPublished: true } }),
-    }
+    const relatedPopulate = relatedPostsPopulate(isAuthenticated)
     const findTrackedPost = async () => {
       const tracked = await this.slugTrackerService.findTrackerBySlug(
         `/${categorySlug}/${slug}`,

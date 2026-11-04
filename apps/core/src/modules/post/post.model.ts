@@ -76,3 +76,10 @@ export class PostPaginatorModel {
   data: PostModel[]
   pagination: Paginator
 }
+
+// Populate options for `related`: visitors (and anything pushed to them) only get published posts
+export const relatedPostsPopulate = (includeDrafts = false) => ({
+  path: 'related',
+  select: 'title slug id _id categoryId category',
+  ...(includeDrafts ? {} : { match: { isPublished: true } }),
+})

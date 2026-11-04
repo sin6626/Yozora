@@ -287,6 +287,53 @@ describe('PostController (e2e)', async () => {
     })
   })
 
+  describe('related posts', () => {
+    const relatedTitles = (json: any) =>
+      (json.related ?? []).map((item: any) => item.title).sort()
+
+    beforeAll(async () => {
+      const published = await model.findOne({ slug: 'post-2' })
+      const draft = await model.findOne({ slug: 'unpublished-post-16' })
+      await model.updateOne(
+        { slug: 'post-3' },
+        { $set: { related: [published!._id, draft!._id] } },
+      )
+    })
+
+    afterAll(async () => {
+      await model.updateOne({ slug: 'post-3' }, { $set: { related: [] } })
+    })
+
+    test('visitors only see published related posts by id', async () => {
+      const post = await model.findOne({ slug: 'post-3' })
+      const visitor = await proxy.app.inject({
+        method: 'GET',
+        url: `${apiRoutePrefix}/posts/${post!._id.toString()}`,
+      })
+      expect(relatedTitles(visitor.json())).toEqual(['Post 2'])
+      expect(visitor.body).not.toContain('Unpublished Post 16')
+
+      const owner = await proxy.app.inject({
+        method: 'GET',
+        url: `${apiRoutePrefix}/posts/${post!._id.toString()}`,
+        headers: { ...authPassHeader },
+      })
+      expect(relatedTitles(owner.json())).toEqual([
+        'Post 2',
+        'Unpublished Post 16',
+      ])
+    })
+
+    test('visitors only see published related posts by slug', async () => {
+      const visitor = await proxy.app.inject({
+        method: 'GET',
+        url: `${apiRoutePrefix}/posts/category-1/post-3`,
+      })
+      expect(relatedTitles(visitor.json())).toEqual(['Post 2'])
+      expect(visitor.body).not.toContain('Unpublished Post 16')
+    })
+  })
+
   describe('GET /latest', () => {
     test('return latest published post', async () => {
       const data = await proxy.app.inject({

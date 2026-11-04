@@ -29,7 +29,7 @@ import { addYearCondition } from '~/transformers/db-query.transformer'
 import { applyContentPreference } from '~/utils/content.util'
 
 import type { CategoryModel } from '../category/category.model'
-import { PostModel } from './post.model'
+import { PostModel, relatedPostsPopulate } from './post.model'
 import {
   CategoryAndSlugDto,
   PartialPostDto,
@@ -244,10 +244,7 @@ export class PostController {
     const doc = await this.postService.model
       .findById(id)
       .populate('category')
-      .populate({
-        path: 'related',
-        select: 'title slug id _id categoryId category',
-      })
+      .populate(relatedPostsPopulate(isAuthenticated))
     if (!doc) {
       throw new CannotFindException()
     }

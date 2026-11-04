@@ -78,6 +78,7 @@ export class VisitorEventDispatchService implements OnModuleInit {
       payload,
     )
     if (!doc || doc === payload) return
+    if (doc.isPublished === false) return
     this.webGateway.broadcast(BusinessEvents.POST_CREATE, doc)
   }
 
@@ -88,6 +89,7 @@ export class VisitorEventDispatchService implements OnModuleInit {
       payload,
     )
     if (!doc || doc === payload) return
+    if (doc.isPublished === false) return
 
     await this.broadcastWithTranslation(
       BusinessEvents.POST_UPDATE,

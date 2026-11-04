@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common'
 import { BusinessEvents } from '~/constants/business-event.constant'
 import { NoteModel } from '~/modules/note/note.model'
 import { PageModel } from '~/modules/page/page.model'
-import { PostModel } from '~/modules/post/post.model'
+import { PostModel, relatedPostsPopulate } from '~/modules/post/post.model'
 import { InjectModel } from '~/transformers/model.transformer'
 
 @Injectable()
@@ -34,10 +34,7 @@ export class EventPayloadEnricherService {
           (await this.postModel
             .findById(data.id)
             .populate('category')
-            .populate({
-              path: 'related',
-              select: 'title slug id _id categoryId category',
-            })
+            .populate(relatedPostsPopulate())
             .lean({ getters: true })) ?? data
         )
       }
