@@ -175,7 +175,7 @@ beta 前台已更新到 `releases/1b5a6d4`（上一个 `7dd878b` 留着）。
 - Webhook：beta 那条订阅加勾 14 个新事件（30 → 44，原列表备份 `.local/backups/prod-webhook-events-20261104.json`）。
 
 - 前台：同一个构建目录 `build-web.mjs`（81383e8，包 68MB），`rsync --partial` 上传，解压到 `releases/81383e8`，`current` 指过去，按上面同一条命令重建容器（重建前核对过启动参数）。本机 2324 端口 15 个页面 200，公网 beta 首页、英文首页的首屏、页脚、萌备都来自 `theme/yozora`，话题页显示简介；重新保存一次线上片段（内容不变），投递记录 `SNIPPET_UPDATE 200`；无头浏览器打开 5 个页面无脚本报错。容器约 232MB / 400MB。前台回滚：`current` 指回 `releases/2131c7a` 再重建容器（旧版本读 `sin-space`，会退回占位文案）。
-- 注意：站名现在读 SEO 网站标题，线上那一项还是旧 Shiro 的“葉は静かに落ちる”、描述是“有朋自远方来, 不亦说乎”，所以 beta 的浏览器标题也是它；线上新旧前台共用这些设置，要不要改由站长定。
+- 线上 SEO 设置：站长定“除了旧站自己的 theme/shiro 片段，别的都按 Yozora”，网站标题“葉は静かに落ちる”→“Sin’s Yozora”、描述“有朋自远方来, 不亦说乎”→“夜深里也有月亮和星星陪我作伴”（关键字本来就相同；原值备份 `.local/backups/prod-option-seo-20261104.json`）。`OPTION_UPDATE` 投递 200，beta 标题立即变。旧 Shiro 的浏览器标题也读 SEO 设置（不读 theme/shiro），它自己的缓存过期后会一起变成 Sin’s Yozora。
 
 回滚 Core（约 10 秒）：
 
