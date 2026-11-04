@@ -1,19 +1,28 @@
 "use client";
 
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import "./reveal.css";
 
-// 首页下半部分“滚到才出现”（Motion 里 whileInView + once 的意思）：先标成 waiting（几乎透明、略低），
-// 第一次进入视野时改成 shown，由 CSS 播一次上浮淡入（home-hero.css），之后不再重播。
+// “进入页面播一次”（Motion 里 whileInView + once 的意思）：带 data-reveal 的块一插进页面就由 CSS 播一次上浮淡入（reveal.css），
+// 首屏里的不等脚本，整页打开时也不会先露出来再藏起来重播。挂载时还在视野下方的先标成 waiting 藏起来，
+// 第一次进入视野时改成 shown 再播，之后不再重播；同一批、同一列表里一起进来的重新从 0 数序号，不会越往下等得越久。
 // 标记在自己的 effect 里加：effect 只在这个元素水合之后才跑，流式插进来、还没水合的元素不会被提前改属性（否则水合报错）。
-// 离开首页时 Next 用 Activity 藏起整页、清理 effect，标记去掉；回到首页再重新开始。没跑脚本时什么都不藏。
+// 离开页面时 Next 用 Activity 藏起整页、清理 effect，标记去掉；回来时首屏重播，下方重新等滚到。
 // index：同一列表里的序号，一条比一条晚 60 毫秒。
 let observer: IntersectionObserver | null = null;
 
 function revealVisible(entries: IntersectionObserverEntry[]) {
-  for (const entry of entries) {
-    if (!entry.isIntersecting) continue;
-    (entry.target as HTMLElement).dataset.revealState = "shown";
-    observer?.unobserve(entry.target);
+  const counts = new Map<ParentNode | null, number>();
+  const targets = entries
+    .filter((entry) => entry.isIntersecting)
+    .map((entry) => entry.target as HTMLElement)
+    .sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
+  for (const target of targets) {
+    const order = counts.get(target.parentNode) ?? 0;
+    counts.set(target.parentNode, order + 1);
+    target.style.setProperty("--reveal-i", String(order));
+    target.dataset.revealState = "shown";
+    observer?.unobserve(target);
   }
 }
 
@@ -24,6 +33,7 @@ export default function Reveal({ as: Tag = "div", index = 0, children, ...props 
   useEffect(() => {
     const element = ref.current;
     if (!element || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (element.getBoundingClientRect().top < window.innerHeight * 0.92) return;
     observer ??= new IntersectionObserver(revealVisible, { rootMargin: "0px 0px -8% 0px" });
     element.dataset.revealState = "waiting";
     observer.observe(element);

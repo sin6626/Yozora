@@ -36,7 +36,7 @@ const room = () => browser.evaluate(`(() => {
     states: items.map((el) => el.dataset.revealState ?? "none"),
     hidden: items.filter((el) => Number(getComputedStyle(el).opacity) < 0.01).length,
     // 左栏（文章、手记）里完整落在视野内、不在页面底部 10% 的条目；右栏的碎碎念和最近发生的事在各自的滚动框里，可能被框裁掉，不算
-    inView: [...page.querySelectorAll(".home-main [data-reveal]")].filter((el) => { const r = el.getBoundingClientRect(); return r.top > 0 && r.bottom < innerHeight * 0.9; }).map((el) => ({ state: el.dataset.revealState, opacity: Number(getComputedStyle(el).opacity), start: el.getAnimations().find((a) => a.animationName === "home-reveal")?.startTime ?? null })),
+    inView: [...page.querySelectorAll(".home-main [data-reveal]")].filter((el) => { const r = el.getBoundingClientRect(); return r.top > 0 && r.bottom < innerHeight * 0.9; }).map((el) => ({ state: el.dataset.revealState, opacity: Number(getComputedStyle(el).opacity), start: el.getAnimations().find((a) => a.animationName === "reveal-rise")?.startTime ?? null })),
   };
 })()`);
 const scrollTo = async (y) => { await browser.evaluate(`window.scrollTo(0, ${y})`); await sleep(1500); };

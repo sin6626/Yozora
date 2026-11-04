@@ -9,6 +9,7 @@ import PostTagDrawer from "./post-sidebar";
 import type { ListExcerpt } from "../lib/blog-data";
 import Entry, { EntryTag, type EntryStats } from "./entry";
 import SidebarSearch from "./sidebar-search";
+import Reveal from "./reveal";
 import "./details-sidebar.css";
 import "./corners.css";
 import { getLocale, getT } from "../lib/i18n/server";
@@ -135,10 +136,10 @@ export default async function PostList({ searchParams, params }: PostListProps) 
         </aside>
         {posts.length ? (
           <ul className="post-list">
-            {posts.map((post) => (
-              <li key={post.id}>
+            {posts.map((post, index) => (
+              <Reveal as="li" key={post.id} index={index}>
                 <PostCard post={{ ...post, href: postHref(post) }} />
-              </li>
+              </Reveal>
             ))}
           </ul>
         ) : <p className="post-empty">{empty}</p>}

@@ -10,6 +10,7 @@ import RecentlyAttitude from "./recently-attitude";
 import "./corners.css";
 import { getT } from "../lib/i18n/server";
 import LoadError from "./load-error";
+import Reveal from "./reveal";
 
 type Item = Awaited<ReturnType<typeof getRecently>>["data"][number];
 
@@ -47,10 +48,10 @@ export default async function ThinkingList({ searchParams }: { searchParams: Pro
       <div className="post-list-content">
         {result.data.length ? (
           <ul className="thinking-list">
-            {result.data.map((item) => {
+            {result.data.map((item, index) => {
               const href = item.ref && refHref(item.ref, categories);
               return (
-                <li key={item.id} className="thinking-card">
+                <Reveal as="li" key={item.id} index={index} className="thinking-card">
                   <div lang="zh-CN"><ArticleBody text={item.content} emptyText="" /></div>
                   <p className="post-meta thinking-meta">
                     <time dateTime={item.created}>{formatDate(item.created)}</time>
@@ -65,7 +66,7 @@ export default async function ThinkingList({ searchParams }: { searchParams: Pro
                       </Suspense>
                     </details>
                   )}
-                </li>
+                </Reveal>
               );
             })}
           </ul>

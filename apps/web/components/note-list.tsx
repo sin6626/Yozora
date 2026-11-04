@@ -5,6 +5,7 @@ import { readText } from "../lib/search-params";
 import { ActiveFilter, Pagination, listHref } from "./list-filters";
 import Entry, { EntryTag } from "./entry";
 import SidebarSearch from "./sidebar-search";
+import Reveal from "./reveal";
 import "./details-sidebar.css";
 import "./corners.css";
 import { getLocale, getT } from "../lib/i18n/server";
@@ -109,8 +110,8 @@ export default async function NoteList({ searchParams }: { searchParams: Promise
         </aside>
         {notes.length ? (
           <ul className="note-list">
-            {notes.map((note) => (
-              <li key={note.id}><NoteEntry note={note} /></li>
+            {notes.map((note, index) => (
+              <Reveal as="li" key={note.id} index={index}><NoteEntry note={note} /></Reveal>
             ))}
           </ul>
         ) : <p className="post-empty">{empty}</p>}

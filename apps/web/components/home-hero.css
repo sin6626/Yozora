@@ -134,31 +134,7 @@ html:has(.starfield[data-fallback]) .home-hero {
   }
 }
 
-/* 首页下半部分：带 data-reveal 的块第一次滚进视野时上浮淡入，之后不再重播（reveal-on-view.tsx 改 data-reveal-state）；
-   --reveal-i 是同一列表里的序号，一条比一条晚 60 毫秒。脚本没跑时没有 data-reveal-state，什么都不藏。 */
-[data-reveal-state="waiting"] {
-  opacity: 0.0001;
-  translate: 0 1rem;
-}
-
-[data-reveal-state="shown"] {
-  animation: home-reveal 0.7s var(--ease-out) calc(var(--reveal-i, 0) * 60ms) both;
-}
-
-@keyframes home-reveal {
-  from {
-    opacity: 0.0001;
-    translate: 0 1rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-reveal-state] {
-    opacity: 1;
-    translate: none;
-    animation: none;
-  }
-}
+/* 首页下半部分“滚到才出现”的上浮淡入在 reveal.css（列表页共用） */
 
 .home-hero-star {
   position: absolute;
