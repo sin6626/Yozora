@@ -4,6 +4,9 @@ import { getTimeline } from "../lib/blog-data";
 import { formatDate } from "../lib/date";
 import { getLocale, getT } from "../lib/i18n/server";
 import LoadError from "./load-error";
+import Reveal from "./reveal";
+import type { CSSProperties } from "react";
+import "./timeline.css";
 
 type Item = Awaited<ReturnType<typeof getTimeline>>[number];
 
@@ -20,6 +23,7 @@ const views = [
 
 // 归档：按年、再按月分组列出文章与手记（kind 指定时只列一种）。年月取自 formatDate（固定东八区），与站内其他日期一致。
 // 宽屏时月份在左栏、读到哪个月就贴在页头下面；每条只写“日”。一条星座竖线串起当月各条，文章是紫色小星、手记是月光色小星。
+// 每个月进入视野时播一次：竖线从上往下画出，画到哪条哪颗星亮、那条浮上（timeline.css）。
 export default async function TimelineList({ kind }: { kind?: Item["kind"] }) {
   const view = views.find((item) => item.kind === kind) ?? views[0];
   const { timeline: t, posts, notes } = await getT();
@@ -40,6 +44,13 @@ export default async function TimelineList({ kind }: { kind?: Item["kind"] }) {
     group.count++;
     group.months.set(month, [...(group.months.get(month) ?? []), { item, day }]);
     years.set(year, group);
+  }
+  // 每个月前面一共有几条：月份按这个顺序接着画，整页从上往下一条线扫下来（Reveal 的 index）
+  let before = 0;
+  const offsets = new Map<string, number>();
+  for (const [year, { months }] of years) for (const [month, entries] of months) {
+    offsets.set(`${year}-${month}`, before);
+    before += entries.length;
   }
   const postCount = all.filter((item) => item.kind === "post").length;
   const counts = { post: postCount, note: all.length - postCount };
@@ -62,14 +73,14 @@ export default async function TimelineList({ kind }: { kind?: Item["kind"] }) {
           <section key={year} className="timeline-year" aria-labelledby={`timeline-${year}`}>
             <h2 id={`timeline-${year}`}>{year} <span className="timeline-count">{t.items(count)}</span></h2>
             {[...months].map(([month, entries]) => (
-              <section key={month} className="timeline-month" aria-labelledby={`timeline-${year}-${month}`}>
+              <Reveal as="section" kind="timeline" key={month} index={offsets.get(`${year}-${month}`)} data-reveal-weight={String(entries.length)} className="timeline-month" aria-labelledby={`timeline-${year}-${month}`}>
                 <h3 id={`timeline-${year}-${month}`} className="timeline-month-label">
                   <span className="timeline-month-number">{t.month(Number(month)).number}</span>{t.month(Number(month)).unit && ` ${t.month(Number(month)).unit}`}
                   <span className="timeline-count">{t.items(entries.length)}</span>
                 </h3>
-                <ol className="timeline-list">
-                  {entries.map(({ item, day }) => (
-                    <li key={`${item.kind}-${item.id}`} className="timeline-item" data-kind={item.kind}>
+                <ol className="timeline-list" style={{ "--count": entries.length } as CSSProperties}>
+                  {entries.map(({ item, day }, index) => (
+                    <li key={`${item.kind}-${item.id}`} className="timeline-item" data-kind={item.kind} style={{ "--i": index } as CSSProperties}>
                       <span className="timeline-node" aria-hidden="true" />
                       <time dateTime={item.created}>{t.day(day)}</time>
                       <Link className="card-link" href={href(item)}>{item.title}</Link>
@@ -77,7 +88,7 @@ export default async function TimelineList({ kind }: { kind?: Item["kind"] }) {
                     </li>
                   ))}
                 </ol>
-              </section>
+              </Reveal>
             ))}
           </section>
         )) : <p className="post-empty">{t.empty}</p>}

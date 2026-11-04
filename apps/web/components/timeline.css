@@ -1,0 +1,87 @@
+/* 时间线进场（每次进入页面每个月播一次，components/timeline-list.tsx 用 Reveal kind="timeline" 包住每个月）：
+   月份标签淡入，星座竖线从上往下匀速画出来，画到哪一条，那条的小星亮一下、旁边的日期和标题跟着浮上。
+   每条占 --step（110ms，一个月条目多时压缩到 1.6 秒内画完）。月份一个接一个：--month-at 是前面几个月的条数 × 110ms
+   （Reveal 的 --reveal-i，最多等 1.2 秒），所以整页像一条线从上往下扫下来。首屏的月份一插进页面就播；
+   首屏以下的由 Reveal 标成 waiting 先藏着，滚到改 shown 再播。动画只在等待期间填充（backwards），
+   播完不再占着样式，悬停小星照常亮起。基础样式在 globals.css 的“时间线”一节。 */
+.timeline-month[data-reveal="timeline"] {
+  --month-at: min(calc(var(--reveal-i, 0) * 110ms), 1200ms);
+}
+
+.timeline-month[data-reveal="timeline"] .timeline-list {
+  --step: min(110ms, calc(1600ms / var(--count, 1)));
+}
+
+.timeline-month[data-reveal="timeline"] .timeline-month-label {
+  animation: timeline-label-in 0.5s var(--ease-out) var(--month-at) backwards;
+}
+
+.timeline-month[data-reveal="timeline"] .timeline-list::before {
+  transform-origin: top;
+  animation: timeline-draw calc(var(--count, 1) * var(--step)) linear var(--month-at) backwards;
+}
+
+.timeline-month[data-reveal="timeline"] .timeline-node {
+  animation: timeline-star 0.6s var(--ease-out) calc(var(--month-at) + (var(--i, 0) + 0.5) * var(--step)) backwards;
+}
+
+.timeline-month[data-reveal="timeline"] .timeline-item > :not(.timeline-node) {
+  animation: timeline-item-in 0.5s var(--ease-out) calc(var(--month-at) + (var(--i, 0) + 0.5) * var(--step) + 80ms) backwards;
+}
+
+/* 等着滚到：先全部藏好，动画一律不放 */
+.timeline-month[data-reveal-state="waiting"] .timeline-month-label,
+.timeline-month[data-reveal-state="waiting"] .timeline-node,
+.timeline-month[data-reveal-state="waiting"] .timeline-item > :not(.timeline-node) {
+  opacity: 0;
+  animation: none;
+}
+
+.timeline-month[data-reveal-state="waiting"] .timeline-list::before {
+  scale: 1 0;
+  animation: none;
+}
+
+@keyframes timeline-label-in {
+  from {
+    opacity: 0;
+    translate: 0 0.5rem;
+  }
+}
+
+@keyframes timeline-draw {
+  from {
+    scale: 1 0;
+  }
+}
+
+/* 小星被竖线“碰到”时亮一下：从无到放大发光，再落回平时的样子 */
+@keyframes timeline-star {
+  0% {
+    opacity: 0;
+    scale: 0.2;
+  }
+
+  45% {
+    opacity: 1;
+    scale: 1.9;
+    background: var(--node);
+    box-shadow: 0 0 10px 2px color-mix(in srgb, var(--node) 70%, transparent);
+  }
+}
+
+@keyframes timeline-item-in {
+  from {
+    opacity: 0;
+    translate: 0 0.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-month[data-reveal="timeline"] .timeline-month-label,
+  .timeline-month[data-reveal="timeline"] .timeline-list::before,
+  .timeline-month[data-reveal="timeline"] .timeline-node,
+  .timeline-month[data-reveal="timeline"] .timeline-item > :not(.timeline-node) {
+    animation: none;
+  }
+}

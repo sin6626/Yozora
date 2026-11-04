@@ -1,12 +1,13 @@
 /* 进入页面播一次的上浮淡入（reveal.tsx）：带 data-reveal 的块一插进页面就播，首屏不用等脚本；
    挂载时还在视野下方的由脚本标成 waiting 藏起来，第一次滚进视野改 shown 再播一次。
-   --reveal-i 是同一列表里的序号，一条比一条晚 60 毫秒。 */
-[data-reveal],
-[data-reveal-state="shown"] {
+   --reveal-i 是同一列表里的序号，一条比一条晚 60 毫秒。只管默认的整块上浮（data-reveal 为空）；
+   带 kind 的块（如时间线的一个月）在自己的 CSS 里编排。 */
+[data-reveal=""],
+[data-reveal=""][data-reveal-state="shown"] {
   animation: reveal-rise 0.7s var(--ease-out) calc(var(--reveal-i, 0) * 60ms) both;
 }
 
-[data-reveal-state="waiting"] {
+[data-reveal=""][data-reveal-state="waiting"] {
   opacity: 0.0001;
   translate: 0 1rem;
   animation: none;
@@ -20,8 +21,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-reveal],
-  [data-reveal-state] {
+  [data-reveal=""],
+  [data-reveal=""][data-reveal-state] {
     opacity: 1;
     translate: none;
     animation: none;
