@@ -1,4 +1,4 @@
-/* 读取区铺满页头以下的一屏，火箭在正中略偏上；200ms 内读完就什么都看不到 */
+/* 读取区铺满页头以下的一屏，火箭在正中略偏上；一出现就淡入，读得快也能看见一下（和 Shiro 一样不等待） */
 .page-loading {
   --rocket: color-mix(in srgb, var(--foreground) 80%, var(--background)); /*不透明：尾翼和机身相接处线条重叠时不会叠深*/
   --flame: var(--moonlight);
@@ -8,7 +8,7 @@
   gap: 1.25rem;
   min-height: calc(100dvh - var(--header-height));
   padding: 0 1rem 10vh;
-  animation: page-loading-in 0.4s ease-out 200ms both;
+  animation: page-loading-in 0.25s ease-out both;
 }
 
 :root[data-theme="light"] .page-loading {

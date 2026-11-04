@@ -115,7 +115,7 @@ export default function DebugPage() {
           </li>
           <li id="debug-page-loading">
             <h2>读取中</h2>
-            <p className="post-meta">page-loading.tsx：各页面 Suspense 的读取占位，往上飞的小火箭 + Innei 首页那句话（读屏念“正在读取…”），出现前等 200ms，十秒还没读完露出“重试”。页面里铺满页头以下一屏，这里和首页一样用 compact</p>
+            <p className="post-meta">page-loading.tsx：各页面 Suspense 的读取占位，往上飞的小火箭 + Innei 首页那句话（读屏念“正在读取…”），一出现就淡入（0.25 秒），十秒还没读完露出“重试”。页面里铺满页头以下一屏，这里和首页一样用 compact</p>
             <PageLoading compact />
           </li>
           <li>

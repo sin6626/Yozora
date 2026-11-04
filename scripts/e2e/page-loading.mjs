@@ -1,7 +1,7 @@
 // 浏览器回归测试：全站读取中的小火箭（components/page-loading.tsx）。
 // 各页面正文包在 Suspense 里，服务端先发出带读取占位的外壳，正文随后流式送到、由 React 的内联脚本换上。
 // 测试关掉页面脚本，让读取占位一直留在屏幕上，检查：铺满页头以下一屏、80px 火箭在动、
-// Innei 那句话带「」、读屏念“正在读取…”、200ms 后才淡入、“重试”十秒后才出现；首页是 compact，排在第一屏下面。
+// Innei 那句话带「」、读屏念“正在读取…”、一出现就开始淡入（不等待）、“重试”十秒后才出现；首页是 compact，排在第一屏下面。
 // 打开脚本时读完就换成正文；/debug 检查深浅主题火苗颜色、减少动态效果时火箭不动。
 // 需要先运行 pnpm dev（默认 http://127.0.0.1:2323，可用 WEB_URL 覆盖）。用法：pnpm e2e
 import assert from "node:assert/strict";
@@ -32,7 +32,7 @@ try {
       height: box.height,
       screen: innerHeight - parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--header-height")) * 16,
       belowHeader: box.top >= header.bottom - 1,
-      fadeDelay: el.getAnimations().find((a) => a.animationName === "page-loading-in")?.effect.getTiming().delay,
+      fade: (({ delay, duration } = {}) => ({ delay, duration }))(el.getAnimations().find((a) => a.animationName === "page-loading-in")?.effect.getTiming()),
       moving: running(".craft") && running(".flame") && running(".trail line"),
       retryBefore: getComputedStyle(retry).visibility,
       retryHref: retry.getAttribute("href"),
@@ -54,7 +54,8 @@ try {
     assert.equal(Math.round(loading.rocketWidth), 80, `火箭应当 80px 宽，实际 ${loading.rocketWidth}`);
     assert.ok(loading.belowHeader, `${path} 读取区应当在页头下面`);
     assert.ok(loading.height >= loading.screen - 1, `${path} 读取区应当铺满页头以下一屏：${loading.height} < ${loading.screen}`);
-    assert.equal(loading.fadeDelay, 200, "读取区应当等 200ms 再淡入，读得快就看不到");
+    assert.equal(loading.fade.delay, 0, "读取区一出现就开始淡入，不再等 200ms");
+    assert.ok(loading.fade.duration <= 250, `淡入要快，读得快时也看得见：${loading.fade.duration}ms`);
     assert.ok(loading.moving, "火箭、火苗、尾迹都应当在动");
     assert.equal(loading.retryBefore, "hidden", "“重试”一开始不该出现");
     assert.equal(loading.retryAfter, "visible", "十秒后“重试”应当出现");
@@ -136,7 +137,7 @@ try {
   assert.equal(reduced.trail, "0.45");
 
   assert.deepEqual(browser.errors, [], `页面报错：${browser.errors.join("\n")}`);
-  console.log("PASS 读取中显示铺满页头以下一屏的小火箭（80px、「」那句话、读屏“正在读取…”、200ms 后淡入、十秒后露出重试），首页是第一屏下面的 compact，手机上只在逗号处换行，读完换成正文；深浅火苗、减少动态效果正常");
+  console.log("PASS 读取中显示铺满页头以下一屏的小火箭（80px、「」那句话、读屏“正在读取…”、一出现就淡入、十秒后露出重试），首页是第一屏下面的 compact，手机上只在逗号处换行，读完换成正文；深浅火苗、减少动态效果正常");
 } finally {
   browser.close();
 }
