@@ -27,6 +27,7 @@ import {
   MessageCircleMore as MurmurIcon,
   Pencil as PencilAltIcon,
   Pencil as PencilIcon,
+  Palette as PaletteIcon,
   Users as PhUsersThreeBold,
   Puzzle as PuzzlePieceIcon,
   Sparkles as SparklesIcon,
@@ -404,6 +405,15 @@ export const routeForMenu: Array<RouteRecordRaw> = [
           icon: <FunctionIcon />,
         },
         component: () => import('../views/extra-features/snippets'),
+      },
+      {
+        path: 'yozora-theme',
+        name: RouteName.YozoraTheme,
+        meta: {
+          title: 'Yozora 主题',
+          icon: <PaletteIcon />,
+        },
+        component: () => import('../views/extra-features/yozora-theme'),
       },
 
       {

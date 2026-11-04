@@ -38,6 +38,7 @@ export enum RouteName {
   ListShortHand = 'shorthand',
   Murmur = 'murmur',
   Snippet = 'snippet',
+  YozoraTheme = 'yozora-theme',
   Webhook = 'webhook',
 
   AssetTemplate = 'asset-template',
