@@ -11,6 +11,7 @@ import type { IEventManagerHandlerDisposer } from '~/processors/helper/helper.ev
 import { EventManagerService } from '~/processors/helper/helper.event.service'
 import { EventPayloadEnricherService } from '~/processors/helper/helper.event-payload.service'
 import { HttpService } from '~/processors/helper/helper.http.service'
+import { RedisService } from '~/processors/redis/redis.service'
 import type { PagerDto } from '~/shared/dto/pager.dto'
 import { InjectModel } from '~/transformers/model.transformer'
 import { dbTransforms } from '~/utils/db-transform.util'
@@ -42,6 +43,7 @@ export class WebhookService implements OnModuleInit, OnModuleDestroy {
     private readonly httpService: HttpService,
     private readonly eventService: EventManagerService,
     private readonly enricher: EventPayloadEnricherService,
+    private readonly redisService: RedisService,
   ) {}
 
   private eventListenerDisposer: IEventManagerHandlerDisposer
@@ -126,6 +128,11 @@ export class WebhookService implements OnModuleInit, OnModuleDestroy {
     })
 
     if (scopedWebhooks.length === 0) return
+
+    // Subscribers (the blog) refetch from Core right after a webhook; clear Core's public HTTP cache first,
+    // otherwise they re-read and re-cache the response from before the change.
+    // ponytail: clears every cached GET on each delivered event; key by event if events become frequent.
+    await this.redisService.cleanCatch()
 
     const payload = await this.enricher.enrichPayload(
       event as BusinessEvents,
