@@ -5,10 +5,12 @@ import {
   OWNER_PROFILE_COLLECTION_NAME,
   READER_COLLECTION_NAME,
 } from '~/constants/db.constant'
+import { BusinessEvents, EventScope } from '~/constants/business-event.constant'
 import { ErrorCodeEnum } from '~/constants/error-code.constant'
 import { FileReferenceType } from '~/modules/file/file-reference.model'
 import { FileReferenceService } from '~/modules/file/file-reference.service'
 import { DatabaseService } from '~/processors/database/database.service'
+import { EventManagerService } from '~/processors/helper/helper.event.service'
 import { InjectModel } from '~/transformers/model.transformer'
 import { getAvatar } from '~/utils/tool.util'
 import { Types } from 'mongoose'
@@ -28,6 +30,7 @@ export class OwnerService {
       typeof OwnerProfileModel
     >,
     private readonly fileReferenceService: FileReferenceService,
+    private readonly eventManager: EventManagerService,
   ) {}
 
   private get readersCollection() {
@@ -179,6 +182,11 @@ export class OwnerService {
       )
     }
 
+    this.eventManager.emit(
+      BusinessEvents.OWNER_UPDATE,
+      { id: String(reader._id) },
+      { scope: EventScope.TO_SYSTEM },
+    )
     return this.getOwnerInfo(true)
   }
 

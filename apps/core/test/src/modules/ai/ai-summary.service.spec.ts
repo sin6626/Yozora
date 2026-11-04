@@ -9,6 +9,7 @@ import { AiSummaryService } from '~/modules/ai/ai-summary/ai-summary.service'
 import { AiTaskService } from '~/modules/ai/ai-task/ai-task.service'
 import { ConfigsService } from '~/modules/configs/configs.service'
 import { DatabaseService } from '~/processors/database/database.service'
+import { EventManagerService } from '~/processors/helper/helper.event.service'
 import { TaskQueueProcessor } from '~/processors/task-queue'
 import { getModelToken } from '~/transformers/model.transformer'
 
@@ -17,6 +18,7 @@ describe('AiSummaryService', () => {
   let mockSummaryModel: any
   let mockDatabaseService: any
   let mockConfigService: any
+  let mockEmit: ReturnType<typeof vi.fn>
 
   const mockArticle = {
     id: 'article-1',
@@ -73,9 +75,12 @@ describe('AiSummaryService', () => {
       registerHandler: vi.fn(),
     }
 
+    mockEmit = vi.fn()
+
     const module = await Test.createTestingModule({
       providers: [
         AiSummaryService,
+        { provide: EventManagerService, useValue: { emit: mockEmit } },
         {
           provide: getModelToken(AISummaryModel.name),
           useValue: mockSummaryModel,
@@ -96,6 +101,31 @@ describe('AiSummaryService', () => {
     }).compile()
 
     service = module.get(AiSummaryService)
+  })
+
+  describe('webhook events', () => {
+    it('emits AI_SUMMARY_UPDATE with ids only when the owner edits a summary', async () => {
+      const doc = { ...mockSummary, save: vi.fn() }
+      mockSummaryModel.findById.mockResolvedValue(doc)
+
+      await service.updateSummaryInDb('summary-1', 'edited')
+
+      expect(mockEmit).toHaveBeenCalledWith(
+        'AI_SUMMARY_UPDATE',
+        { id: 'summary-1', refId: 'article-1', lang: 'zh' },
+        { scope: 4 },
+      )
+    })
+
+    it('emits AI_SUMMARY_DELETE when the owner deletes a summary', async () => {
+      await service.deleteSummaryInDb('summary-1')
+
+      expect(mockEmit).toHaveBeenCalledWith(
+        'AI_SUMMARY_DELETE',
+        { id: 'summary-1' },
+        { scope: 4 },
+      )
+    })
   })
 
   describe('findValidSummary', () => {

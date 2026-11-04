@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
 import { RequestContext } from '~/common/contexts/request.context'
 import { BizException } from '~/common/exceptions/biz.exception'
-import { EventScope } from '~/constants/business-event.constant'
+import { BusinessEvents, EventScope } from '~/constants/business-event.constant'
 import { RedisKeys } from '~/constants/cache.constant'
 import { ErrorCodeEnum } from '~/constants/error-code.constant'
 import { EventBusEvents } from '~/constants/event-bus.constant'
@@ -86,7 +86,20 @@ export class SnippetService {
       })
     }
 
-    return await this.model.create({ ...model, created: new Date() })
+    const created = await this.model.create({ ...model, created: new Date() })
+    this.emitSnippetEvent(BusinessEvents.SNIPPET_CREATE, created)
+    return created
+  }
+
+  private emitSnippetEvent(
+    event: BusinessEvents,
+    doc: { _id?: unknown; id?: string; reference: string; name: string },
+  ) {
+    this.eventManager.emit(
+      event,
+      { id: doc.id ?? String(doc._id), reference: doc.reference, name: doc.name },
+      { scope: EventScope.TO_SYSTEM },
+    )
   }
 
   async update(id: string, newModel: SnippetModel) {
@@ -187,6 +200,7 @@ export class SnippetService {
     if (!newerDoc) {
       return newerDoc
     }
+    this.emitSnippetEvent(BusinessEvents.SNIPPET_UPDATE, newerDoc)
 
     return this.transformLeanSnippetModel(newerDoc.toObject())
   }
@@ -208,6 +222,7 @@ export class SnippetService {
     if (doc.customPath) {
       await this.deleteCachedSnippetByCustomPath(doc.customPath)
     }
+    this.emitSnippetEvent(BusinessEvents.SNIPPET_DELETE, doc)
   }
 
   private async validateTypeAndCleanup(model: SnippetModel) {

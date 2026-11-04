@@ -63,7 +63,7 @@ export async function getNavigationData(lang: ContentLang = "zh") {
 // 评论开关取后台“评论设置”（是否关闭评论、是否允许游客评论）；站名、一句话描述取后台 SEO 设置，站长名字取“个人资料”的昵称。
 export async function getSiteSettings() {
   "use cache";
-  // 改个人资料、描述、评论设置都没有 Webhook 事件，后台改完 5 分钟内生效。
+  // 改个人资料、设置经 OWNER_UPDATE、OPTION_UPDATE 立即失效（后台 Webhook 要勾上这两个事件）；没勾时靠这里的过期时间。
   // stale 至少 300 秒：Next 只把 stale ≥ 5 分钟的缓存放进预渲染外壳，太短的话根布局的 generateMetadata 会被当成动态数据，
   // 整页静态的路由（/debug）会报 “encountered URL data in generateMetadata()”。回归测试 scripts/e2e/dev-issues.mjs。
   cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
@@ -80,7 +80,7 @@ export async function getSiteSettings() {
   };
 }
 
-// 后台“设置 → 账户 → OAuth”里启用的第三方登录（前端接了 GitHub 和 Google）。改动没有 Webhook 事件，缓存短一些。
+// 后台“设置 → 账户 → OAuth”里启用的第三方登录（前端接了 GitHub 和 Google）。改动经 OPTION_UPDATE 失效，没勾事件时靠短缓存。
 export async function getLoginProviders() {
   "use cache";
   cacheLife({ stale: 60, revalidate: 300, expire: 3600 });
@@ -347,7 +347,7 @@ export async function getNote(nid: number, lang: ContentLang = "zh") {
 // lang：外文页面用配置片段 i18n 里写好的作品名和介绍（Core 没有作品翻译），没写的保持中文并标出原文语言。
 export async function getProjects(lang: ContentLang = "zh") {
   "use cache";
-  // Core 没有可勾选的作品事件，Webhook 无法通知，缓存时间设短一些。
+  // 作品增删改经 PROJECT_* 事件立即失效（2026-11-04 起 Core 才登记这几个事件），没勾时靠短缓存。
   cacheLife({ stale: 60, revalidate: 300, expire: 3600 });
   cacheTag("blog:projects", "blog:theme");
   const [{ data }, config] = await Promise.all([getApiClient().project.getAll(), lang === "zh" ? null : getThemeConfig().catch(() => null)]);
@@ -368,7 +368,7 @@ export async function getSiteDescription(lang: ContentLang = "zh") {
   return { text: translated ?? settings?.description ?? siteDescription, original: lang !== "zh" && !translated };
 }
 
-// 站点主题配置（后台配置片段 theme/sin-space，格式见 lib/theme-config.ts）。Core 保存片段不发 Webhook 事件，缓存设短一些；
+// 站点主题配置（后台配置片段 theme/sin-space，格式见 lib/theme-config.ts）。保存片段经 SNIPPET_* 事件立即失效，没勾时靠短缓存；
 // 片段还没建时返回 null，页面用写死的默认值。SDK 返回的对象带方法，缓存前转成普通 JSON。
 // stale 至少 300：外文页面的根布局 generateMetadata 经 getSiteDescription 读它，Next 只把 stale ≥ 5 分钟的缓存放进预渲染外壳，
 // 短了 metadata 会被当成动态，整页静态的 /en/debug 就报 “encountered URL data in generateMetadata()”（e2e dev-issues.mjs）。
@@ -456,7 +456,7 @@ export async function getRecentActivity(lang: ContentLang = "zh") {
 }
 
 // 友链：Core 对访客只返回已通过、已失联、已封禁三种状态（审核中、已拒绝不返回）。
-// 友链没有增删改的 Webhook 事件（只有 LINK_APPLY），和作品一样缓存短一些。
+// 友链增删改经 LINK_* 事件立即失效；后台审核通过申请不发事件，靠短缓存。
 export async function getLinks() {
   "use cache";
   cacheLife({ stale: 60, revalidate: 300, expire: 3600 });
@@ -467,7 +467,7 @@ export async function getLinks() {
   }));
 }
 
-// 后台“友链设置”里是否开放申请。改动没有 Webhook 事件，缓存短一些。
+// 后台“友链设置”里是否开放申请。改动经 OPTION_UPDATE 失效，没勾时靠短缓存。
 export async function getLinkApplyOpen() {
   "use cache";
   cacheLife({ stale: 60, revalidate: 300, expire: 3600 });
@@ -560,7 +560,7 @@ export async function getComments(refId: string, page: number) {
 }
 
 // AI 摘要与翻译：只读取后台已生成的内容（onlyDb），前端从不触发生成，费用完全由后台控制。
-// 生成、修改摘要/翻译都不发 Webhook 事件，缓存 1 小时。站点原文是中文，翻译只列出非中文的语言。
+// 摘要经 AI_SUMMARY_*、翻译经 TRANSLATION_* 事件立即失效；没勾时缓存 1 小时。站点原文是中文，翻译只列出非中文的语言。
 export const translationLanguages = { en: "English", ja: "日本語" } as const;
 export type TranslationLanguage = keyof typeof translationLanguages;
 export const isTranslationLanguage = (value: unknown): value is TranslationLanguage =>

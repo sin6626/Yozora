@@ -2,7 +2,7 @@ import cluster from 'node:cluster'
 import { Injectable, Logger } from '@nestjs/common'
 import type { ReturnModelType } from '@typegoose/typegoose'
 import { BizException } from '~/common/exceptions/biz.exception'
-import { EventScope } from '~/constants/business-event.constant'
+import { BusinessEvents, EventScope } from '~/constants/business-event.constant'
 import { RedisKeys } from '~/constants/cache.constant'
 import { ErrorCodeEnum } from '~/constants/error-code.constant'
 import { EventBusEvents } from '~/constants/event-bus.constant'
@@ -185,6 +185,11 @@ export class ConfigsService {
       {
         scope: EventScope.TO_SYSTEM,
       },
+    )
+    this.eventManager.emit(
+      BusinessEvents.OPTION_UPDATE,
+      { id: String(updatedConfigRow._id), key },
+      { scope: EventScope.TO_SYSTEM },
     )
 
     return newData

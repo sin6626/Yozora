@@ -3,10 +3,11 @@ import { OnEvent } from '@nestjs/event-emitter'
 import removeMdCodeblock from 'remove-md-codeblock'
 
 import { BizException } from '~/common/exceptions/biz.exception'
-import { BusinessEvents } from '~/constants/business-event.constant'
+import { BusinessEvents, EventScope } from '~/constants/business-event.constant'
 import { CollectionRefTypes } from '~/constants/db.constant'
 import { ErrorCodeEnum } from '~/constants/error-code.constant'
 import { DatabaseService } from '~/processors/database/database.service'
+import { EventManagerService } from '~/processors/helper/helper.event.service'
 import {
   type TaskExecuteContext,
   TaskQueueProcessor,
@@ -50,6 +51,7 @@ export class AiSummaryService implements OnModuleInit {
     private readonly aiInFlightService: AiInFlightService,
     private readonly taskProcessor: TaskQueueProcessor,
     private readonly aiTaskService: AiTaskService,
+    private readonly eventManager: EventManagerService,
   ) {
     this.logger = new Logger(AiSummaryService.name)
   }
@@ -321,6 +323,7 @@ export class AiSummaryService implements OnModuleInit {
           refId: articleId,
           summary,
         })
+        this.emitSummaryEvent(BusinessEvents.AI_SUMMARY_CREATE, doc)
 
         return { result: doc, resultId: doc.id }
       },
@@ -620,7 +623,19 @@ export class AiSummaryService implements OnModuleInit {
 
     doc.summary = summary
     await doc.save()
+    this.emitSummaryEvent(BusinessEvents.AI_SUMMARY_UPDATE, doc)
     return doc
+  }
+
+  private emitSummaryEvent(
+    event: BusinessEvents,
+    doc: Pick<AISummaryModel, 'id' | 'refId' | 'lang'>,
+  ) {
+    this.eventManager.emit(
+      event,
+      { id: doc.id, refId: doc.refId, lang: doc.lang },
+      { scope: EventScope.TO_SYSTEM },
+    )
   }
   async getSummaryByArticleId(articleId: string, lang = DEFAULT_SUMMARY_LANG) {
     const { document } = await this.resolveArticleForSummary(articleId)
@@ -711,6 +726,11 @@ export class AiSummaryService implements OnModuleInit {
     await this.aiSummaryModel.deleteOne({
       _id: id,
     })
+    this.eventManager.emit(
+      BusinessEvents.AI_SUMMARY_DELETE,
+      { id },
+      { scope: EventScope.TO_SYSTEM },
+    )
   }
 
   @OnEvent(BusinessEvents.POST_DELETE)

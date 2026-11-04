@@ -95,6 +95,18 @@ describe('Test ConfigsService', () => {
     })
   })
 
+  it('emits OPTION_UPDATE with only the row id and key, never the values', async () => {
+    mockEmitFn.mockClear()
+    await service.patch('seo', { title: 'Webhook' })
+    const calls = mockEmitFn.mock.calls.filter(([event]) => event === 'OPTION_UPDATE')
+    expect(calls).toHaveLength(1)
+    const [, payload, options] = calls[0]
+    expect(Object.keys(payload).sort()).toEqual(['id', 'key'])
+    expect(payload.key).toBe('seo')
+    expect(payload.id).toMatch(/^[a-f\d]{24}$/)
+    expect(options).toEqual({ scope: 4 })
+  })
+
   it('should throw error if set a wrong type of config value', async () => {
     await expect(
       service.patchAndValid('seo', { title: true } as any),
@@ -141,6 +153,9 @@ describe('Test ConfigsService', () => {
   })
 
   it('should emit event if enable email option and update search', async () => {
+    // OPTION_UPDATE goes out on every patch for the webhook; count only the internal events here
+    const internalEmits = () =>
+      mockEmitFn.mock.calls.filter(([event]) => event !== 'OPTION_UPDATE').length
     // Clear mock from previous tests
     mockEmitFn.mockClear()
 
@@ -150,12 +165,12 @@ describe('Test ConfigsService', () => {
 
     // ConfigChanged + EmailInit when enable: true
     await service.patchAndValid('mailOptions', { enable: true })
-    expect(mockEmitFn).toBeCalledTimes(2)
+    expect(internalEmits()).toBe(2)
     mockEmitFn.mockClear()
 
     // ConfigChanged + EmailInit (because enable is still true after update)
     await service.patchAndValid('mailOptions', { smtp: { pass: '*' } })
-    expect(mockEmitFn).toBeCalledTimes(2)
+    expect(internalEmits()).toBe(2)
     mockEmitFn.mockClear()
 
     // Only ConfigChanged when enable: false
@@ -163,28 +178,28 @@ describe('Test ConfigsService', () => {
       smtp: { pass: '*' },
       enable: false,
     })
-    expect(mockEmitFn).toBeCalledTimes(1)
+    expect(internalEmits()).toBe(1)
     mockEmitFn.mockClear()
 
     // ConfigChanged + PushSearch when enable: true
     await service.patchAndValid('algoliaSearchOptions', {
       enable: true,
     })
-    expect(mockEmitFn).toBeCalledTimes(2)
+    expect(internalEmits()).toBe(2)
     mockEmitFn.mockClear()
 
     // ConfigChanged + PushSearch (because enable is still true)
     await service.patchAndValid('algoliaSearchOptions', {
       indexName: 'x',
     })
-    expect(mockEmitFn).toBeCalledTimes(2)
+    expect(internalEmits()).toBe(2)
     mockEmitFn.mockClear()
 
     // Only ConfigChanged when enable: false
     await service.patchAndValid('algoliaSearchOptions', {
       enable: false,
     })
-    expect(mockEmitFn).toBeCalledTimes(1)
+    expect(internalEmits()).toBe(1)
     mockEmitFn.mockClear()
   })
 })

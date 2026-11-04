@@ -12,8 +12,9 @@ import { getModelToken } from '~/transformers/model.transformer'
 import { nanoid } from 'nanoid'
 import { stringify } from 'qs'
 import { redisHelper } from 'test/helper/redis-mock.helper'
+import { vi } from 'vitest'
 
-const mockedEventManageService = { async emit() {} }
+const mockedEventManageService = { emit: vi.fn(async () => {}) }
 describe('test Snippet Service', async () => {
   let service: SnippetService
 
@@ -139,5 +140,18 @@ describe('test Snippet Service', async () => {
 
       expect(raw.secret).toBe(newSnippet.secret)
     })
+  })
+
+  it('emits SNIPPET_* webhook events without the snippet body', async () => {
+    mockedEventManageService.emit.mockClear()
+    const created = await service.create({ ...snippet, name: `webhook-${nanoid()}`, reference: 'theme' })
+    await service.update(created.id, { ...snippet, name: created.name, reference: 'theme', raw: '{"a":1}' })
+    await service.delete(created.id)
+    const events = mockedEventManageService.emit.mock.calls.filter(([event]) => String(event).startsWith('SNIPPET_'))
+    expect(events.map(([event]) => event)).toEqual(['SNIPPET_CREATE', 'SNIPPET_UPDATE', 'SNIPPET_DELETE'])
+    for (const [, payload, options] of events) {
+      expect(payload).toEqual({ id: created.id, reference: 'theme', name: created.name })
+      expect(options).toEqual({ scope: 4 })
+    }
   })
 })

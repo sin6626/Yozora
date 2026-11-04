@@ -6,6 +6,17 @@ import vm from 'node:vm'
 
 const require = createRequire(process.env.WEBHOOK_TEST_PACKAGE || new URL('../apps/web/package.json', import.meta.url))
 const ts = require('typescript')
+const load = (path, extra = {}) => {
+  const code = ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
+  const module = { exports: {} }
+  vm.runInNewContext(code, { module, exports: module.exports, ...extra })
+  return module.exports
+}
+const webhookEvents = load('../apps/web/lib/webhook-events.ts')
+const { BusinessEvents } = load('../apps/core/src/constants/business-event.constant.ts')
+const coreEvents = new Set(Object.values(BusinessEvents))
+const unknown = [...webhookEvents.eventTags.keys()].filter((event) => !coreEvents.has(event))
+assert.deepEqual(unknown, [], 'every event the front end listens for must be registered in Core, otherwise the Webhook entry drops it')
 const source = readFileSync(new URL('../apps/web/app/api/webhooks/mix-space/route.ts', import.meta.url), 'utf8')
 const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
 const calls = []
@@ -13,7 +24,7 @@ let failInvalidation = false
 const module = { exports: {} }
 vm.runInNewContext(code, {
   module, exports: module.exports, Buffer, process, Response,
-  require: (id) => id === 'next/cache' ? { revalidateTag: (...args) => {
+  require: (id) => id.endsWith('/lib/webhook-events') ? webhookEvents : id === 'next/cache' ? { revalidateTag: (...args) => {
     if (failInvalidation) throw new Error('storage unavailable')
     calls.push(args)
   } } : require(id),
@@ -70,14 +81,19 @@ try {
     assert.deepEqual(await tagsFor(`MURMUR_${action}`, JSON.stringify({ id })), ['blog:murmurs'])
     assert.deepEqual(await tagsFor(`LINK_${action}`, JSON.stringify({ id })), ['blog:links'])
     assert.deepEqual(await tagsFor(`COMMENT_${action}`, JSON.stringify({ id })), ['blog:comments'])
+    assert.deepEqual(await tagsFor(`AI_SUMMARY_${action}`, JSON.stringify({ id, refId: id, lang: 'zh' })), ['blog:ai'])
+    assert.deepEqual(await tagsFor(`SNIPPET_${action}`, JSON.stringify({ id, reference: 'theme', name: 'sin-space' })), ['blog:theme', 'activity-sky'])
+    if (action === 'DELETE') continue
     assert.deepEqual(await tagsFor(`TRANSLATION_${action}`, JSON.stringify({ id, refId: id, lang: 'en' })), ['blog:ai', 'blog:posts', 'blog:notes', 'blog:pages'])
   }
-  assert.deepEqual((await tagsFor('CONTENT_REFRESH', '"restore_done"')).sort(), ['blog:ai', 'blog:categories', 'blog:comments', 'blog:links', 'blog:murmurs', 'blog:navigation', 'blog:notes', 'blog:pages', 'blog:posts', 'blog:projects', 'blog:recently', 'blog:says', 'blog:theme'])
-  for (const event of ['READER_CREATE', 'LINK_APPLY', 'VISITOR_ONLINE']) await expectStatus(event, JSON.stringify({ id }), 400)
+  assert.deepEqual(await tagsFor('OPTION_UPDATE', JSON.stringify({ id, key: 'seo' })), ['blog:navigation', 'blog:links'])
+  assert.deepEqual(await tagsFor('OWNER_UPDATE', JSON.stringify({ id })), ['blog:navigation'])
+  assert.deepEqual((await tagsFor('CONTENT_REFRESH', '"restore_done"')).sort(), ['activity-sky', 'blog:ai', 'blog:categories', 'blog:comments', 'blog:links', 'blog:murmurs', 'blog:navigation', 'blog:notes', 'blog:pages', 'blog:posts', 'blog:projects', 'blog:recently', 'blog:says', 'blog:theme'])
+  for (const event of ['READER_CREATE', 'LINK_APPLY', 'VISITOR_ONLINE', 'TRANSLATION_DELETE', 'OPTION_CREATE']) await expectStatus(event, JSON.stringify({ id }), 400)
   await expectStatus('NOTE_UPDATE', JSON.stringify({ id: 'bad' }), 400)
   failInvalidation = true
   await expectStatus('POST_UPDATE', JSON.stringify({ id }), 500)
-  console.log('PASS webhook signatures, raw UTF-8, input limits, health check, post/note/page/category/topic/say/recently/murmur/comment/project/link/translation/restore tags, allowlist and cache failure')
+  console.log('PASS webhook signatures, raw UTF-8, input limits, health check, post/note/page/category/topic/say/recently/murmur/comment/project/link/translation/ai-summary/snippet/option/owner/restore tags, events registered in Core, allowlist and cache failure')
 } finally {
   if (previous === undefined) delete process.env.MIX_SPACE_WEBHOOK_SECRET
   else process.env.MIX_SPACE_WEBHOOK_SECRET = previous

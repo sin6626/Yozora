@@ -1,36 +1,9 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { revalidateTag } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
+import { allTags, eventTags } from "../../../../lib/webhook-events";
 
 const maxBodyBytes = 4 * 1024 * 1024;
-// 后台勾选的事件 → 需要立即失效的缓存标签。不在表里的事件回 400，后台投递记录会显示失败。
-// blog:categories 同时挂在导航、分类和文章列表上；blog:pages 挂在导航上。
-const kindTags = {
-  POST: ["blog:posts", "blog:categories"],
-  NOTE: ["blog:notes"],
-  PAGE: ["blog:pages"],
-  CATEGORY: ["blog:categories"],
-  TOPIC: ["blog:notes"],
-  SAY: ["blog:says"],
-  RECENTLY: ["blog:recently"],
-  // 碎碎念：列表、首页右栏和“最近发生的事”都挂在 blog:murmurs 上
-  MURMUR: ["blog:murmurs"],
-  // 评论审核通过、置顶不发事件，靠 blog:comments 的短缓存兜底。
-  COMMENT: ["blog:comments"],
-  // Core 的事件枚举没有 PROJECT_*、LINK_*（友链只有 LINK_APPLY），只有后台勾选“全部事件”时才会收到；
-  // 列在这里也让备份恢复（CONTENT_REFRESH）时一并失效。
-  PROJECT: ["blog:projects"],
-  LINK: ["blog:links"],
-  // AI 翻译（或手动写入的译文）新增、更新：外文页面的正文、标题、摘要都来自它；文章、手记列表和导航的译名也跟着变
-  TRANSLATION: ["blog:ai", "blog:posts", "blog:notes", "blog:pages"],
-};
-const eventTags = new Map<string, readonly string[]>(
-  Object.entries(kindTags).flatMap(([kind, tags]) =>
-    ["CREATE", "UPDATE", "DELETE"].map((action) => [`${kind}_${action}`, tags] as const),
-  ),
-);
-// 备份恢复后 Core 发出 CONTENT_REFRESH，载荷是字符串 "restore_done"，全部公开缓存失效（含站名、订阅开关等站点设置和主题配置片段）。
-const allTags = Array.from(new Set([...Object.values(kindTags).flat(), "blog:navigation", "blog:theme"]));
 
 function revalidate(event: string, tags: readonly string[]) {
   try {
