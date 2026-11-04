@@ -162,6 +162,30 @@ beta 前台已更新到 `releases/1b5a6d4`（上一个 `7dd878b` 留着）。
 - 整库只读对比（`.local/deploy/db-diff-20261104.txt`，隧道 `172.19.0.3:27017`）：除社交账号外没有漏迁的内容。本地多的是富文本组件对照演示文章、只写了“ces”的测试碎碎念、测试评论 `XXS`（已删）、思考 24 条（线上思考是 0 条，碎碎念里已有它们的副本）；线上多的是之后在线上新发的文章《以 STEP 为框架理解 Plate 的测试实践》、手记《大学特种兵》、友链 Elowen's Space、读者 dfgf 在手记《大学特种兵》下的真实评论（不是测试，别删）、力扣日历片段；“两边都不同”的文章、手记、译文、友链头像、话题图标、作品头像都是导入时本地把图片地址改成了本机地址，线上那份才对；站点设置、云函数密钥、会话、统计、订阅本来就各是各的。
 - 磁盘（30G 用了 18G）留给站长自己清：新版本稳定后可删最老的前台版本 `rm -rf /root/mx-space/yozora-web/releases/7dd878b`（约 260MB，1b5a6d4 留作回滚）；不用的镜像标签 `docker rmi innei/mx-server:latest innei/mx-server:10 yozora/mx-server:beta-test`（**不要删** `innei/mx-server:running-20261102`，那是 Core 的回滚镜像）；兼容性测试留下的库 `mx-space-beta`（6.4MB）可删可留。日志不用管：`serverless_logs` 有 Core 自带的 7 天 TTL 索引，稳定后约 6.5MB；`webhook_events` 只有个位数。
 
+## 2026-11-04 已做：线上 Core 换成 20261104、配置片段改名 yozora
+
+站长要求“把配置片段改名 Yozora 并部署到线上”后执行（本轮改动见 AGENTS.md 2026-11-04“后台掌控前台的数据”）。
+
+- 备份：服务器 `/root/backups/2026-11-04/mongo-before-core-20261104.archive.gz`（整库，文章 13、手记 10、评论 35）和 `docker-compose-before-core-20261104.yml`。
+- 构建：本机 `git worktree add --detach /tmp/yozora-build HEAD` → `pnpm install --frozen-lockfile --prefer-offline`（pnpm 会因 prisma 等构建脚本被忽略而返回 1，依赖已装好；它往 `pnpm-workspace.yaml` 写的占位要 `git checkout` 还原）→ `pnpm build:sdk && pnpm --filter @mx-space/core build`，`apps/core/out` 约 60M，`rsync --partial` 传到服务器。
+- 镜像：`/root/mx-space/core-image-20261104/`（Dockerfile 与 11-03 相同：以 `innei/mx-server:running-20261102` 为底、换掉 `*.mjs`），标签 `yozora/mx-server:20261104`。
+- 切换：compose 里镜像标签 `20261103` → `20261104`，`docker compose up -d --no-deps app`，约 9 秒 healthy，无新迁移。
+- 检查：公网 API、旧 Shiro 首页与文章列表、beta 都是 200；后台 Webhook 事件列表多了 14 个新事件（共 62 个）；楼中楼接口带 `readers`，线上 7 个真实回复楼都没有邮箱字段。
+- 配置片段：线上 `theme/sin-space` 改名 `theme/yozora`，补上 hero、footer、accounts、copyright（空）和英日文，文案与原来写死的相同（原片段备份在本机 `.local/backups/prod-snippet-sin-space-20261104.json`）。改名要在构建前端之前做（构建时预渲染会读它）。
+- Webhook：beta 那条订阅加勾 14 个新事件（30 → 44，原列表备份 `.local/backups/prod-webhook-events-20261104.json`）。
+
+- 前台：同一个构建目录 `build-web.mjs`（81383e8，包 68MB），`rsync --partial` 上传，解压到 `releases/81383e8`，`current` 指过去，按上面同一条命令重建容器（重建前核对过启动参数）。本机 2324 端口 15 个页面 200，公网 beta 首页、英文首页的首屏、页脚、萌备都来自 `theme/yozora`，话题页显示简介；重新保存一次线上片段（内容不变），投递记录 `SNIPPET_UPDATE 200`；无头浏览器打开 5 个页面无脚本报错。容器约 232MB / 400MB。前台回滚：`current` 指回 `releases/2131c7a` 再重建容器（旧版本读 `sin-space`，会退回占位文案）。
+- 注意：站名现在读 SEO 网站标题，线上那一项还是旧 Shiro 的“葉は静かに落ちる”、描述是“有朋自远方来, 不亦说乎”，所以 beta 的浏览器标题也是它；线上新旧前台共用这些设置，要不要改由站长定。
+
+回滚 Core（约 10 秒）：
+
+```bash
+sed -i 's#image: yozora/mx-server:20261104#image: yozora/mx-server:20261103#' /root/mx-space/core/docker-compose.yml
+cd /root/mx-space/core && docker compose up -d --no-deps app
+```
+
+回滚 Core 后旧 Core 不认识新事件名，Webhook 订阅里的新事件会被忽略，不影响别的事件。配置片段改回原名用后台“配置与云函数”改名即可，但新前台读的是 `yozora`。
+
 ## 第 1 步：备份
 
 - MongoDB：`mongodump` 整库导出（Docker 跑的就在容器里执行再拷出来），放到服务器以外的地方再留一份。
