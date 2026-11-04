@@ -7,20 +7,36 @@ import LinkApplyForm from "./link-apply-form";
 import "./corners.css";
 import { getLocale, getT } from "../lib/i18n/server";
 import LoadError from "./load-error";
+import type { CSSProperties } from "react";
 
 type Link = Awaited<ReturnType<typeof getLinks>>[number];
 
 // 分组沿用 Shiro：隐藏的不显示；已通过的按类型分“朋友”“收藏”；失联的只列名字（不可访问，不给链接）；
 // 被封禁的不展示。页面底部是友链申请（后台开放申请时才有表单）。
-// 每个朋友一张小卡片：圆形头像、站名、一句话，整张可点（新窗口打开）。
-function LinkCards({ links }: { links: Link[] }) {
+// 进场时每张卡亮起的先后：按 id 的散列打乱，在 0.9 秒内均匀排开，像天黑后星星一颗颗冒出来（corners.css 的 friend-twinkle）。
+// 在服务端算好，每次渲染顺序都一样，不会和水合对不上。
+function twinkleTimes(ids: string[]) {
+  // FNV-1a 再加 murmur3 的收尾混合：id 往往只差最后几个字符（数据库 id 是递增的），不混开的话排出来几乎还是原顺序
+  const hash = (id: string) => {
+    let h = [...id].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261);
+    h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
+    h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+    return (h ^ (h >>> 16)) >>> 0;
+  };
+  const step = Math.min(80, 900 / Math.max(ids.length, 1));
+  return new Map([...ids].sort((a, b) => hash(a) - hash(b)).map((id, rank) => [id, Math.round(rank * step)]));
+}
+
+// 每个朋友一张小卡片：圆形头像、站名、一句话，整张可点（新窗口打开）。调试页用示例数据复用。
+export function LinkCards({ links }: { links: Pick<Link, "id" | "name" | "url" | "avatar" | "description">[] }) {
+  const twinkle = twinkleTimes(links.map((link) => link.id));
   return (
     <ul className="friend-grid">
       {links.map((link) => {
         const url = safeUrl(link.url);
         const avatar = safeUrl(link.avatar);
         return (
-          <li key={link.id}>
+          <li key={link.id} style={{ "--twinkle-at": `${twinkle.get(link.id)}ms` } as CSSProperties}>
             <article className="friend-card">
               {avatar ? (
                 // eslint-disable-next-line @next/next/no-img-element -- 友链头像来自任意域名，不走 next/image 白名单

@@ -20,6 +20,7 @@ import SkyMenu, { SkyPanel } from "@/components/sky-menu";
 import { ActiveFilter } from "@/components/list-filters";
 import PageLoading from "@/components/page-loading";
 import { ProjectCard } from "@/components/project-list";
+import { LinkCards } from "@/components/friend-list";
 import type { CSSProperties } from "react";
 import StyleGuide from "./style-guide";
 import IslandButtons from "./island-buttons";
@@ -86,6 +87,15 @@ const sampleProjects = ["星图", "夜航岛", "小火箭", "碎碎念", "金句
   previewUrl: undefined,
   docUrl: undefined,
   original: false,
+}));
+
+// 友链进场示例：十二个朋友，看头像随机先后亮起（本地真实友链只有两个）
+const sampleFriends = ["织女", "牛郎", "天狼", "北斗", "参商", "启明", "长庚", "辰星", "荧惑", "岁星", "太白", "镇星"].map((name, index) => ({
+  id: `friend-sample-${index}`,
+  name,
+  url: "https://example.com",
+  avatar: "",
+  description: "示例友链，用来看进场动画。",
 }));
 
 export default function DebugPage() {
@@ -178,6 +188,11 @@ export default function DebugPage() {
             <h2>首页入场动画</h2>
             <p className="post-meta">home-hero.css：首屏天空从暗处亮起，标题两行、说明、社交图标、头像、底部依次对焦浮上，最后“Sin”“大三学生”亮一下；首页下半部分用 components/reveal.tsx，滚到才出现、只播一次，离开首页再回来重置。开灯时“大三学生”是粗体，光晕是 --emphasis-halo（每套配色一种）。地址加 ?palette=night / galaxy / ink 换配色对比</p>
             <HeroEntrancePreview />
+          </li>
+          <li id="debug-friend-entrance">
+            <h2>友链进场</h2>
+            <p className="post-meta">friend-list.tsx + corners.css：头像像天黑后的星星，按 id 打乱的先后在 0.9 秒内一颗颗从暗处亮起（略放大、带一圈月光再落回），卡片淡入、站名随后滑进。本地真实友链只有两个，这里放十二个示例；刷新页面重播</p>
+            <LinkCards links={sampleFriends} />
           </li>
           <li id="debug-project-entrance">
             <h2>作品进场</h2>
