@@ -40,6 +40,11 @@ export class CommentFilterEmailInterceptor implements NestInterceptor {
             })
           }
 
+          // GET /comments/thread/:id answers { replies } rather than { data }
+          if (isArrayLike(data?.replies)) {
+            handle({ data: data.replies })
+          }
+
           if (isObjectLike(data)) {
             data = data?.toJSON?.() || data
 
