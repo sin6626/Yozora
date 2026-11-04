@@ -196,6 +196,12 @@ export class PostService implements OnApplicationBootstrap {
     slug: string,
     isAuthenticated?: boolean,
   ) {
+    // Visitors must not see the titles of unpublished related posts
+    const relatedPopulate = {
+      path: 'related',
+      select: 'title slug id _id categoryId category',
+      ...(isAuthenticated ? {} : { match: { isPublished: true } }),
+    }
     const findTrackedPost = async () => {
       const tracked = await this.slugTrackerService.findTrackerBySlug(
         `/${categorySlug}/${slug}`,
@@ -206,10 +212,7 @@ export class PostService implements OnApplicationBootstrap {
         return this.postModel
           .findById(tracked.targetId)
           .populate('category')
-          .populate({
-            path: 'related',
-            select: 'title slug id _id categoryId category',
-          })
+          .populate(relatedPopulate)
       }
     }
 
@@ -239,10 +242,7 @@ export class PostService implements OnApplicationBootstrap {
     const postDocument = await this.model
       .findOne(queryConditions)
       .populate('category')
-      .populate({
-        path: 'related',
-        select: 'title slug id _id categoryId category',
-      })
+      .populate(relatedPopulate)
 
     if (postDocument) return postDocument
 

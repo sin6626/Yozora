@@ -13,7 +13,7 @@ const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKi
 let failure
 let aiState = { summary: null, languages: [], locale: 'zh', translation: null }
 let request
-const post = { id: 'post-id', count: { read: 3, like: 1 }, title: '测试', created: '2026-10-22T00:00:00Z', category: { name: '学习', slug: 'study&think' }, text: '## 标题\n\n- 条目\n\n```js\nconst x = 1\n```\n\n| A | B |\n| - | - |\n| 1 | 2 |\n\n[链接](https://example.com)\n\n[危险](javascript:alert(1))\n\n<script>alert(1)</script>' }
+const post = { id: 'post-id', count: { read: 3, like: 1 }, title: '测试', created: '2026-10-22T00:00:00Z', category: { name: '学习', slug: 'study&think' }, text: '## 标题\n\n- 条目\n\n```js\nconst x = 1\n```\n\n| A | B |\n| - | - |\n| 1 | 2 |\n\n[链接](https://example.com)\n\n[危险](javascript:alert(1))\n\n<script>alert(1)</script>', related: [{ id: 'rel-a', title: '关联的那篇', href: '/posts/technology/a' }] }
 // 正文组件 article-body 用真实代码，富文本渲染器换成替身：只标记收到的 content 并原样输出兜底 children。
 const { createElement } = require('react')
 const bodyCode = ts.transpileModule(readFileSync(new URL('../apps/web/components/article-body.tsx', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText
@@ -36,6 +36,7 @@ const slug = articleBody.exports.createSlugger()
 assert.deepEqual(['Hello World!', 'Hello World', '什么是 zod？', '？？'].map(slug), ['hello-world', 'hello-world-1', '什么是-zod', 'section'])
 assert.ok(html.includes('<table>') && html.includes('<pre>'))
 assert.ok(html.includes('阅读 3'), '详情页显示阅读数')
+assert.ok(html.includes('aria-label="关联阅读"') && html.includes('href="/posts/technology/a"') && html.includes('关联的那篇'), '后台设的关联阅读出现在文末')
 assert.ok(html.includes('href="https://example.com"'))
 assert.equal(html.includes('<script'), false)
 assert.equal(html.includes('href="javascript:'), false)

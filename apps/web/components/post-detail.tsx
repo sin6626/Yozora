@@ -60,6 +60,13 @@ export default async function PostDetail({ params }: { params: Promise<{ categor
         <ArticleAiNotes ai={ai} />
         <div lang={ai.original}><ArticleBody text={body.text} contentFormat={body.contentFormat} content={body.content} emptyText={t.posts.noBody} /></div>
         <div className="article-end"><ArticleStats apiUrl={getApiUrl()} id={post.id} type="post" like={post.count.like} /></div>
+        {post.related.length > 0 && (
+          <nav className="neighbor-nav" aria-label={t.posts.related}>
+            {post.related.map((item) => (
+              <Link key={item.id} href={item.href}><span className="neighbor-label">{t.posts.related}</span><span className="neighbor-title">{item.title}</span></Link>
+            ))}
+          </nav>
+        )}
         <Suspense fallback={null}>
           <PostNeighbors id={post.id} />
         </Suspense>

@@ -269,6 +269,7 @@ const ja: Messages = {
     tagsFailed: "タグを読み込めませんでした。",
     noTags: "タグはまだありません。",
     neighbors: "前後の記事",
+    related: "関連記事",
     noBody: "この記事にはまだ表示できる本文がありません。",
     categoryDescription: (name: string) => `カテゴリー「${name}」の記事。`,
   },

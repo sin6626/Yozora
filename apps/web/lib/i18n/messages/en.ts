@@ -269,6 +269,7 @@ const en: Messages = {
     tagsFailed: "Couldn't load tags.",
     noTags: "No tags yet.",
     neighbors: "Nearby posts",
+    related: "Related reading",
     noBody: "This post has nothing to show yet.",
     categoryDescription: (name: string) => `Posts filed under “${name}”.`,
   },

@@ -233,10 +233,22 @@ export async function getPost(category: string, slug: string, lang: ContentLang 
   "use cache";
   cacheLife({ stale: 60, revalidate: 300, expire: 3600 });
   cacheTag("blog:posts", "blog:categories");
-  const [post, names] = await Promise.all([orNotFound(getApiClient().post.getPost(category, slug)), localizedNames(lang)]);
+  const [post, names, timeline] = await Promise.all([
+    orNotFound(getApiClient().post.getPost(category, slug)),
+    localizedNames(lang),
+    getTimeline(lang).catch(() => []),
+  ]);
   if (!post) return null;
   cacheTag(`blog:post:${post.id}`);
+  // 后台“关联阅读”：保持后台的先后顺序，标题和地址从时间线（只有已发布文章）换算，所以草稿和已删除的不会露出来
+  const published = new Map(timeline.flatMap((item) => item.kind === "post" ? [[item.id, item]] : []));
+  const related = ((post as { related?: { id: string }[] }).related ?? []).flatMap(({ id }) => {
+    const item = published.get(id);
+    return item ? [{ id, title: item.title, href: `/posts/${encodeURIComponent(item.category.slug)}/${encodeURIComponent(item.slug)}` }] : [];
+  });
   return {
+    related,
+    copyright: post.copyright !== false,
     id: post.id,
     title: post.title,
     summary: post.summary,

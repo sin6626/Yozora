@@ -518,6 +518,20 @@ describe('PostService', () => {
       expect(result).toBeDefined()
     })
 
+    it('only populates published related posts for visitors', async () => {
+      const relatedCalls = (isAuthenticated: boolean) => {
+        const populate = vi.fn().mockReturnThis()
+        vi.spyOn((postService as any).postModel, 'findOne').mockReturnValue({ ...mockPosts[0], populate })
+        return postService
+          .getPostBySlug('test-category', 'test-post', isAuthenticated)
+          .then(() => populate.mock.calls.map(([arg]) => arg).find((arg) => arg?.path === 'related'))
+      }
+      mockCategoryService.model.findOne.mockResolvedValue({ _id: 'valid-category-id', id: 'valid-category-id', slug: 'test-category' })
+
+      expect((await relatedCalls(false))?.match).toEqual({ isPublished: true })
+      expect((await relatedCalls(true))?.match).toBeUndefined()
+    })
+
     it('should return unpublished posts for authenticated users', async () => {
       mockPosts[0].isPublished = false
 

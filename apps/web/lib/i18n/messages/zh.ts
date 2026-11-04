@@ -274,6 +274,7 @@ const zh = {
     tagsFailed: "标签读取失败。",
     noTags: "暂无标签。",
     neighbors: "相邻文章",
+    related: "关联阅读",
     noBody: "这篇文章暂时没有可展示的正文。",
     categoryDescription: (name: string) => `分类“${name}”下的文章。`,
   },

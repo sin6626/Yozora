@@ -9,13 +9,15 @@ const source = readFileSync(new URL('../apps/web/lib/blog-data.ts', import.meta.
 const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
 const lifetimes = [], tags = [], calls = []
 const category = { id: 'category-id', name: '技术', slug: 'technology', type: 0, count: 1, created: '2026-10-22' }
-const post = { id: 'post-id', title: '正文', text: 'body', slug: 'test', category, created: '2026-10-22', liked: true, content: 'unused JSON' }
+const post = { id: 'post-id', title: '正文', text: 'body', slug: 'test', category, created: '2026-10-22', liked: true, content: 'unused JSON', copyright: false, related: [{ id: 'rel-b', title: '旧标题 B', slug: 'b' }, { id: 'rel-draft', title: '草稿', slug: 'draft' }, { id: 'rel-a', title: 'A', slug: 'a' }] }
 const note = { id: 'note-id', nid: 5, title: '手记', text: 'note body', created: '2026-10-22', mood: '开心', weather: '晴', topic: { name: '近况', introduce: 'unused' }, password: 'secret', liked: true, content: 'unused JSON' }
 const project = { id: 'project-id', name: '作品', description: '简介', avatar: 'https://example.com/a.png', text: 'unused', created: '2026-10-22' }
 let invalidNavigation = false
 let detailError
 const api = {
-  aggregate: { getAggregateData: async () => ({ categories: invalidNavigation ? null : [category], pageMeta: [{ id: 'page-id', title: '关于我', slug: 'about' }], user: { privateField: 'not for cache' } }) },
+  aggregate: {
+    getTimeline: async () => ({ data: { posts: [{ id: 'rel-a', title: 'A', slug: 'a', created: '2026-10-21', category }, { id: 'rel-b', title: '新标题 B', slug: 'b', created: '2026-10-20', category }], notes: [] } }),
+    getAggregateData: async () => ({ categories: invalidNavigation ? null : [category], pageMeta: [{ id: 'page-id', title: '关于我', slug: 'about' }], user: { privateField: 'not for cache' } }) },
   category: {
     getAllCategories: async () => ({ data: [category] }),
     getAllTags: async () => ({ data: [{ name: 'Vue', count: 1, extra: 'x' }, { name: ' 前端', count: 3 }] }),
@@ -71,8 +73,10 @@ assert.equal(JSON.stringify(detail.count), JSON.stringify({ read: 0, like: 0 }),
 assert.equal('content' in detail, false, 'Markdown 文章不缓存 content')
 assert.equal(detail.text, 'body')
 assert.ok(tags.includes('blog:post:post-id'))
-// 5 次：导航、分类、文章列表、列表里读 AI 摘要（getArticleAi，2026-10-29 起列表摘要优先用 AI 摘要）、文章详情
-assert.equal(lifetimes.length, 5)
+assert.deepEqual(JSON.parse(JSON.stringify(detail.related)), [{ id: 'rel-b', title: '新标题 B', href: '/posts/technology/b' }, { id: 'rel-a', title: 'A', href: '/posts/technology/a' }], '关联阅读按后台顺序，只列时间线里已发布的文章')
+assert.equal(detail.copyright, false, '后台“版权注明”开关原样带到详情')
+// 6 次：导航、分类、文章列表、列表里读 AI 摘要（getArticleAi，2026-10-29 起列表摘要优先用 AI 摘要）、文章详情、详情换算关联阅读用的时间线
+assert.equal(lifetimes.length, 6)
 assert.ok(lifetimes.every(p => p.revalidate > 0 && p.expire > p.revalidate))
 const notes = await cache.getNotes(3)
 assert.equal(calls[1][0], 3)
@@ -120,7 +124,7 @@ const topicNotes = await cache.getMatchedNotes({ topicId: 't1' }, 1)
 assert.equal(topicNotes.data[0].nid, 5)
 assert.equal((await cache.getMatchedNotes({ keyword: '近况' }, 2)).data.length, 0, '超出页数时这一页为空（列表页据此 404）')
 // 文章列表、手记列表各读一次 AI 摘要；筛选结果每次调用：getMatched* 与它读的全部条目索引各一次，索引里每条再读一次 AI 摘要
-assert.equal(lifetimes.length, 30)
+assert.equal(lifetimes.length, 31)
 assert.ok(lifetimes.every(p => p.revalidate > 0 && p.expire > p.revalidate))
 post.contentFormat = 'lexical'
 assert.equal((await cache.getPost('technology', 'lexical')).content, 'unused JSON', 'Lexical 文章缓存 content 给富文本渲染器')
