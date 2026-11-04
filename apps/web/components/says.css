@@ -301,7 +301,7 @@
 
 /* 开灯（浅色主题）：白天看不到发光的星，所以不装夜空，画成一张印在纸上的古典星图（2026-11-02 用户选的 B）——
    星是墨色实心圆点，新的大、旧的小（--b 0.7–1 → 星半径的 2–3 倍），外面一圈页面底色的白边（星图上连线碰到星时留的空），
-   不发光、不闪；选中的星外面画一个细细的强调色圆圈；连线是细墨线；最新的几句带四道短芒；背后是上面的星图图版（.say-plate）。
+   不发光、不闪；选中的星外面画一个细细的强调色圆圈；连线是细墨线；不带十字短芒；背后是上面的星图图版（.say-plate）。
    只在这一页、只在浅色主题下生效，页面底色和别的页面都不受影响。 */
 :root[data-theme="light"] .say-star {
   opacity: 1;
@@ -325,20 +325,9 @@
   animation: none;
 }
 
-/* 最新的几句像星图上的一等星：圆点外面四道短芒 */
+/* 纸上星图里的星只是墨点，不带十字短芒（选中时也不带；2026-11-04 用户嫌最新几句的四道短芒多余，已去掉） */
 :root[data-theme="light"] .say-star-spikes {
   display: none;
-}
-
-:root[data-theme="light"] .say-star[data-bright] .say-star-spikes {
-  display: block;
-  width: calc(var(--r) * 6);
-  height: calc(var(--r) * 6);
-  background:
-    linear-gradient(color-mix(in srgb, var(--foreground) 82%, var(--primary)), color-mix(in srgb, var(--foreground) 82%, var(--primary))) center / 1px 100% no-repeat,
-    linear-gradient(color-mix(in srgb, var(--foreground) 82%, var(--primary)), color-mix(in srgb, var(--foreground) 82%, var(--primary))) center / 100% 1px no-repeat;
-  mask: none;
-  opacity: 0.9;
 }
 
 :root[data-theme="light"] .say-star:hover .say-star-halo {

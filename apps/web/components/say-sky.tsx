@@ -139,7 +139,6 @@ export default function SaySky({ layouts, says, site, children }: { layouts: Rec
                   data-id={item.id}
                   data-active={item.id === say?.id ? "" : undefined}
                   data-kin={item.group === activeGroup && item.id !== say?.id && (group?.stars.length ?? 0) > 1 ? "" : undefined}
-                  data-bright={item.b >= 0.95 ? "" : undefined}
                   style={{ left: `${item.x}%`, top: `${item.y}%`, "--r": `${item.r}px`, "--b": item.b, "--twinkle-delay": `${(starIndex * 0.73) % 4}s`, "--light-at": `${Math.round((entrance.rank.get(item.id) ?? 0) * entrance.step)}ms` } as CSSProperties}
                   onPointerEnter={(event) => event.pointerType === "mouse" && show(item.id)}
                   onPointerLeave={(event) => event.pointerType === "mouse" && hideSoon()}

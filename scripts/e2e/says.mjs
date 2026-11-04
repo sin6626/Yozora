@@ -131,7 +131,8 @@ try {
     const [r, g, b] = cs.backgroundColor.match(/[\\d.]+/g).map(Number);
     return { clip: cs.clipPath, round: cs.borderRadius, ring: cs.boxShadow, light: (r + g + b) / 3, halo: getComputedStyle(core.parentElement.querySelector(".say-star-halo")).backgroundImage,
       plate: getComputedStyle(document.querySelector(".say-plate")).display, rulers: document.querySelectorAll(".say-plate-ruler i").length, legend: document.querySelectorAll(".say-plate-legend b").length,
-      page: getComputedStyle(document.body).backgroundColor };
+      page: getComputedStyle(document.body).backgroundColor,
+      crosses: [...sky.querySelectorAll(".say-star-spikes")].filter((x) => getComputedStyle(x).display !== "none" && Number(getComputedStyle(x).opacity) > 0.05).length };
   })()`);
   const darkStar = await starLook();
   assert.ok(darkStar.light > 180 && darkStar.halo.includes("radial-gradient"), "熄灯时是带柔光的亮色圆点");
@@ -144,6 +145,13 @@ try {
   assert.equal(lightStar.halo, "none", "开灯时不发光");
   assert.notEqual(lightStar.plate, "none", "开灯时背后是星图图版（图框、刻度、经纬线）");
   assert.ok(lightStar.rulers >= 10 && lightStar.legend === 4, "图版有刻度数和“新—旧”星等图例");
+  // 开灯时星上不带十字短芒（2026-11-04 用户：原来最新几句的墨点带四道短芒，多余），悬停选中时也没有
+  assert.equal(lightStar.crosses, 0, `开灯时星上不该有十字短芒：${lightStar.crosses} 颗有`);
+  const lightCenter = await browser.evaluate(`(() => { const r = ${visible()}.querySelector(".say-star-core").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+  await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: lightCenter.x, y: lightCenter.y });
+  await sleep(400);
+  assert.equal((await starLook()).crosses, 0, "开灯时悬停选中的星也不带十字短芒");
+  await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: 5 });
   await browser.goto(`${base}/posts`, 2500);
   assert.equal(await browser.evaluate(`getComputedStyle(document.body).backgroundColor`), lightStar.page, "别的页面的浅色底色和一言页一样（只改了星）");
   await browser.evaluate(`localStorage.removeItem("theme")`);
