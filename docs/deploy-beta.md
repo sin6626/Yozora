@@ -148,6 +148,18 @@ beta 前台已更新到 `releases/1b5a6d4`（上一个 `7dd878b` 留着）。
 - **为什么不迁文章手记的“改动”**：本地库是从线上导入的，导入时图片地址被改成了本机 `http://127.0.0.1:2333/objects/image/import-*`，对比出来的“不同”全是这个；线上那份才是对的。本地补的译文若带这种地址，迁移脚本按两边正文里图片出现的顺序换回线上 S3 地址（38 个），写入前检查不得含指向本地 Core（端口 2333）的地址。
 - 直接改库不会触发 Webhook：迁移后清掉 Redis 的 `mx-api-cache:*`、`mx:snippet_cache*`、`mx:translation_entry_dict*`，再在服务器上用 `web.env` 的密钥签一个 `CONTENT_REFRESH` 发给 `127.0.0.1:2324/api/webhooks/mix-space`，beta 的缓存整体作废。核对：线上碎碎念 56、一言 5、新副标题、`sin-space` 200、分类英文名 Ramblings；Shiro 首页和关于页 200。
 
+## 2026-11-04 已做：beta 前台更新到 2131c7a、清掉线上测试数据
+
+- 这次只有前台有改动（1b5a6d4 之后 17 个提交：读取中小火箭、“今晚的天空”配色选择、各列表页进场动画、浅色星图去掉十字、站点图标），Core、后台、SDK 都没变，所以只换前台，Core 不重启。
+- 构建照上面“新前台”一节：`git worktree add --detach /tmp/yozora-build HEAD` → `pnpm install --frozen-lockfile --prefer-offline` → `build-web.mjs`，包 64MB。构建前先跑 `pnpm verify`（这次查出 `verify-post-list.mjs` 的模块替身缺 `./reveal`，修了才构建）。
+- 上传用 `rsync --partial`（断了重跑能续传，服务器有 rsync），约 7 分钟。上传进行时另开 SSH 连接被服务器断开过一次（`Connection closed by ... port 22`），等上传完再做别的。
+- 切换：解压到 `releases/2131c7a`、`chown -R 1000:1000`、`current` 指过去、`docker rm -f yozora-web` 后用上面同一条命令启动（重建前用 `docker inspect yozora-web` 核对过启动参数和文档一致）。停机约 5 秒。
+- 验证：服务器本机 `127.0.0.1:2324` 首页、文章、手记、时间线、一言、友链、作品、思考、碎碎念、英日文、页面、文章与手记详情、feed、sitemap、新图标都是 200；robots 整站禁止、页面 noindex；公网 `https://beta.sin6626.me` 200；无头浏览器打开首页、文章、一言、时间线没有脚本报错。
+- 回滚：`ln -sfn /root/mx-space/yozora-web/releases/1b5a6d4 /root/mx-space/yozora-web/current`，再重建容器。
+- 容器约 242MB / 400MB，之后服务器可用内存约 160MB（另有 3.4G swap），比上一版略紧。
+- 线上测试数据：删了 04-20 的测试评论线程 3 条（都已是软删除）、页面草稿 `test`、4 条指向已不存在内容的搜索索引，和本地同一批（本地库是线上导入的，_id 相同）。删前导出到服务器 `/root/backups/2026-11-04/test-data-online.json`（600），删除脚本也在那里。恢复：把备份里的文档按 `_id` 插回对应集合。
+- 磁盘（30G 用了 18G）留给站长自己清：新版本稳定后可删最老的前台版本 `rm -rf /root/mx-space/yozora-web/releases/7dd878b`（约 260MB，1b5a6d4 留作回滚）；不用的镜像标签 `docker rmi innei/mx-server:latest innei/mx-server:10 yozora/mx-server:beta-test`（**不要删** `innei/mx-server:running-20261102`，那是 Core 的回滚镜像）；兼容性测试留下的库 `mx-space-beta`（6.4MB）可删可留。日志不用管：`serverless_logs` 有 Core 自带的 7 天 TTL 索引，稳定后约 6.5MB；`webhook_events` 只有个位数。
+
 ## 第 1 步：备份
 
 - MongoDB：`mongodump` 整库导出（Docker 跑的就在容器里执行再拷出来），放到服务器以外的地方再留一份。
