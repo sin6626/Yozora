@@ -19,6 +19,8 @@ import { OpenSearchButton } from "@/components/command-search";
 import SkyMenu, { SkyPanel } from "@/components/sky-menu";
 import { ActiveFilter } from "@/components/list-filters";
 import PageLoading from "@/components/page-loading";
+import { ProjectCard } from "@/components/project-list";
+import type { CSSProperties } from "react";
 import StyleGuide from "./style-guide";
 import IslandButtons from "./island-buttons";
 import BrandTickerPreview from "./brand-ticker";
@@ -74,6 +76,18 @@ export const answer = 42;
 `;
 
 // 仅开发环境：集中展示平时很难看到的组件状态，样式和真实页面共用。
+// 作品进场示例：八张卡，看斜对角波浪（本地真实作品只有两张）
+const sampleProjects = ["星图", "夜航岛", "小火箭", "碎碎念", "金句卡片", "月相", "星井", "跃迁门"].map((name, index) => ({
+  id: `sample-${index}`,
+  name,
+  description: "示例作品，用来看进场动画。",
+  avatar: undefined,
+  projectUrl: "https://example.com",
+  previewUrl: undefined,
+  docUrl: undefined,
+  original: false,
+}));
+
 export default function DebugPage() {
   if (process.env.NODE_ENV === "production") notFound();
   return (
@@ -164,6 +178,15 @@ export default function DebugPage() {
             <h2>首页入场动画</h2>
             <p className="post-meta">home-hero.css：首屏天空从暗处亮起，标题两行、说明、社交图标、头像、底部依次对焦浮上，最后“Sin”“大三学生”亮一下；首页下半部分用 components/reveal.tsx，滚到才出现、只播一次，离开首页再回来重置。开灯时“大三学生”是粗体，光晕是 --emphasis-halo（每套配色一种）。地址加 ?palette=night / galaxy / ink 换配色对比</p>
             <HeroEntrancePreview />
+          </li>
+          <li id="debug-project-entrance">
+            <h2>作品进场</h2>
+            <p className="post-meta">corners.css 的 .project-grid &gt; li：卡片按（行 + 列）× 90ms 沿斜对角依次浮上，列数随网格宽度用容器查询算。本地真实作品只有两张，这里放八张示例看波浪；刷新页面重播</p>
+            <ul className="project-grid">
+              {sampleProjects.map((project, index) => (
+                <li key={project.id} style={{ "--i": index } as CSSProperties}><ProjectCard project={project} headingLevel={3} /></li>
+              ))}
+            </ul>
           </li>
           <li id="debug-sky">
             <h2>今晚的天空</h2>

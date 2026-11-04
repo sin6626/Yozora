@@ -283,6 +283,50 @@ a.entry-tag:focus-visible {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
   gap: var(--space-4);
+  container-type: inline-size;
+}
+
+/* 进场：卡片沿斜对角像波浪一样依次浮上，每次进入页面播一次（离开再回来，Activity 重新显示时重播）。
+   第几行第几列由序号 --i（project-list.tsx）和列数算，列数照着上面的 auto-fill（15rem 一列、1rem 间隔）用容器查询给；
+   延迟 =（行 + 列）× 90ms，最多 0.9 秒。网格紧跟在标题下面、一直在首屏，所以不用 Reveal 等滚动，也不用等脚本。
+   ponytail：作品多到几十个时下面几行会在屏幕外播完，那时再给每张卡套 Reveal。 */
+.project-grid > li {
+  --cols: 1;
+  --row: round(down, var(--i, 0) / var(--cols));
+  --col: mod(var(--i, 0), var(--cols));
+  animation: project-rise 0.6s var(--ease-out) min(calc((var(--row) + var(--col)) * 90ms), 900ms) both;
+}
+
+@container (min-width: 31rem) {
+  .project-grid > li {
+    --cols: 2;
+  }
+}
+
+@container (min-width: 47rem) {
+  .project-grid > li {
+    --cols: 3;
+  }
+}
+
+@container (min-width: 63rem) {
+  .project-grid > li {
+    --cols: 4;
+  }
+}
+
+@keyframes project-rise {
+  from {
+    opacity: 0.0001;
+    translate: 0 1.25rem;
+    scale: 0.97;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-grid > li {
+    animation: none;
+  }
 }
 
 .project-card {

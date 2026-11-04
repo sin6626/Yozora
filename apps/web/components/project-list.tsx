@@ -5,6 +5,7 @@ import { safeUrl } from "../lib/safe-url";
 import { getLocale, getT } from "../lib/i18n/server";
 import "./corners.css";
 import LoadError from "./load-error";
+import type { CSSProperties } from "react";
 
 type Project = Awaited<ReturnType<typeof getProjects>>[number];
 
@@ -58,7 +59,7 @@ export default async function ProjectList() {
       <div className="post-list-content">
         {projects.length ? (
           <ul className="project-grid">
-            {projects.map((project) => <li key={project.id}><ProjectCard project={project} /></li>)}
+            {projects.map((project, index) => <li key={project.id} style={{ "--i": index } as CSSProperties}><ProjectCard project={project} /></li>)}
           </ul>
         ) : <p className="post-empty">{t.empty}</p>}
       </div>
