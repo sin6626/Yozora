@@ -1,7 +1,7 @@
 import "server-only";
 import type { Metadata } from "next";
 import { unstable_rethrow } from "next/navigation";
-import { getArticleTranslation, getCategories, getNote, getPage, getPost, siteName } from "./blog-data";
+import { getArticleTranslation, getCategories, getNote, getPage, getPost, getSiteSettings, siteName } from "./blog-data";
 import { ogLocale } from "./i18n/config";
 import { getLocale, getT } from "./i18n/server";
 
@@ -11,7 +11,8 @@ export { siteDescription, siteName } from "./blog-data";
 
 async function describe(title: string, description?: string | null, type: "article" | "website" = "article"): Promise<Metadata> {
   const text = description?.trim() || undefined;
-  return { title, description: text, openGraph: { siteName, title, description: text, type, locale: ogLocale[await getLocale()] } };
+  const name = (await getSiteSettings().catch(() => null))?.name ?? siteName;
+  return { title, description: text, openGraph: { siteName: name, title, description: text, type, locale: ogLocale[await getLocale()] } };
 }
 
 async function safe(load: () => Promise<Metadata | null>): Promise<Metadata> {

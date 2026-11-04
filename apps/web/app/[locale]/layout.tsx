@@ -67,7 +67,7 @@ const notoSerif = Noto_Serif_SC({
 // 地址带 ?palette=night / galaxy / ink 时等于替访客选了一次（测试和对比截图用）。
 const themeScript = `try{var t=localStorage.getItem("theme"),d=document.documentElement;if(t==="light")d.dataset.theme="light";var q=new URLSearchParams(location.search).get("palette");if(q==="night")localStorage.removeItem("palette");else if(q==="ink"||q==="galaxy")localStorage.setItem("palette",q);var p=localStorage.getItem("palette");if(p==="ink"||p==="galaxy")d.dataset.palette=p}catch(e){}`;
 
-// 子页面的标题会套用模板，例如“文章 - Sin’s Yozora”。站名是后台“个人资料”的名字拼上 Yozora，描述取后台 SEO 设置；
+// 首页标题像 Shiro 一样是“站名 - 描述”，子页面套用模板“文章 - 站名”；站名、描述都取后台 SEO 设置（外文页面描述用译文）；
 // metadataBase 取后台“网站地址”，让分享链接、RSS 自动发现等相对地址变成完整网址；读取失败时省略。
 // 三种语言都在构建时生成（cacheComponents 要求根路由参数至少列出一个值）
 export function generateStaticParams() {
@@ -81,7 +81,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const description = motto.text;
   return {
     metadataBase: settings ? new URL(settings.siteUrl) : undefined,
-    title: { default: name, template: `%s - ${name}` },
+    title: { default: `${name} - ${description}`, template: `%s - ${name}` },
     description,
     openGraph: { siteName: name, title: name, description, type: "website", locale: ogLocale[locale] },
     alternates: { types: { "application/rss+xml": [{ url: "/feed.xml", title: name }] } },

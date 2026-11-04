@@ -6,13 +6,11 @@ import { excerpt, readingMinutes } from "./excerpt";
 import { socialCards, socialLinks } from "./social";
 import { parseContentTranslations } from "./theme-config";
 
-// 站名 = 站长名字 + ’s Yozora（2026-10-31 站长定）：Yozora（夜空）是站名本身，固定写在这里；前面的名字读后台“个人资料”，
-// 站长在后台改名后，页头、浏览器标题、RSS、订阅浮层、首屏问候、页脚落款一起变。描述以后台 SEO 设置为准。
-// siteOwnerName、siteName、siteDescription 只是读取失败时的兜底。
-export const siteBrand = "Yozora";
+// 站名读后台“SEO → 网站标题”（2026-11-04 站长定，取代 10-31 的“个人资料名字 + ’s Yozora”），页头、浏览器标题、RSS 一起变；
+// 站长名字（首屏问候、页脚落款）仍读后台“个人资料”的昵称；描述读 SEO 的网站描述。
+// siteOwnerName、siteName、siteDescription 只是读取失败或没填时的兜底。
 export const siteOwnerName = "Sin";
-export const siteNameOf = (owner: string) => `${owner}’s ${siteBrand}`;
-export const siteName = siteNameOf(siteOwnerName);
+export const siteName = "Sin’s Yozora";
 export const siteDescription = "夜深里也有月亮和星星陪我作伴";
 
 // "use cache" 函数抛出的错误会丢掉 SDK 附带的 HTTP status，
@@ -62,7 +60,7 @@ export async function getNavigationData(lang: ContentLang = "zh") {
 }
 
 // 站点级设置。对外地址取后台“网站地址”（Core 的 url.webUrl），sitemap、RSS 的完整链接都以它为准，不在前端写死域名；
-// 评论开关取后台“评论设置”（是否关闭评论、是否允许游客评论）；站名用后台“个人资料”的名字拼上 Yozora，一句话描述取后台 SEO 设置。
+// 评论开关取后台“评论设置”（是否关闭评论、是否允许游客评论）；站名、一句话描述取后台 SEO 设置，站长名字取“个人资料”的昵称。
 export async function getSiteSettings() {
   "use cache";
   // 改个人资料、描述、评论设置都没有 Webhook 事件，后台改完 5 分钟内生效。
@@ -76,7 +74,7 @@ export async function getSiteSettings() {
   return {
     siteUrl: site.href.replace(/\/$/, ""),
     ownerName: user?.name?.trim() || siteOwnerName,
-    name: siteNameOf(user?.name?.trim() || siteOwnerName),
+    name: seo?.title?.trim() || siteName,
     description: seo?.description?.trim() || siteDescription,
     comments: { disabled: Boolean(commentOptions?.disableComment), allowGuest: commentOptions?.allowGuestComment !== false },
   };

@@ -1,5 +1,5 @@
-// 浏览器回归测试：站名是“站长名字’s Yozora”（2026-10-31 站长定）。Yozora 写在代码里，名字读后台“个人资料”，
-// 页头站名、浏览器标题、首屏问候、页脚落款都要跟着后台的名字走，不能有一处还写死旧名字；页脚还要有源码仓库链接和萌备链接。
+// 浏览器回归测试：站名读后台“SEO → 网站标题”，站长名字读“个人资料”（2026-11-04 站长定）。页头站名、浏览器标题跟着网站标题走，
+// 首页标题像 Shiro 一样是“站名 - 网站描述”；首屏问候、页脚落款跟着个人资料的名字走；页脚还要有源码仓库链接和萌备链接。
 // 期望值从 Core 现读，站长以后在后台改名，测试照样成立。
 // 需要先运行 pnpm dev（默认 http://127.0.0.1:2323，可用 WEB_URL、API_URL 覆盖）。用法：pnpm e2e
 import assert from "node:assert/strict";
@@ -7,8 +7,10 @@ import { openBrowser } from "../headless-browser.mjs";
 
 const base = process.env.WEB_URL ?? "http://127.0.0.1:2323";
 const api = process.env.API_URL ?? "http://127.0.0.1:2333";
-const owner = (await (await fetch(`${api}/aggregate`)).json()).user?.name?.trim() || "Sin";
-const expected = `${owner}’s Yozora`;
+const aggregate = await (await fetch(`${api}/aggregate`)).json();
+const owner = aggregate.user?.name?.trim() || "Sin";
+const expected = aggregate.seo?.title?.trim() || "Sin’s Yozora";
+const description = aggregate.seo?.description?.trim() || "夜深里也有月亮和星星陪我作伴";
 const browser = await openBrowser({ port: 9342 });
 
 try {
@@ -19,8 +21,10 @@ try {
     hero: document.querySelector(".home-hero-name")?.textContent.trim(),
     sign: document.querySelector(".site-footer-sign")?.textContent.trim(),
     source: document.querySelector('.site-footer-links a[href="https://github.com/sin6626/Yozora"]')?.target,
+    title: document.title,
   })`);
   assert.equal(home.brand, expected, "页头站名");
+  assert.equal(home.title, `${expected} - ${description}`, "首页浏览器标题是“站名 - 网站描述”");
   assert.equal(home.hero, owner, "首屏问候里的名字");
   assert.ok(home.sign?.startsWith(`© 2026 ${owner} ·`), `页脚落款：${home.sign}`);
   assert.equal(home.source, "_blank", "页脚要有源码链接（AGPL 要求能拿到改过的 Core 源码），新标签页打开");
