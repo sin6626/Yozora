@@ -20,6 +20,12 @@ const hideDelay = 160;
 export default function SaySky({ layouts, says, site, children }: { layouts: Record<Shape, SkyLayout>; says: Say[]; site: string; children?: ReactNode }) {
   const t = useT().says;
   const byId = useMemo(() => new Map(says.map((say) => [say.id, say])), [says]);
+  // 进场：从最早收录的那句开始依次点亮（每颗最多晚 250ms，约 2 秒亮完）；星都亮了以后，连线按连上的那颗星多新一段段画出来（says.css）
+  const entrance = useMemo(() => {
+    const rank = new Map([...says].sort((a, b) => a.created.localeCompare(b.created)).map((item, index) => [item.id, index]));
+    const step = Math.min(250, 2000 / Math.max(says.length - 1, 1));
+    return { rank, step, linesAt: Math.max(says.length - 1, 0) * step + 500 };
+  }, [says]);
   const [cards, setCards] = useState<Card[]>([]);
   const selected = cards.find((card) => !card.leaving)?.id;
   const say = selected ? byId.get(selected) : undefined;
@@ -102,6 +108,9 @@ export default function SaySky({ layouts, says, site, children }: { layouts: Rec
         const index = say ? layout.stars.findIndex((star) => star.id === say.id) : -1;
         const activeGroup = layout.stars[index]?.group;
         const group = activeGroup === undefined ? undefined : layout.groups[activeGroup];
+        const newer = ([a, b]: [number, number]) => Math.max(entrance.rank.get(layout.stars[a].id) ?? 0, entrance.rank.get(layout.stars[b].id) ?? 0);
+        const edgeOrder = new Map(layout.groups.flatMap((item) => item.edges).sort((x, y) => newer(x) - newer(y)).map(([a, b], order) => [`${a}-${b}`, order]));
+        const edgeStep = Math.min(140, 1400 / Math.max(edgeOrder.size, 1));
         return (
           // 可悬停半径按设计尺寸算；画面比设计尺寸小时按比例缩（cqw/cqh 相对星空本身），免得互相盖住
           <div key={shape} className="say-sky" data-shape={shape} style={{ "--say-sky-glow": layout.glow, "--say-hit": `min(${layout.hit}px, ${((layout.hit / layout.width) * 100).toFixed(3)}cqw, ${((layout.hit / layout.height) * 100).toFixed(3)}cqh)` } as CSSProperties}>
@@ -109,7 +118,15 @@ export default function SaySky({ layouts, says, site, children }: { layouts: Rec
               {layout.groups.map((item, groupIndex) => (
                 <g key={groupIndex} data-active={groupIndex === activeGroup ? "" : undefined}>
                   {item.edges.map(([a, b]) => (
-                    <line key={`${a}-${b}`} x1={layout.stars[a].x} y1={layout.stars[a].y} x2={layout.stars[b].x} y2={layout.stars[b].y} vectorEffect="non-scaling-stroke" />
+                    <line
+                      key={`${a}-${b}`}
+                      x1={layout.stars[a].x}
+                      y1={layout.stars[a].y}
+                      x2={layout.stars[b].x}
+                      y2={layout.stars[b].y}
+                      vectorEffect="non-scaling-stroke"
+                      style={{ "--dx": layout.stars[b].x - layout.stars[a].x, "--dy": layout.stars[b].y - layout.stars[a].y, "--draw-at": `${Math.round(entrance.linesAt + (edgeOrder.get(`${a}-${b}`) ?? 0) * edgeStep)}ms` } as CSSProperties}
+                    />
                   ))}
                 </g>
               ))}
@@ -123,7 +140,7 @@ export default function SaySky({ layouts, says, site, children }: { layouts: Rec
                   data-active={item.id === say?.id ? "" : undefined}
                   data-kin={item.group === activeGroup && item.id !== say?.id && (group?.stars.length ?? 0) > 1 ? "" : undefined}
                   data-bright={item.b >= 0.95 ? "" : undefined}
-                  style={{ left: `${item.x}%`, top: `${item.y}%`, "--r": `${item.r}px`, "--b": item.b, "--twinkle-delay": `${(starIndex * 0.73) % 4}s` } as CSSProperties}
+                  style={{ left: `${item.x}%`, top: `${item.y}%`, "--r": `${item.r}px`, "--b": item.b, "--twinkle-delay": `${(starIndex * 0.73) % 4}s`, "--light-at": `${Math.round((entrance.rank.get(item.id) ?? 0) * entrance.step)}ms` } as CSSProperties}
                   onPointerEnter={(event) => event.pointerType === "mouse" && show(item.id)}
                   onPointerLeave={(event) => event.pointerType === "mouse" && hideSoon()}
                   onClick={() => show(item.id)}

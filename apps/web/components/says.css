@@ -127,6 +127,51 @@
   opacity: 0.9;
 }
 
+/* 进场（每次进入一言页播一次，离开再回来时 Activity 重新显示会重播）：星先全暗——只剩一个很淡的小点——再从最早收录的那句开始
+   依次点亮（--light-at，say-sky.tsx 算，约 2 秒亮完），亮的那一下略放大再落回各自的亮度；星都亮了以后，星座连线按连上的那颗星
+   多新一段段画出来（--draw-at）。连线是不随缩放变粗的描边，虚线按屏幕像素算（pathLength 不管用），所以每段在屏幕上多长用容器单位
+   算：--dx/--dy 是两颗星在星空里差的百分比，星空 .say-field 是 size 容器、连线 SVG 和它一样大。动画只填充等待期，播完不占样式，
+   悬停、选中照常。 */
+.say-star {
+  animation: say-star-light 0.7s var(--ease-out) var(--light-at, 0ms) backwards;
+}
+
+@keyframes say-star-light {
+  0% {
+    opacity: 0.12;
+    scale: 0.5;
+  }
+
+  45% {
+    opacity: 1;
+    scale: 1.5;
+  }
+}
+
+.say-sky-lines line {
+  --len: hypot(calc(var(--dx, 0) * 1cqw), calc(var(--dy, 0) * 1cqh));
+  animation: say-line-draw 0.6s var(--ease-out) var(--draw-at, 0ms) backwards;
+}
+
+@keyframes say-line-draw {
+  from {
+    stroke-dasharray: var(--len) 100000px;
+    stroke-dashoffset: var(--len);
+  }
+
+  to {
+    stroke-dasharray: var(--len) 100000px;
+    stroke-dashoffset: 0px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .say-star,
+  .say-sky-lines line {
+    animation: none;
+  }
+}
+
 /* ---------- 浅色主题的“星图图版”：像旧星图集里的一页——双线图框、四边刻度尺（刻度数用 Cormorant 斜体）、
    圆锥投影的赤纬圈与赤经线、左下“新—旧”星等图例、右下题签。只在浅色主题、只在这一页；熄灯时整块不显示 ---------- */
 .say-plate {
