@@ -65,10 +65,11 @@ async function Socials() {
 }
 
 async function Portrait() {
-  const [avatar, t] = await Promise.all([loadOwner().then((owner) => owner?.avatar), getT()]);
+  const [owner, t] = await Promise.all([loadOwner(), getT()]);
+  const avatar = owner?.avatar;
   return avatar ? (
     // eslint-disable-next-line @next/next/no-img-element -- 头像来自后台任意地址，不走 Next 图片优化
-    <img className="home-hero-avatar" src={avatar} alt={t.hero.avatarAlt} width={300} height={300} fetchPriority="high" />
+    <img className="home-hero-avatar" src={avatar} alt={t.hero.avatarAlt(owner.name)} width={300} height={300} fetchPriority="high" />
   ) : <span className="home-hero-avatar is-empty" aria-hidden="true" />;
 }
 

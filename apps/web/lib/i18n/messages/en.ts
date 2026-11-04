@@ -89,7 +89,7 @@ const en: Messages = {
     skyToggle: (name: string, shown: boolean) => `${shown ? "Hide" : "Show"} ${name} stars`,
   },
   hero: {
-    avatarAlt: "Sin's avatar",
+    avatarAlt: (name: string) => `${name}'s avatar`,
     greeting: "Hi, I'm",
     nameSuffix: ".",
   },

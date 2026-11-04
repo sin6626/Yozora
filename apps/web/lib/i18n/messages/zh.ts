@@ -93,7 +93,7 @@ const zh = {
     skyToggle: (name: string, shown: boolean) => (shown ? `隐藏 ${name} 的星星` : `显示 ${name} 的星星`),
   },
   hero: {
-    avatarAlt: "Sin 的头像",
+    avatarAlt: (name: string) => `${name} 的头像`,
     greeting: "你好，我是",
     nameSuffix: "。",
   },

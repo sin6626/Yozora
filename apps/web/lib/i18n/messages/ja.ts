@@ -89,7 +89,7 @@ const ja: Messages = {
     skyToggle: (name: string, shown: boolean) => `${name} の星を${shown ? "隠す" : "表示する"}`,
   },
   hero: {
-    avatarAlt: "Sin のアバター",
+    avatarAlt: (name: string) => `${name} のアバター`,
     greeting: "こんにちは、",
     nameSuffix: "です。",
   },
