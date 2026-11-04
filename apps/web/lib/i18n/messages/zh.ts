@@ -120,9 +120,7 @@ const zh = {
     commentIn: "在",
     somewhere: "一处",
     said: "说：",
-    saidMurmur: "说了句",
     wroteThinking: "写了一条",
-    murmur: "碎碎念",
     thinking: "思考",
     postedSuffix: "",
     liked: "有人点赞了",
@@ -131,7 +129,6 @@ const zh = {
     quiet: "这里还很安静。",
     aThinking: "一条思考",
     deleted: "已删除的内容",
-    photo: "（一张图）",
   },
   siteActions: {
     like: "喜欢本站",

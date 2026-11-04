@@ -405,11 +405,12 @@ export async function getSiteLikes() {
   return typeof value === "number" ? value : Number(value) || 0;
 }
 
-// 首页“最近发生的事”（同 Shiro）：Core 的 /activity/recent 返回评论、点赞、新文章、新手记、新碎碎念、新思考六类，
+// 首页“最近发生的事”（同 Shiro）：Core 的 /activity/recent 返回评论、点赞、新文章、新手记、新碎碎念、新思考六类（没有一言），
+// 这里只放五类：碎碎念首页上面有自己的一栏，不在这里重复（2026-11-04 用户要求）。
 // 评论只含已公开、非悄悄话的。点赞没有 Webhook 事件，缓存短一些。文章只给了 slug，借时间线换算出带分类的地址。
 export type RecentActivity = {
   key: string;
-  kind: "comment" | "like" | "post" | "note" | "murmur" | "recent";
+  kind: "comment" | "like" | "post" | "note" | "recent";
   created: string;
   title?: string;
   href: string | null;
@@ -418,14 +419,13 @@ export type RecentActivity = {
   text?: string;
   onThinking?: boolean;
   deleted?: boolean;
-  image?: boolean;
 };
 
-// lang：文章、手记的标题换成译文（按时间线里的标题对照），评论、碎碎念、思考的内容保持中文。
+// lang：文章、手记的标题换成译文（按时间线里的标题对照），评论、思考的内容保持中文。
 export async function getRecentActivity(lang: ContentLang = "zh") {
   "use cache";
   cacheLife({ stale: 60, revalidate: 120, expire: 600 });
-  cacheTag("blog:posts", "blog:notes", "blog:comments", "blog:recently", "blog:murmurs", "blog:categories", "blog:ai");
+  cacheTag("blog:posts", "blog:notes", "blog:comments", "blog:recently", "blog:categories", "blog:ai");
   const [data, timeline, zhTimeline] = await Promise.all([getApiClient().activity.getRecentActivities(), getTimeline(lang), getTimeline()]);
   const posts = new Map(timeline.flatMap((item) => item.kind === "post" ? [[item.slug, `/posts/${encodeURIComponent(item.category.slug)}/${encodeURIComponent(item.slug)}`]] : []));
   // 动态里只有中文标题，按时间线的中文标题找到译文
@@ -452,7 +452,6 @@ export async function getRecentActivity(lang: ContentLang = "zh") {
     ...(record.like ?? []).map((item) => ({ key: `like-${item.id}`, kind: "like" as const, created: String(item.created), title: title(item.title), deleted: !text(item.title), href: href(item.type, item) })),
     ...(record.post ?? []).map((item) => ({ key: `post-${item.id}`, kind: "post" as const, created: String(item.created), title: title(item.title), href: href("posts", item) })),
     ...(record.note ?? []).map((item) => ({ key: `note-${item.id}`, kind: "note" as const, created: String(item.created), title: title(item.title), href: href("notes", item) })),
-    ...(record.murmur ?? []).map((item) => ({ key: `murmur-${item.id}`, kind: "murmur" as const, created: String(item.created), href: "/murmurs", text: excerpt(text(item.content), 80) || undefined, image: !excerpt(text(item.content), 80) })),
     ...(record.recent ?? []).map((item) => ({ key: `recent-${item.id}`, kind: "recent" as const, created: String(item.created), href: "/thinking", text: excerpt(text(item.content), 80) })),
   ];
   return items.sort((a, b) => Date.parse(b.created) - Date.parse(a.created)).slice(0, 12);

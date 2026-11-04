@@ -116,9 +116,7 @@ const en: Messages = {
     commentIn: "on",
     somewhere: "a page",
     said: "said:",
-    saidMurmur: "Posted a",
     wroteThinking: "Wrote a",
-    murmur: "murmur",
     thinking: "thought",
     postedSuffix: "",
     liked: "Someone liked",
@@ -127,7 +125,6 @@ const en: Messages = {
     quiet: "It's quiet here for now.",
     aThinking: "a thought",
     deleted: "something deleted",
-    photo: "(a photo)",
   },
   siteActions: {
     like: "Like this site",

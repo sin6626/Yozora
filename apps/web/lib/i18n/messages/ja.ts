@@ -116,9 +116,7 @@ const ja: Messages = {
     commentIn: "が",
     somewhere: "どこか",
     said: "にコメント：",
-    saidMurmur: "",
     wroteThinking: "",
-    murmur: "つぶやき",
     thinking: "思考",
     postedSuffix: "を投稿しました",
     liked: "いいねされました：",
@@ -127,7 +125,6 @@ const ja: Messages = {
     quiet: "いまはまだ静かです。",
     aThinking: "ある思考",
     deleted: "削除されたコンテンツ",
-    photo: "（写真）",
   },
   siteActions: {
     like: "このサイトにいいね",
