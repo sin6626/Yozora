@@ -346,9 +346,7 @@ const ja: Messages = {
     closed: "コメントは受け付けていません。",
     noGuests: "現在ゲストのコメントは受け付けていません。",
     failed: "コメントを読み込めませんでした。しばらくしてから再読み込みしてください。",
-    hiddenReplies: (count: number) => `ほかに ${count} 件の返信があります。`,
     empty: "まだコメントはありません。ひとことどうぞ。",
-    onlyLatest: (count: number) => `最新の ${count} 件のみ表示しています。`,
     owner: "管理人",
   },
   chat: {
@@ -360,7 +358,6 @@ const ja: Messages = {
     silent: "まだ誰も話していません",
     silentHint: "最初のひとことは、今読んでいるあなたに。",
     stream: "コメント",
-    earlier: "それより前のコメントは記事の末尾にあります",
     reply: "返信",
   },
   commentForm: {

@@ -539,35 +539,57 @@ export async function getRecently(before?: string) {
 
 // 评论：Core 对访客只返回已公开、非悄悄话的评论，邮箱已换成头像，IP/UA 不返回。
 // 后台审核通过、置顶不发 Webhook 事件，所以缓存短一些；新增、编辑、删除经 COMMENT_* 事件立即失效。
-export async function getComments(refId: string, page: number) {
+// 全部读完：主评论逐页取，Core 只给每楼头尾几条回复，被折叠的中间部分用楼中楼接口按游标取回，再按时间排好。
+// ponytail: 一次读完全部评论（最多 20 页 × 50 条主评论），评论上千条时改为页面上“加载更多”。
+export async function getComments(refId: string) {
   "use cache";
   cacheLife({ stale: 30, revalidate: 60, expire: 300 });
   cacheTag("blog:comments");
-  const { data, pagination, readers } = await getApiClient().comment.getByRefId(refId, { page, size: 10 });
-  const view = (comment: (typeof data)[number] | (typeof data)[number]["replies"][number]) => {
-    const reader = comment.readerId ? readers?.[comment.readerId] : undefined;
+  const comment = getApiClient().comment;
+  type Raw = Awaited<ReturnType<typeof comment.getByRefId>>["data"][number];
+  type RawReply = Raw["replies"][number];
+  const readers: Record<string, { name?: string; image?: string | null; role?: string }> = {};
+  const pages: Raw[] = [];
+  let total = 0;
+  for (let page = 1, totalPage = 1; page <= Math.min(totalPage, 20); page++) {
+    const result = await comment.getByRefId(refId, { page, size: 50 });
+    pages.push(...result.data);
+    Object.assign(readers, result.readers);
+    totalPage = result.pagination.totalPage;
+    total = result.pagination.total;
+  }
+  const threads = await Promise.all(pages.map(async (thread) => {
+    const replies: RawReply[] = [...thread.replies];
+    for (let cursor = thread.replyWindow?.hiddenCount ? thread.replyWindow.nextCursor : undefined; cursor;) {
+      const more = await comment.getThreadReplies(thread.id, { cursor, size: 50 });
+      replies.push(...(more.replies as RawReply[]));
+      Object.assign(readers, more.readers);
+      cursor = more.done ? undefined : more.nextCursor;
+    }
+    const seen = new Set<string>();
+    const ordered = replies.filter(({ id }) => !seen.has(id) && seen.add(id)).sort((a, b) => Date.parse(a.created) - Date.parse(b.created));
+    return { thread, replies: ordered };
+  }));
+  const view = (item: Raw | RawReply) => {
+    const reader = item.readerId ? readers[item.readerId] : undefined;
     return {
-      id: comment.id,
-      author: reader?.name || comment.author || "匿名",
-      avatar: reader?.image || comment.avatar,
-      url: comment.url,
-      text: comment.text,
-      created: comment.created,
-      location: comment.location,
-      pinned: Boolean(comment.pin),
-      deleted: Boolean(comment.isDeleted),
-      parentId: comment.parentCommentId ?? null,
+      id: item.id,
+      author: reader?.name || item.author || "匿名",
+      avatar: reader?.image || item.avatar,
+      url: item.url,
+      text: item.text,
+      created: item.created,
+      location: item.location,
+      pinned: Boolean(item.pin),
+      deleted: Boolean(item.isDeleted),
+      parentId: item.parentCommentId ?? null,
       // 站长在后台或以站长身份登录发的评论，评论悬浮窗里放在右侧
       owner: reader?.role === "owner",
     };
   };
   return {
-    data: data.map((comment) => ({
-      ...view(comment),
-      replies: comment.replies.map(view),
-      hiddenReplies: comment.replyWindow?.hiddenCount ?? 0,
-    })),
-    pagination: { ...pagination },
+    data: threads.map(({ thread, replies }) => ({ ...view(thread), replies: replies.map(view) })),
+    total,
   };
 }
 

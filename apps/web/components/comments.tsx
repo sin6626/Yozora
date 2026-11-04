@@ -11,7 +11,7 @@ import type { Messages } from "../lib/i18n/messages/zh";
 import "./comments.css";
 
 export type Thread = Awaited<ReturnType<typeof getComments>>["data"][number];
-type Comment = Omit<Thread, "replies" | "hiddenReplies">;
+type Comment = Omit<Thread, "replies">;
 
 // 评论正文按 Markdown 显示，只放行行内与段落级元素，不渲染图片和 HTML。
 export const allowedElements = ["p", "br", "a", "strong", "em", "del", "code", "pre", "blockquote", "ul", "ol", "li"];
@@ -48,7 +48,7 @@ function CommentBody({ comment, replyTo, form, canReply, t }: { comment: Comment
 
 // 评论列表、表单参数和“为什么不能评论”：文末评论区与文章侧栏的评论悬浮窗（comment-chat.tsx）共用，数据走同一份缓存。
 export async function loadComments(refId: string, allowComment: boolean) {
-  const [result, { comments: settings }, providers, { comments: t }] = await Promise.all([getComments(refId, 1), getSiteSettings(), getLoginProviders().catch((): LoginProvider[] => []), getT()]);
+  const [result, { comments: settings }, providers, { comments: t }] = await Promise.all([getComments(refId), getSiteSettings(), getLoginProviders().catch((): LoginProvider[] => []), getT()]);
   const form: FormOptions = { apiUrl: getApiUrl(), allowGuest: settings.allowGuest, providers };
   // 关闭游客评论但启用了第三方登录时，表单里只给登录按钮；两者都没有才算无法评论。
   const closedReason = settings.disabled || !allowComment ? t.closed : !settings.allowGuest && !providers.length ? t.noGuests : null;
@@ -65,12 +65,12 @@ export default async function Comments({ refId, refType, allowComment }: { refId
     unstable_rethrow(error);
     return <section className="comments" aria-label={t.comments.label}><p className="post-empty" role="alert">{t.comments.failed}</p></section>;
   }
-  const { data, pagination, form, closedReason } = loaded;
+  const { data, total, form, closedReason } = loaded;
   const canReply = !closedReason;
 
   return (
     <section className="comments" id="comments" aria-labelledby="comments-heading">
-      <h2 id="comments-heading">{t.comments.heading}{pagination.total > 0 && ` ${pagination.total}`}</h2>
+      <h2 id="comments-heading">{t.comments.heading}{total > 0 && ` ${total}`}</h2>
       {closedReason ? <p className="post-meta">{closedReason}</p> : <CommentForm {...form} refId={refId} refType={refType} />}
       {data.length ? (
         <ol className="comment-list">
@@ -86,7 +86,6 @@ export default async function Comments({ refId, refType, allowComment }: { refId
                         <CommentBody comment={reply} replyTo={reply.parentId && reply.parentId !== thread.id ? authors.get(reply.parentId) : undefined} form={form} canReply={canReply} t={t} />
                       </li>
                     ))}
-                    {thread.hiddenReplies > 0 && <li className="post-meta">{t.comments.hiddenReplies(thread.hiddenReplies)}</li>}
                   </ol>
                 )}
               </li>
@@ -94,7 +93,6 @@ export default async function Comments({ refId, refType, allowComment }: { refId
           })}
         </ol>
       ) : !closedReason && <p className="post-empty">{t.comments.empty}</p>}
-      {pagination.totalPage > 1 && <p className="post-meta">{t.comments.onlyLatest(data.length)}</p>}
     </section>
   );
 }

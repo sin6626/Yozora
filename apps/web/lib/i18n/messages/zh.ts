@@ -353,9 +353,7 @@ const zh = {
     closed: "评论已关闭。",
     noGuests: "站长暂未开放游客评论。",
     failed: "评论读取失败，请稍后刷新。",
-    hiddenReplies: (count: number) => `还有 ${count} 条回复暂未显示。`,
     empty: "还没有评论，来说两句吧。",
-    onlyLatest: (count: number) => `只显示最新的 ${count} 条评论。`,
     owner: "站长",
   },
   chat: {
@@ -367,7 +365,6 @@ const zh = {
     silent: "还没有人说话",
     silentHint: "第一句，留给正在读的你。",
     stream: "评论消息",
-    earlier: "更早的评论在文末评论区",
     reply: "回复",
   },
   commentForm: {

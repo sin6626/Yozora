@@ -30,14 +30,24 @@ const api = {
   },
   project: { getAll: async () => ({ data: [project] }) },
   comment: {
+    // 两页主评论；第一条主评论有 2 条回复被折叠（Core 只给头尾），要用楼中楼接口按游标取回
     getByRefId: async (refId, options) => {
       calls.push(['comments', refId, options])
-      const reply = { id: 'reply-id', author: '回复者', mail: 'leak@example.com', ip: '1.2.3.4', agent: 'UA', text: '回复', created: '2026-10-23', parentCommentId: 'comment-id', avatar: 'https://example.com/r.png' }
+      const reply = (id, created) => ({ id, author: '回复者', mail: 'leak@example.com', ip: '1.2.3.4', agent: 'UA', text: id, created, parentCommentId: 'comment-id', avatar: 'https://example.com/r.png' })
+      const first = { id: 'comment-id', author: '快照名', readerId: 'reader-id', mail: 'leak@example.com', ip: '1.2.3.4', agent: 'UA', text: '评论', created: '2026-10-22', pin: true, isDeleted: false, location: '上海', replies: [reply('head', '2026-10-23'), reply('tail', '2026-10-26')], replyWindow: { hiddenCount: 2, nextCursor: 'head' } }
+      const second = { id: 'old-id', author: '旧评论', text: '更早', created: '2026-10-01', replies: [], replyWindow: { hiddenCount: 0 } }
       return {
-        data: [{ id: 'comment-id', author: '快照名', readerId: 'reader-id', mail: 'leak@example.com', ip: '1.2.3.4', text: '评论', created: '2026-10-22', pin: true, isDeleted: false, location: '上海', replies: [reply], replyWindow: { hiddenCount: 2 } }],
-        pagination: { total: 1, totalPage: 1 },
+        data: options.page === 1 ? [first] : [second],
+        pagination: { total: 2, totalPage: 2 },
         readers: { 'reader-id': { name: '读者', image: 'https://example.com/a.png', email: 'reader@example.com' } },
       }
+    },
+    getThreadReplies: async (rootId, params) => {
+      calls.push(['thread', rootId, params])
+      const middle = (id, created) => ({ id, author: '中间', readerId: 'owner-id', mail: 'leak@example.com', text: id, created, parentCommentId: 'comment-id' })
+      return params.cursor === 'head'
+        ? { replies: [middle('mid-1', '2026-10-24')], nextCursor: 'mid-1', remaining: 1, done: false, readers: { 'owner-id': { name: '站长', role: 'owner', email: 'owner@example.com' } } }
+        : { replies: [middle('mid-2', '2026-10-25')], remaining: 0, done: true, readers: { 'owner-id': { name: '站长', role: 'owner', email: 'owner@example.com' } } }
     },
   },
   search: {
@@ -143,14 +153,18 @@ detailError = undefined
 invalidNavigation = true
 await assert.rejects(cache.getNavigationData(), /导航数据/)
 console.log('PASS public cache projections, key parameters, tag coverage and lifetime constraints')
-const comments = await cache.getComments('post-id', 1)
-assert.equal(JSON.stringify(calls.at(-1)), JSON.stringify(['comments', 'post-id', { page: 1, size: 10 }]))
+const comments = await cache.getComments('post-id')
 assert.ok(tags.includes('blog:comments'))
+assert.deepEqual([...calls.filter(([kind]) => kind === 'comments').slice(-2).map(([, , options]) => options.page)], [1, 2], '主评论按页读完')
+assert.equal(comments.data.length, 2)
+assert.equal(comments.total, 2)
 const [thread] = comments.data
 assert.equal(thread.author, '读者', '登录读者显示读者名而不是快照')
 assert.equal(thread.avatar, 'https://example.com/a.png')
 assert.equal(thread.pinned, true)
-assert.equal(thread.hiddenReplies, 2)
+assert.equal('hiddenReplies' in thread, false)
+assert.deepEqual([...thread.replies.map((reply) => reply.id)], ['head', 'mid-1', 'mid-2', 'tail'], '折叠的回复按时间补进头尾之间')
+assert.equal(thread.replies[1].owner, true, '楼中楼接口返回的读者资料也用上（站长身份）')
 assert.equal(thread.replies[0].parentId, 'comment-id')
-assert.equal(/leak@|reader@|1\.2\.3\.4|"UA"/.test(JSON.stringify(comments)), false, '评论缓存不含邮箱、IP、UA')
+assert.equal(/leak@|reader@|owner@|1\.2\.3\.4|"UA"/.test(JSON.stringify(comments)), false, '评论缓存不含邮箱、IP、UA')
 

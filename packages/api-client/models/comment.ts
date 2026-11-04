@@ -2,6 +2,7 @@ import { CollectionRefTypes } from '@core/constants/db.constant'
 
 import type { BaseModel } from './base'
 import type { CategoryModel } from './category'
+import type { ReaderModel } from './reader'
 
 export { CollectionRefTypes }
 export interface CommentModel extends BaseModel {
@@ -52,6 +53,7 @@ export interface CommentThreadReplies {
   nextCursor?: string
   remaining: number
   done: boolean
+  readers?: Record<string, ReaderModel>
 }
 
 export interface CommentRef {

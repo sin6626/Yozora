@@ -8,7 +8,7 @@ import { allowedElements, loadComments, type Thread } from "./comments";
 import { getT } from "../lib/i18n/server";
 import "./comment-chat.css";
 
-type Item = Omit<Thread, "replies" | "hiddenReplies">;
+type Item = Omit<Thread, "replies">;
 export type ChatMessage = Item & { quote?: { author: string; text: string } };
 
 // 回复不再缩进成楼中楼：按时间排成一条消息流，回复在气泡顶部引用被回复的那句话（像聊天软件那样）
@@ -26,7 +26,7 @@ export function toMessages(threads: Thread[], deletedText = "该评论已删除"
 }
 
 // 服务端渲染消息流（Markdown 不进浏览器包），交给客户端的悬浮窗外壳；“回复”按钮靠 data-reply-* 让外壳接手
-export async function ChatStream({ messages, canReply, truncated }: { messages: ChatMessage[]; canReply: boolean; truncated: boolean }) {
+export async function ChatStream({ messages, canReply }: { messages: ChatMessage[]; canReply: boolean }) {
   const { chat: t, comments, list } = await getT();
   if (!messages.length) {
     return (
@@ -39,7 +39,6 @@ export async function ChatStream({ messages, canReply, truncated }: { messages: 
   }
   return (
     <ol className="chat-stream" aria-label={t.stream}>
-      {truncated && <li className="chat-day"><span>{t.earlier}</span></li>}
       {messages.flatMap((message, index) => {
         const date = formatDate(message.created);
         const separator = index === 0 || formatDate(messages[index - 1].created) !== date ? [<li key={`day-${date}`} className="chat-day"><span>{date}</span></li>] : [];
@@ -86,12 +85,11 @@ export default async function CommentChat({ refId, refType, allowComment, title 
     unstable_rethrow(error);
     return null;
   }
-  const { data, pagination, form, closedReason } = loaded;
+  const { data, total, form, closedReason } = loaded;
   const t = await getT();
-  const truncated = pagination.totalPage > 1 || data.some((thread) => thread.hiddenReplies > 0);
   return (
-    <CommentChatPanel title={title} total={pagination.total} form={form} closedReason={closedReason} target={{ refId, refType }}>
-      <ChatStream messages={toMessages(data, t.comments.deletedSnippet)} canReply={!closedReason} truncated={truncated} />
+    <CommentChatPanel title={title} total={total} form={form} closedReason={closedReason} target={{ refId, refType }}>
+      <ChatStream messages={toMessages(data, t.comments.deletedSnippet)} canReply={!closedReason} />
     </CommentChatPanel>
   );
 }

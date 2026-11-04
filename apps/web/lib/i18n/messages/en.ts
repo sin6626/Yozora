@@ -346,9 +346,7 @@ const en: Messages = {
     closed: "Comments are closed.",
     noGuests: "Guest comments aren't open right now.",
     failed: "Couldn't load comments. Please refresh in a moment.",
-    hiddenReplies: (count: number) => `${count} more ${count === 1 ? "reply isn't" : "replies aren't"} shown.`,
     empty: "No comments yet. Say something?",
-    onlyLatest: (count: number) => `Showing only the latest ${count} comments.`,
     owner: "Owner",
   },
   chat: {
@@ -360,7 +358,6 @@ const en: Messages = {
     silent: "Nobody has said anything yet",
     silentHint: "The first word is yours.",
     stream: "Comment messages",
-    earlier: "Earlier comments are at the end of the post",
     reply: "Reply",
   },
   commentForm: {

@@ -182,12 +182,18 @@ export class CommentController {
     const { size = 10 } = query
     const configs = await this.configsService.get('commentOptions')
 
-    return this.commentService.getThreadReplies(rootCommentId, {
+    const result = await this.commentService.getThreadReplies(rootCommentId, {
       cursor,
       size,
       isAuthenticated,
       commentShouldAudit: configs.commentShouldAudit,
     })
+    // Same reader profiles as GET /comments/ref/:id, so logged-in readers and the owner render the same way
+    const readerIds = this.commentService.collectThreadReaderIds(result.replies)
+    const readers = isAuthenticated
+      ? await this.readerService.findReaderInIds(readerIds)
+      : await this.readerService.findPublicReaderInIds(readerIds)
+    return Object.assign(result, { readers: keyBy(readers, 'id') })
   }
 
   @Get('/:id')
