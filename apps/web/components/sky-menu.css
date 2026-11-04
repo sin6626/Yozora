@@ -90,8 +90,9 @@
   color: var(--foreground);
 }
 
+/* 选中时不再留里面那圈 1px 淡边：它夹在天空和底色缝之间，底部星云亮，看着像多了一条线 */
 .sky-option[data-checked] .sky-preview {
-  box-shadow: inset 0 0 0 1px var(--glass-border), 0 0 0 2px var(--surface), 0 0 0 3.5px var(--primary);
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--primary);
 }
 
 @media (hover: hover) {
