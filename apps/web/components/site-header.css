@@ -96,7 +96,7 @@
   gap: var(--space-1);
 }
 
-/* 站点标识：圆角方格（超椭圆）头像带一圈月光 + 站名 */
+/* 站点标识：圆角方格（超椭圆）头像 + 站名；头像外面不加光圈（2026-11-04 用户要求去掉原来的月光圈） */
 .site-brand {
   display: inline-flex;
   align-items: center;
@@ -119,22 +119,14 @@
   border-radius: 30%;
   object-fit: cover;
   background: var(--muted);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--moonlight) 45%, transparent), 0 0 14px -2px color-mix(in srgb, var(--moonlight) 55%, transparent);
-  transition: box-shadow var(--duration-base);
 }
 
-/* 支持 corner-shape 的浏览器画成 iOS 图标那样的超椭圆，月光圈和对焦框也跟着这个形状；不支持的退回普通圆角方块 */
+/* 支持 corner-shape 的浏览器画成 iOS 图标那样的超椭圆，对焦框也跟着这个形状；不支持的退回普通圆角方块 */
 @supports (corner-shape: squircle) {
   .site-brand,
   .site-brand-avatar {
     border-radius: 50%;
     corner-shape: squircle;
-  }
-}
-
-@media (hover: hover) {
-  .site-brand:hover .site-brand-avatar {
-    box-shadow: 0 0 0 1px var(--moonlight), 0 0 18px 0 color-mix(in srgb, var(--moonlight) 60%, transparent);
   }
 }
 

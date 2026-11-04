@@ -53,8 +53,23 @@ try {
   await sleep(500);
   await check("文章回到顶部", 0, "bar");
 
+  // 2026-11-04 用户要求：页头头像外面不要光圈（原来是一圈月光色细线 + 柔光，悬停更亮）。顶部铺开、往下滚的导航条、鼠标停在头像上都没有
+  const avatarShadow = () => browser.evaluate(`getComputedStyle(document.querySelector(".site-header .site-brand-avatar")).boxShadow`);
+  await browser.goto(`${base}/posts`);
+  await sleep(800);
+  const shadows = [await avatarShadow()];
+  const avatar = JSON.parse(await browser.evaluate(`JSON.stringify(document.querySelector(".site-header .site-brand-avatar").getBoundingClientRect())`));
+  await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: avatar.x + avatar.width / 2, y: avatar.y + avatar.height / 2 });
+  await sleep(500);
+  shadows.push(await avatarShadow());
+  await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 640, y: 600 });
+  await browser.evaluate(`window.scrollTo(0, 900)`);
+  await sleep(900);
+  shadows.push(await avatarShadow());
+  assert.deepEqual(shadows, ["none", "none", "none"], `页头头像外面不应当有光圈：${shadows.join(" | ")}`);
+
   assert.deepEqual(browser.errors, [], "页面不应当有报错");
-  console.log("PASS 夜航岛切换不弹跳：头像大小不变，外框位置和大小单向变化（列表页导航条、文章阅读胶囊，往返）");
+  console.log("PASS 夜航岛切换不弹跳：头像大小不变，外框位置和大小单向变化（列表页导航条、文章阅读胶囊，往返）；页头头像没有光圈（铺开、悬停、导航条）");
 } finally {
   await browser.close();
 }
