@@ -1,8 +1,7 @@
-// 浏览器回归测试：友链进场——头像像天黑后的星星，随机先后从暗处亮起（friend-list.tsx 的 twinkleTimes + corners.css 的 friend-twinkle）。
-// 本地真实友链只有两个，随机顺序用 /debug“友链进场”的十二个示例测，真实友链页测两个也会播。
-// 检查：① 每张卡的亮起时刻在 0.9 秒内均匀排开、两两不同，顺序不是从上到下（打乱过），刷新后顺序不变（服务端按 id 算，水合不会对不上）；
-// ② 头像在卡片之前或同时开始亮、站名晚 0.12 秒；③ 播完全部可见、头像回到原样（没有残留的滤镜和缩放）、悬停卡片照常上浮；
-// ④ 离开再回来重播；⑤ 关掉页面脚本照样播；⑥ 减少动态效果时不动。
+// 浏览器回归测试：友链进场——卡片按页面顺序一张接一张弹上来（corners.css 的 .friend-grid > li，弹簧缓动 --ease-spring）。
+// 本地真实友链只有两个，依次的节奏用 /debug“友链进场”的十二个示例测，真实友链页测两个也会播。
+// 检查：① 每张卡晚 70ms、按页面顺序；② 缓动是弹簧：逐帧采样能看到卡片冲过最终位置（往上越过）再落稳；
+// ③ 播完全部可见、在原位、悬停卡片照常上浮；④ 离开再回来重播；⑤ 关掉页面脚本照样播；⑥ 减少动态效果时不动。
 // 需要先运行 pnpm dev（默认 http://127.0.0.1:2323，可用 WEB_URL 覆盖）。用法：pnpm e2e
 import assert from "node:assert/strict";
 import { openBrowser, sleep } from "../headless-browser.mjs";
@@ -13,14 +12,7 @@ const cards = (scope) => `(() => {
   const ms = (v) => Math.round(parseFloat(v) * (v.endsWith("ms") ? 1 : 1000));
   return [...document.querySelectorAll("${scope} .friend-grid > li")].filter((li) => li.checkVisibility()).map((li) => {
     const c = getComputedStyle(li);
-    const avatar = getComputedStyle(li.querySelector(".friend-avatar"));
-    const text = getComputedStyle(li.querySelector(".friend-card > div"));
-    return {
-      card: c.animationName, cardDelay: ms(c.animationDelay), opacity: Number(c.opacity),
-      avatar: avatar.animationName, avatarDelay: ms(avatar.animationDelay), filter: avatar.filter, scale: avatar.scale, avatarOpacity: Number(avatar.opacity),
-      text: text.animationName, textDelay: ms(text.animationDelay), textOpacity: Number(text.opacity),
-      start: li.getAnimations().find((a) => a.animationName === "friend-appear")?.startTime ?? null,
-    };
+    return { name: c.animationName, delay: ms(c.animationDelay), easing: c.animationTimingFunction, opacity: Number(c.opacity), translate: c.translate, start: li.getAnimations().find((a) => a.animationName === "friend-spring")?.startTime ?? null };
   });
 })()`;
 
@@ -30,29 +22,38 @@ try {
   await browser.goto(base + "/debug", 3000);
   const sample = await browser.evaluate(cards("#debug-friend-entrance"));
   assert.equal(sample.length, 12, `调试页应有十二个示例友链：${sample.length}`);
-  const step = Math.min(80, 900 / sample.length);
-  const delays = sample.map((c) => c.cardDelay);
-  assert.deepEqual([...delays].sort((a, b) => a - b), sample.map((_, i) => Math.round(i * step)), `亮起时刻应在 0.9 秒内均匀排开、两两不同：${delays}`);
-  // 打乱要真的乱：亮起先后和页面上的先后（从上到下）的等级相关系数要弱，正着、倒着排都不行（曾因散列末字节没混开，几乎是倒序）
-  const rank = (list) => list.map((v) => [...list].sort((a, b) => a - b).indexOf(v));
-  const n = delays.length;
-  const rho = 1 - (6 * rank(delays).reduce((sum, r, i) => sum + (r - i) ** 2, 0)) / (n * (n * n - 1));
-  assert.ok(Math.abs(rho) < 0.6, `亮起顺序应打乱，和从上到下的顺序相关太强：rho = ${rho.toFixed(2)}，延迟 ${delays}`);
+  assert.deepEqual(sample.map((c) => c.delay), sample.map((_, i) => i * 70), "应按页面顺序每张晚 70ms");
   for (const c of sample) {
-    assert.ok(c.card === "friend-appear" && c.avatar === "friend-twinkle" && c.text === "friend-text-in", `每张卡都应有淡入、头像亮起、文字滑入：${JSON.stringify(c)}`);
-    assert.equal(c.avatarDelay, c.cardDelay, "头像和卡片同时开始");
-    assert.equal(c.textDelay, c.cardDelay + 120, "站名晚 0.12 秒滑进");
-    assert.ok(c.opacity > 0.99 && c.avatarOpacity > 0.99 && c.textOpacity > 0.99, "播完全部可见");
-    assert.ok(c.filter === "none" && c.scale === "none", `播完头像应回到原样：filter ${c.filter}，scale ${c.scale}`);
+    assert.equal(c.name, "friend-spring", "每张卡都应弹上来");
+    const points = (c.easing.match(/linear\(([^)]*)\)/)?.[1] ?? "").split(",").map((p) => parseFloat(p));
+    assert.ok(points.length > 20 && Math.max(...points) > 1.1, `缓动应是会冲过头的弹簧曲线：${c.easing.slice(0, 80)}`);
+    assert.ok(c.opacity > 0.99 && ["none", "0px"].includes(c.translate), `播完全部可见、回到原位：${c.opacity} / ${c.translate}`);
   }
-  await browser.goto(base + "/debug", 3000);
-  assert.deepEqual((await browser.evaluate(cards("#debug-friend-entrance"))).map((c) => c.cardDelay), delays, "刷新后亮起顺序应不变");
+
+  // 逐帧采样第一张卡：先在下面，冲到最终位置上方，再落稳
+  const path = await browser.evaluate(`(async () => {
+    const grid = document.querySelector("#debug-friend-entrance .friend-grid");
+    grid.scrollIntoView({ block: "center" });
+    await new Promise((r) => setTimeout(r, 300));
+    grid.style.display = "none"; grid.offsetHeight; grid.style.display = "";
+    const li = grid.firstElementChild;
+    const ys = [];
+    const start = performance.now();
+    while (performance.now() - start < 1000) {
+      ys.push(new DOMMatrix(getComputedStyle(li).transform === "none" ? undefined : getComputedStyle(li).transform).m42 || parseFloat(getComputedStyle(li).translate.split(" ")[1] ?? "0") || 0);
+      await new Promise((r) => requestAnimationFrame(r));
+    }
+    return { first: ys[0], min: Math.min(...ys), last: ys.at(-1) };
+  })()`);
+  assert.ok(path.first > 10, `一开始应在下方：${path.first}`);
+  assert.ok(path.min < -1, `应冲过最终位置往上越过一点（弹簧）：最高 ${path.min}px`);
+  assert.ok(Math.abs(path.last) < 0.5, `最后应落稳在原位：${path.last}`);
 
   // 真实友链页
   await browser.goto(base + "/friends", 2500);
   const real = await browser.evaluate(cards("main"));
   assert.ok(real.length >= 1, "友链页应有友链");
-  assert.ok(real.every((c) => c.card === "friend-appear" && c.opacity > 0.99), "友链页每张卡都播、播完可见");
+  assert.ok(real.every((c, i) => c.name === "friend-spring" && c.delay === i * 70 && c.opacity > 0.99), "友链页每张卡依次弹上来、播完可见");
 
   // 播完悬停卡片照常上浮
   const point = await browser.evaluate(`(() => { const r = [...document.querySelectorAll("main .friend-card .card-link")].find((a) => a.checkVisibility()).getBoundingClientRect(); return { x: r.left + 4, y: r.top + r.height / 2 }; })()`);
@@ -75,17 +76,17 @@ try {
   await browser.send("Emulation.setScriptExecutionDisabled", { value: true });
   await browser.goto(base + "/friends", 2000);
   const noScript = await browser.evaluate(cards("main"));
-  assert.ok(noScript.every((c) => c.card === "friend-appear" && c.opacity > 0.99 && c.avatarOpacity > 0.99), "没有脚本时也播、播完全部可见");
+  assert.ok(noScript.every((c) => c.name === "friend-spring" && c.opacity > 0.99), "没有脚本时也播、播完全部可见");
   await browser.send("Emulation.setScriptExecutionDisabled", { value: false });
 
   // 减少动态效果：不动
   await browser.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
   await browser.goto(base + "/friends", 2000);
   const reduced = await browser.evaluate(cards("main"));
-  assert.ok(reduced.every((c) => c.card === "none" && c.avatar === "none" && c.text === "none" && c.opacity > 0.99), "减少动态效果时友链不该有进场动画");
+  assert.ok(reduced.every((c) => c.name === "none" && c.opacity > 0.99), "减少动态效果时友链不该有进场动画");
 
   assert.deepEqual(browser.errors, [], `页面报错：${browser.errors.join("\n")}`);
-  console.log(`PASS 友链：调试页十二个头像按打乱的顺序在 0.9 秒内每隔 ${Math.round(step)}ms 亮起一颗（刷新顺序不变），站名随后滑进，播完回到原样、悬停照常；友链页 ${real.length} 个也播，离开再回来重播，没有脚本照样播，减少动态效果时不动`);
+  console.log(`PASS 友链：调试页十二张卡按顺序每张晚 70ms 弹上来，弹簧冲过 ${Math.abs(path.min).toFixed(1)}px 再落稳；友链页 ${real.length} 张也依次弹上来，悬停照常，离开再回来重播，没有脚本照样播，减少动态效果时不动`);
 } finally {
   browser.close();
 }

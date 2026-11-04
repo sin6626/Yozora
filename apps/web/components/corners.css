@@ -488,54 +488,28 @@ a.entry-tag:focus-visible {
   font-size: var(--text-sm);
 }
 
-/* 进场：头像像天黑后的星星，按 --twinkle-at（friend-list.tsx 打乱后均匀排开）随机先后从暗处亮起——
-   由小、由暗亮成略大、带一圈月光再落回；卡片同时淡入，站名和介绍晚 0.12 秒从左边滑进来。
-   每次进入页面播一次（离开再回来，Activity 重新显示时重播）。友链紧跟标题、在首屏，所以不用 Reveal、不等脚本；
-   头像和文字的动画只填充等待期，播完悬停照常。ponytail：友链多到几十个时下面的会在屏幕外播完，那时再套 Reveal。 */
+/* 进场：卡片按页面顺序一张接一张弹上来（每张晚 70ms），弹簧缓动——冲过头一点再落稳。
+   缓动是阻尼弹簧 x(t) = 1 − e^(−ζωt)(cos ω_d t + ζω/ω_d sin ω_d t) 在 0.8 秒里取的 41 个点（ζ = 0.5，周期 0.42 秒，最多越过 16%）。
+   每次进入页面播一次（离开再回来，Activity 重新显示时重播）。友链紧跟标题、在首屏，所以不用 Reveal、不等脚本。
+   ponytail：友链多到几十个时下面的会在屏幕外播完，那时再套 Reveal。 */
+.friend-grid {
+  --ease-spring: linear(0, 0.04, 0.144, 0.286, 0.447, 0.608, 0.758, 0.888, 0.993, 1.071, 1.123, 1.153, 1.163, 1.158, 1.142, 1.119, 1.093, 1.067, 1.042, 1.021, 1.003, 0.99, 0.981, 0.976, 0.973, 0.974, 0.976, 0.98, 0.984, 0.989, 0.993, 0.996, 0.999, 1.001, 1.003, 1.004, 1.004, 1.004, 1.004, 1.003, 1);
+}
+
 .friend-grid > li {
-  animation: friend-appear 0.5s var(--ease-out) var(--twinkle-at, 0ms) both;
+  animation: friend-spring 0.8s var(--ease-spring) calc(var(--i, 0) * 70ms) both;
 }
 
-.friend-grid > li .friend-avatar {
-  animation: friend-twinkle 0.9s var(--ease-out) var(--twinkle-at, 0ms) backwards;
-}
-
-.friend-grid > li .friend-card > div {
-  animation: friend-text-in 0.5s var(--ease-out) calc(var(--twinkle-at, 0ms) + 120ms) backwards;
-}
-
-@keyframes friend-appear {
+@keyframes friend-spring {
   from {
     opacity: 0.0001;
-  }
-}
-
-@keyframes friend-twinkle {
-  0% {
-    opacity: 0;
-    scale: 0.5;
-    filter: brightness(0.3);
-  }
-
-  40% {
-    opacity: 1;
-    scale: 1.12;
-    filter: brightness(1.35);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--moonlight) 55%, transparent), 0 0 18px 4px color-mix(in srgb, var(--moonlight) 45%, transparent);
-  }
-}
-
-@keyframes friend-text-in {
-  from {
-    opacity: 0;
-    translate: 0.5rem 0;
+    translate: 0 1.5rem;
+    scale: 0.92;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .friend-grid > li,
-  .friend-grid > li .friend-avatar,
-  .friend-grid > li .friend-card > div {
+  .friend-grid > li {
     animation: none;
   }
 }

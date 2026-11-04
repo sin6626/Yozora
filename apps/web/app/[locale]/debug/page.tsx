@@ -89,7 +89,7 @@ const sampleProjects = ["星图", "夜航岛", "小火箭", "碎碎念", "金句
   original: false,
 }));
 
-// 友链进场示例：十二个朋友，看头像随机先后亮起（本地真实友链只有两个）
+// 友链进场示例：十二个朋友，看卡片依次弹上来（本地真实友链只有两个）
 const sampleFriends = ["织女", "牛郎", "天狼", "北斗", "参商", "启明", "长庚", "辰星", "荧惑", "岁星", "太白", "镇星"].map((name, index) => ({
   id: `friend-sample-${index}`,
   name,
@@ -191,7 +191,7 @@ export default function DebugPage() {
           </li>
           <li id="debug-friend-entrance">
             <h2>友链进场</h2>
-            <p className="post-meta">friend-list.tsx + corners.css：头像像天黑后的星星，按 id 打乱的先后在 0.9 秒内一颗颗从暗处亮起（略放大、带一圈月光再落回），卡片淡入、站名随后滑进。本地真实友链只有两个，这里放十二个示例；刷新页面重播</p>
+            <p className="post-meta">corners.css 的 .friend-grid &gt; li：卡片按页面顺序一张接一张弹上来（每张晚 70ms，弹簧缓动冲过头一点再落稳）。本地真实友链只有两个，这里放十二个示例；刷新页面重播</p>
             <LinkCards links={sampleFriends} />
           </li>
           <li id="debug-project-entrance">
