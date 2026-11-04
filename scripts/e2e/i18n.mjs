@@ -55,27 +55,33 @@ try {
   if (original) assert.deepEqual([article.h1Lang, article.bodyLang], ["zh-CN", "zh-CN"], "显示中文原文时标明语言");
   if (translated) assert.equal(article.languages, "English", "语言分段里当前是 English");
 
-  // 语言菜单：切到日本語，再切回中文
+  // 语言菜单：切到日本語，再切回中文。
+  // 2026-11-04 用户要求先播报、再换页面（原来是先整页换过去、新页面再播报，显得傻）：点了以后菜单先收起，
+  // 还在当前页时夜航岛用新语言播报一句（只有一行，不再有第二行说明），播完再整页换过去；换过去以后不再播报
   const choose = (name) => browser.evaluate(`(async () => {
     document.querySelector(".site-header .language-trigger").click();
     for (let i = 0; i < 40 && !document.querySelector(".language-item"); i++) await new Promise((r) => setTimeout(r, 50));
     [...document.querySelectorAll(".language-item")].find((item) => item.textContent.includes(${JSON.stringify(name)})).click();
   })()`);
+  const announcing = () => browser.evaluate(`({ path: location.pathname, menu: !!document.querySelector(".language-menu"), title: document.querySelector(".island-activity-text strong")?.textContent ?? null, lines: document.querySelectorAll(".island-activity-text > *").length })`);
   await browser.goto(`${base}/en/notes`, 4000);
   await choose("日本語");
+  await sleep(700);
+  assert.deepEqual(await announcing(), { path: "/en/notes", menu: false, title: "日本語に切り替えました", lines: 1 }, "先在当前页播报（菜单已收起、用新语言、只有一行），页面还没换");
   await sleep(4500);
   const ja = await browser.evaluate(`({ path: location.pathname, lang: document.documentElement.lang, h1: [...document.querySelectorAll("main h1")].find((e) => e.checkVisibility())?.textContent, cookie: document.cookie, island: document.querySelector(".island-activity")?.textContent ?? "" })`);
   assert.equal(ja.path, "/ja/notes");
   assert.equal(ja.lang, "ja");
   assert.equal(ja.h1, "手記");
   assert.match(ja.cookie, /NEXT_LOCALE=ja/);
+  assert.equal(ja.island, "", "换过去以后不再播报");
   await choose("中文");
   await sleep(4500);
   const zh = await browser.evaluate(`({ path: location.pathname, lang: document.documentElement.lang, h1: [...document.querySelectorAll("main h1")].find((e) => e.checkVisibility())?.textContent, cookie: document.cookie })`);
   assert.deepEqual([zh.path, zh.lang, zh.h1], ["/notes", "zh-CN", "手记"]);
   assert.match(zh.cookie, /NEXT_LOCALE=zh/);
   assert.deepEqual(browser.errors, [], `页面报错：${browser.errors.join("\n")}`);
-  console.log(`PASS i18n entry redirects, cookie preference, legacy ?lang links, /en chrome and links, article ${translated ? "translation" : "Chinese fallback"}, language menu round trip`);
+  console.log(`PASS i18n entry redirects, cookie preference, legacy ?lang links, /en chrome and links, article ${translated ? "translation" : "Chinese fallback"}, language menu round trip (announce first, then switch)`);
 } finally {
   browser.close();
 }

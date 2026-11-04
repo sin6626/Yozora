@@ -10,7 +10,6 @@ const en: Messages = {
     groupLabel: "Interface language",
     hint: "Your choice is remembered; posts switch too when translated",
     switched: (name: string) => `Switched to ${name}`,
-    switchedDetail: "The interface now speaks this language, and posts follow when a translation exists",
   },
   notFound: {
     title: "Page not found",

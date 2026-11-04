@@ -10,7 +10,6 @@ const zh = {
     groupLabel: "界面语言",
     hint: "会记住你的选择；文章有翻译时正文也跟着换",
     switched: (name: string) => `已切换到${name}`,
-    switchedDetail: "界面文字已换成这种语言，文章有翻译时也会跟着换",
   },
   notFound: {
     title: "页面不存在",

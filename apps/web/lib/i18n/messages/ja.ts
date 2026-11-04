@@ -10,7 +10,6 @@ const ja: Messages = {
     groupLabel: "表示言語",
     hint: "選んだ言語は記憶されます。翻訳のある記事は本文も切り替わります",
     switched: (name: string) => `${name}に切り替えました`,
-    switchedDetail: "表示がこの言語になりました。翻訳のある記事も切り替わります",
   },
   notFound: {
     title: "ページが見つかりません",
