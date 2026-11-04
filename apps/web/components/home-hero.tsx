@@ -1,7 +1,7 @@
 import { ChevronDown } from "lucide-react";
 import { unstable_rethrow } from "next/navigation";
-import { Suspense, type CSSProperties } from "react";
-import { getOwner, getSiteDescription, getSiteLikes, getSubscribeOptions, siteDescription, siteOwnerName } from "../lib/blog-data";
+import { Fragment, Suspense, type CSSProperties } from "react";
+import { getOwner, getSiteContent, getSiteDescription, getSiteLikes, getSubscribeOptions, siteDescription, siteOwnerName } from "../lib/blog-data";
 import { getApiUrl } from "../lib/config";
 import type { SocialCard, SocialLink } from "../lib/social";
 import ContactCard from "./contact-card";
@@ -92,7 +92,7 @@ async function Motto() {
 }
 
 export default async function HomeHero() {
-  const t = (await getT()).hero;
+  const [t, { hero }] = await Promise.all([getT().then((all) => all.hero), getLocale().then(getSiteContent)]);
   return (
     <section className="home-hero" aria-labelledby="home-hero-title">
       {/* 夜空本身是全站的画布（starfield.tsx，挂在根布局），这里只放月亮的悬停区域 */}
@@ -114,14 +114,15 @@ export default async function HomeHero() {
                 </strong>
                 <span>{t.nameSuffix}</span>
               </span>
-              <br />
-              {t.titleBefore && <span>{t.titleBefore}</span>}<strong>{t.titleStrong}</strong>{t.titleAfter && <span>{t.titleAfter}</span>}
+              {/* 标题第二行和说明来自后台配置片段 theme/sin-space 的 hero（getSiteContent），**…** 是强调的字 */}
+              {hero.title.length > 0 && <br />}
+              {hero.title.map((part, index) => (part.strong ? <strong key={index} lang={hero.lang}>{part.text}</strong> : <span key={index} lang={hero.lang}>{part.text}</span>))}
             </h1>
-            <p className="home-hero-description">
-              {t.line1}
-              <br />
-              {t.line2}
-            </p>
+            {hero.description.length > 0 && (
+              <p className="home-hero-description" lang={hero.lang}>
+                {hero.description.map((line, index) => <Fragment key={index}>{index > 0 && <br />}{line}</Fragment>)}
+              </p>
+            )}
             <Suspense fallback={null}>
               <Socials />
             </Suspense>

@@ -3,7 +3,7 @@ import IslandReading from "./island-reading";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import Link from "./locale-provider";
 import { notFound, unstable_rethrow } from "next/navigation";
-import { getPost, getTimeline } from "../lib/blog-data";
+import { getPost, getSiteContent, getTimeline } from "../lib/blog-data";
 import { formatDate } from "../lib/date";
 import { getApiUrl } from "../lib/config";
 import ArticleBody from "./article-body";
@@ -36,7 +36,7 @@ export default async function PostDetail({ params }: { params: Promise<{ categor
     return <LoadError what={t.posts.title} href={href} />;
   }
   if (!post) notFound();
-  const ai = await loadArticleAi(post.id);
+  const [ai, { copyright }] = await Promise.all([loadArticleAi(post.id), getLocale().then(getSiteContent)]);
   const body = ai.translation ?? post;
 
   return (
@@ -59,6 +59,8 @@ export default async function PostDetail({ params }: { params: Promise<{ categor
       <div className="post-list-content">
         <ArticleAiNotes ai={ai} />
         <div lang={ai.original}><ArticleBody text={body.text} contentFormat={body.contentFormat} content={body.content} emptyText={t.posts.noBody} /></div>
+        {/* 文章开了后台的“版权注明”时，显示后台配置片段 theme/sin-space 里写的版权说明 */}
+        {post.copyright && copyright && <p className="post-meta" lang={copyright.lang}>{copyright.text}</p>}
         <div className="article-end"><ArticleStats apiUrl={getApiUrl()} id={post.id} type="post" like={post.count.like} /></div>
         {post.related.length > 0 && (
           <nav className="neighbor-nav" aria-label={t.posts.related}>

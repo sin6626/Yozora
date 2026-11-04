@@ -72,13 +72,13 @@ const retry = async (what, run) => {
   }
 };
 
-async function leetCodeYear(year) {
+async function leetCodeYear(account, year) {
   const response = await fetch("https://leetcode.cn/graphql/noj-go/", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       query: "query($userSlug: String!, $year: Int) { userCalendar(userSlug: $userSlug, year: $year) { activeYears submissionCalendar } }",
-      variables: { userSlug: "sin-mt", year },
+      variables: { userSlug: account, year },
     }),
     signal: AbortSignal.timeout(20_000),
   });
@@ -95,13 +95,21 @@ async function request(path, init = {}) {
   return data;
 }
 
-const { activeYears } = await retry("力扣", () => leetCodeYear(null));
-const calendars = await Promise.all(activeYears.map((year) => retry("力扣", () => leetCodeYear(year))));
+// 账号和前台星带同一个来源：Core 配置片段 theme/sin-space 的 accounts.leetcode（后台“配置与云函数”里改）
+const themeSnippets = (await retry("Core", () => request("/snippets/group/theme"))).data ?? [];
+const siteConfig = themeSnippets.find((item) => item.name === "sin-space");
+const account = siteConfig ? JSON.parse(siteConfig.raw).accounts?.leetcode : undefined;
+if (!account) {
+  console.log(`${new Date().toISOString()} ${target}：配置片段 theme/sin-space 没有填 accounts.leetcode，跳过`);
+  process.exit(0);
+}
+const { activeYears } = await retry("力扣", () => leetCodeYear(account, null));
+const calendars = await Promise.all(activeYears.map((year) => retry("力扣", () => leetCodeYear(account, year))));
 const merged = Object.fromEntries(calendars.flatMap(({ submissionCalendar }) => Object.entries(JSON.parse(submissionCalendar))).sort(([a], [b]) => Number(a) - Number(b)));
 // 日历存成字符串（和力扣原样一致）：SDK 会把返回对象的键转成驼峰，数字键放在字符串里最稳妥
 const submissionCalendar = JSON.stringify(merged);
 
-const existing = ((await retry("Core", () => request("/snippets/group/theme"))).data ?? []).find((item) => item.type === "json" && item.name === "leetcode-calendar");
+const existing = themeSnippets.find((item) => item.type === "json" && item.name === "leetcode-calendar");
 const previous = existing ? JSON.parse(existing.raw).submissionCalendar : null;
 const days = Object.keys(merged).length;
 const stamp = new Date().toISOString();

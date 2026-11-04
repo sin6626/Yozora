@@ -84,7 +84,6 @@ const zh = {
   },
   footer: {
     links: "页脚链接",
-    motto: "头顶的星空，是心里的星空。",
     timeline: "时间线",
     friends: "友链",
     source: "源码",
@@ -97,11 +96,6 @@ const zh = {
     avatarAlt: "Sin 的头像",
     greeting: "你好，我是",
     nameSuffix: "。",
-    titleBefore: "一个在深夜写代码的",
-    titleStrong: "大三学生",
-    titleAfter: "",
-    line1: "白天上课，晚上折腾前端、写博客、做点小东西。",
-    line2: "探索全栈与设计的普通开发者。",
   },
   home: {
     all: "全部",

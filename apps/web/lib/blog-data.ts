@@ -4,7 +4,7 @@ import { getApiClient } from "./api";
 import { safeUrl } from "./safe-url";
 import { excerpt, readingMinutes } from "./excerpt";
 import { socialCards, socialLinks } from "./social";
-import { parseContentTranslations } from "./theme-config";
+import { parseContentTranslations, parseSiteContent } from "./theme-config";
 
 // 站名读后台“SEO → 网站标题”（2026-11-04 站长定，取代 10-31 的“个人资料名字 + ’s Yozora”），页头、浏览器标题、RSS 一起变；
 // 站长名字（首屏问候、页脚落款）仍读后台“个人资料”的昵称；描述读 SEO 的网站描述。
@@ -378,6 +378,11 @@ export async function getSiteDescription(lang: ContentLang = "zh") {
   const [settings, config] = await Promise.all([getSiteSettings().catch(() => null), lang === "zh" ? null : getThemeConfig().catch(() => null)]);
   const translated = config ? parseContentTranslations(config, lang).siteDescription : undefined;
   return { text: translated ?? settings?.description ?? siteDescription, original: lang !== "zh" && !translated };
+}
+
+// 站长维护的站点内容（首屏标题与说明、页脚那句话、萌备、星带账号、文章版权说明），都在配置片段 theme/sin-space 里，规则见 lib/theme-config.ts
+export async function getSiteContent(lang: ContentLang = "zh") {
+  return parseSiteContent(await getThemeConfig().catch(() => null), lang);
 }
 
 // 站点主题配置（后台配置片段 theme/sin-space，格式见 lib/theme-config.ts）。保存片段经 SNIPPET_* 事件立即失效，没勾时靠短缓存；

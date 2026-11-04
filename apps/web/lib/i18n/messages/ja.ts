@@ -80,7 +80,6 @@ const ja: Messages = {
   },
   footer: {
     links: "フッターリンク",
-    motto: "頭上の星空は、心の中の星空。",
     timeline: "タイムライン",
     friends: "リンク",
     source: "ソース",
@@ -93,11 +92,6 @@ const ja: Messages = {
     avatarAlt: "Sin のアバター",
     greeting: "こんにちは、",
     nameSuffix: "です。",
-    titleBefore: "深夜にコードを書く",
-    titleStrong: "大学三年生",
-    titleAfter: "",
-    line1: "昼は授業、夜はフロントエンドをいじったり、ブログを書いたり、小さなものを作ったり。",
-    line2: "フルスタックとデザインを探求する、ふつうの開発者です。",
   },
   home: {
     all: "すべて",

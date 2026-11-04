@@ -80,7 +80,6 @@ const en: Messages = {
   },
   footer: {
     links: "Footer links",
-    motto: "The stars overhead are the stars within.",
     timeline: "Timeline",
     friends: "Friends",
     source: "Source",
@@ -93,11 +92,6 @@ const en: Messages = {
     avatarAlt: "Sin's avatar",
     greeting: "Hi, I'm",
     nameSuffix: ".",
-    titleBefore: "Coding by night, a",
-    titleStrong: "third-year student",
-    titleAfter: "",
-    line1: "Classes by day; front-end tinkering, blogging and small side projects by night.",
-    line2: "An ordinary developer exploring full stack and design.",
   },
   home: {
     all: "All",
