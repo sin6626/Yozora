@@ -350,7 +350,7 @@ export async function getNote(nid: number, lang: ContentLang = "zh") {
     created: note.created,
     mood: (note.mood && names?.moods[note.mood]) || note.mood,
     weather: (note.weather && names?.weathers[note.weather]) || note.weather,
-    topic: note.topic ? names?.topics[note.topic.id] ?? note.topic.name : null,
+    topic: note.topic ? { name: names?.topics[note.topic.id] ?? note.topic.name, slug: note.topic.slug } : null,
     newer: link(prev),
     older: link(next),
   };
@@ -730,16 +730,25 @@ export async function getTags() {
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 }
 
-// 话题本身没有文章数，用每个话题第一页的分页总数统计；话题很少，请求数可以接受。
+// 后台“话题”：名字、图标、简介、详细描述。话题本身没有篇数，用每个话题第一页的分页总数统计；话题很少，请求数可以接受。
 export async function getTopics(lang: ContentLang = "zh") {
   "use cache";
   cacheLife({ stale: 300, revalidate: 3600, expire: 86400 });
   cacheTag("blog:notes");
-  const client = getApiClient();
-  const [{ data }, names] = await Promise.all([client.topic.getAll(), localizedNames(lang)]);
+  // 带 ?lang= 时 Core 已把话题名和简介换成译文（后台“翻译条目”）；详细描述 Core 不翻译，外文页面显示中文原文
+  const client = getApiClient(lang);
+  const { data } = await client.topic.getAll();
   const counts = await Promise.all(data.map((topic) => client.note.getNoteByTopicId(topic.id, 1, 1)));
   return data
-    .map((topic, index) => ({ id: topic.id, name: names?.topics[topic.id] ?? topic.name, slug: topic.slug, icon: safeUrl(topic.icon ?? undefined), count: counts[index].pagination.total }))
+    .map((topic, index) => ({
+      id: topic.id,
+      name: topic.name,
+      slug: topic.slug,
+      icon: safeUrl(topic.icon ?? undefined),
+      introduce: topic.introduce?.trim() || undefined,
+      description: topic.description?.trim() || undefined,
+      count: counts[index].pagination.total,
+    }))
     .filter((topic) => topic.count > 0)
     .sort((a, b) => b.count - a.count);
 }

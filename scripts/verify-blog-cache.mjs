@@ -10,7 +10,7 @@ const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKi
 const lifetimes = [], tags = [], calls = []
 const category = { id: 'category-id', name: '技术', slug: 'technology', type: 0, count: 1, created: '2026-10-22' }
 const post = { id: 'post-id', title: '正文', text: 'body', slug: 'test', category, created: '2026-10-22', liked: true, content: 'unused JSON', copyright: false, related: [{ id: 'rel-b', title: '旧标题 B', slug: 'b' }, { id: 'rel-draft', title: '草稿', slug: 'draft' }, { id: 'rel-a', title: 'A', slug: 'a' }] }
-const note = { id: 'note-id', nid: 5, title: '手记', text: 'note body', created: '2026-10-22', mood: '开心', weather: '晴', topic: { name: '近况', introduce: 'unused' }, password: 'secret', liked: true, content: 'unused JSON' }
+const note = { id: 'note-id', nid: 5, title: '手记', text: 'note body', created: '2026-10-22', mood: '开心', weather: '晴', topic: { id: 't1', name: '近况', slug: 'now', introduce: 'unused' }, password: 'secret', liked: true, content: 'unused JSON' }
 const project = { id: 'project-id', name: '作品', description: '简介', avatar: 'https://example.com/a.png', text: 'unused', created: '2026-10-22' }
 let invalidNavigation = false
 let detailError
@@ -45,7 +45,7 @@ const api = {
     // 筛选结果按 id 取：Core 按相关度排好的 id（含一条公开列表里没有的）
     proxy: (type) => ({ get: async ({ params }) => { calls.push(['searchIds', type, params]); return { data: [{ id: 'hidden-id' }, { id: type === 'post' ? 'post-id' : 'note-id' }] } } }),
   },
-  topic: { getAll: async () => ({ data: [{ id: 't1', name: '近况', slug: 'now', introduce: 'unused' }, { id: 't2', name: '空话题', slug: 'empty' }] }) },
+  topic: { getAll: async () => ({ data: [{ id: 't1', name: '近况', slug: 'now', introduce: '最近在做的事', description: '更长的一段介绍' }, { id: 't2', name: '空话题', slug: 'empty' }] }) },
   page: { getList: async () => ({ data: [{ id: 'page-id', subtitle: ' about me ' }] }), getBySlug: async () => detailError ? Promise.reject(detailError) : ({ id: 'page-id', title: '关于我', subtitle: 'about me', text: 'page body', contentFormat: 'lexical', content: 'unused JSON', allowComment: true }) },
   post: {
     getList: async (...args) => { calls.push(args); return { data: [post], pagination: { total: 1 } } },
@@ -86,6 +86,7 @@ const noteDetail = await cache.getNote(5)
 assert.equal('password' in noteDetail || 'liked' in noteDetail || 'content' in noteDetail, false)
 assert.equal(JSON.stringify(noteDetail.newer), JSON.stringify({ nid: 6, title: '较新' }))
 assert.equal(noteDetail.older, null)
+assert.equal(JSON.stringify(noteDetail.topic), JSON.stringify({ name: '近况', slug: 'now' }), '详情里的话题带 slug，可以链回话题筛选')
 assert.ok(tags.includes('blog:notes') && tags.includes('blog:note:note-id'))
 const projects = await cache.getProjects()
 assert.equal('text' in projects[0], false)
@@ -102,7 +103,7 @@ assert.equal(foundPosts.total, 1)
 assert.equal('text' in foundPosts.data[0] || 'text' in foundNotes.data[0] || 'password' in foundNotes.data[0], false)
 assert.equal(foundPosts.data[0].category.slug, 'technology')
 const topics = await cache.getTopics()
-assert.equal(JSON.stringify(topics), JSON.stringify([{ id: 't1', name: '近况', slug: 'now', count: 9 }]))
+assert.equal(JSON.stringify(topics), JSON.stringify([{ id: 't1', name: '近况', slug: 'now', introduce: '最近在做的事', description: '更长的一段介绍', count: 9 }]), '话题带上后台填的简介和详细描述')
 const byTopic = await cache.getNotesByTopic('t1')
 assert.equal(byTopic.total, 9)
 assert.equal('text' in byTopic.data[0], false)

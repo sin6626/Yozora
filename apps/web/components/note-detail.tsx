@@ -54,7 +54,7 @@ export default async function NoteDetail({ params }: { params: Promise<{ nid: st
       <header className="page-heading">
         <nav className="detail-crumb" aria-label={t.list.crumb}>
           <Link href="/notes">{t.notes.title}</Link>
-          {note.topic && <><span aria-hidden="true">/</span><span>{note.topic}</span></>}
+          {note.topic && <><span aria-hidden="true">/</span><Link href={`/notes?topic=${encodeURIComponent(note.topic.slug)}`}>{note.topic.name}</Link></>}
         </nav>
         <h1 className="post-detail-title" lang={ai.original}>{body.title}</h1>
         <div className="post-meta detail-meta">

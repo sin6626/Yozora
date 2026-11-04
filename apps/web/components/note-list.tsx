@@ -74,6 +74,7 @@ export default async function NoteList({ searchParams }: { searchParams: Promise
   }
   const { data: notes, pagination } = result;
   const empty = { all: t.empty, topic: t.topicEmpty, search: t.searchEmpty }[filter.kind];
+  const currentTopic = filter.kind === "topic" ? topics?.find((item) => item.slug === filter.slug) : undefined;
 
   return (
     <>
@@ -81,6 +82,9 @@ export default async function NoteList({ searchParams }: { searchParams: Promise
         <div>
           <h1>{t.title}</h1>
           <p className="post-meta">{t.count(pagination.total)}</p>
+          {/* 按话题筛选时显示后台给这个话题写的简介和详细描述（详细描述 Core 不翻译，外文页面标中文） */}
+          {currentTopic?.introduce && <p className="post-meta">{currentTopic.introduce}</p>}
+          {currentTopic?.description && <p className="post-meta" lang={locale === "zh" ? undefined : "zh-CN"}>{currentTopic.description}</p>}
         </div>
       </header>
       <div className="post-list-content">
