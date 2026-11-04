@@ -2,7 +2,7 @@
 // 检查：① 每张卡的延迟 =（实际所在行 + 实际所在列）× 90ms，宽屏、700 宽、手机一列都对得上（容器查询给的列数和真实网格一致）。
 // 本地真实作品只有两张，波浪用 /debug“作品进场”的八张示例卡测，真实作品页测两张卡、网格三列和下面几项；
 // ② 播完全部可见、悬停卡片照常上浮；③ 离开再回来（浏览器后退，Activity 重新显示）重播；
-// ④ 关掉页面脚本照样播、播完可见；⑤ 减少动态效果时不动。
+// ④ 减少动态效果时不动。（不测关掉页面脚本：正文在 Suspense 里，没有脚本时换不上来。）
 // 需要先运行 pnpm dev（默认 http://127.0.0.1:2323，可用 WEB_URL 覆盖）。用法：pnpm e2e
 import assert from "node:assert/strict";
 import { openBrowser, sleep } from "../headless-browser.mjs";
@@ -78,21 +78,14 @@ try {
   }
   await browser.setViewport(1920, 991);
 
-  // 关掉页面脚本：照样播，播完可见
-  await browser.send("Emulation.setScriptExecutionDisabled", { value: true });
-  await browser.goto(base + "/projects", 2000);
-  const noScript = await browser.evaluate(cards("main"));
-  assert.ok(noScript.every((c) => c.name === "project-rise" && c.opacity > 0.99), "没有脚本时也播、播完全部可见");
-  await browser.send("Emulation.setScriptExecutionDisabled", { value: false });
-
   // 减少动态效果：不动
   await browser.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
   await browser.goto(base + "/projects", 2000);
   const reduced = await browser.evaluate(cards("main"));
-  assert.ok(reduced.every((c) => c.name === "none" && c.opacity > 0.99), "减少动态效果时作品卡片不该有进场动画");
+  assert.ok(reduced.length > 0 && reduced.every((c) => c.name === "none" && c.opacity > 0.99), "减少动态效果时作品卡片不该有进场动画");
 
   assert.deepEqual(browser.errors, [], `页面报错：${browser.errors.join("\n")}`);
-  console.log(`PASS 作品：卡片按（行 + 列）× 90ms 斜对角依次浮上（调试页八张卡 ${waves.join("、")}都对得上；作品页 ${wide.length} 张、网格 ${columns} 列），播完悬停照常，离开再回来重播，没有脚本照样播，减少动态效果时不动`);
+  console.log(`PASS 作品：卡片按（行 + 列）× 90ms 斜对角依次浮上（调试页八张卡 ${waves.join("、")}都对得上；作品页 ${wide.length} 张、网格 ${columns} 列），播完悬停照常，离开再回来重播，减少动态效果时不动`);
 } finally {
   browser.close();
 }

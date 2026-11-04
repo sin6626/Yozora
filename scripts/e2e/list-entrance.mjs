@@ -1,7 +1,7 @@
 // 浏览器回归测试：文章、手记、思考列表进入页面时每条“对焦浮上”，每次进入页面只播一次（components/reveal.tsx + reveal.css）。
 // 检查：① 整页打开时首屏的条目由 CSS 一插进来就按序号依次播（不等脚本），播完之后不会再被藏起来重播（不闪）；
-// ② 首屏以下的条目先藏着（waiting），滚到才播，滚回去不重播；③ 关掉页面脚本时首屏照样播、播完全部看得见；
-// ④ 站内跳转进来也播；⑤ 减少动态效果时没有动画、直接显示。
+// ② 首屏以下的条目先藏着（waiting），滚到才播，滚回去不重播；③ 站内跳转进来也播；④ 减少动态效果时没有动画、直接显示。
+// （不测“关掉页面脚本”：列表在 Suspense 里流式送到，没有脚本时根本换不上来，页面一直是读取占位。）
 // 需要先运行 pnpm dev（默认 http://127.0.0.1:2323，可用 WEB_URL 覆盖）。用法：pnpm e2e
 import assert from "node:assert/strict";
 import { openBrowser, sleep } from "../headless-browser.mjs";
@@ -82,22 +82,14 @@ try {
   })()`);
   assert.equal(navigated, true, "从手记站内跳到文章，首屏条目应播进场动画");
 
-  // 关掉页面脚本：首屏照样由 CSS 播，播完没有被藏住的条目
-  await browser.send("Emulation.setScriptExecutionDisabled", { value: true });
-  await browser.goto(base + "/posts", 2000);
-  const noScript = await browser.evaluate(snapshot(pages["/posts"]));
-  assert.ok(noScript.filter((i) => i.top < 991).every((i) => i.opacity > 0.99), "没有脚本时首屏条目播完应全部可见");
-  assert.ok(noScript.every((i) => i.state === "none"), "没有脚本时不该有条目被标成 waiting");
-  await browser.send("Emulation.setScriptExecutionDisabled", { value: false });
-
   // 减少动态效果：没有动画，直接显示
   await browser.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
   await browser.goto(base + "/posts", 2000);
   const reduced = await browser.evaluate(snapshot(pages["/posts"]));
-  assert.ok(reduced.every((i) => i.delay === null && i.opacity > 0.99 && i.state === "none"), `减少动态效果时不该有进场动画：${JSON.stringify(reduced)}`);
+  assert.ok(reduced.length > 0 && reduced.every((i) => i.delay === null && i.opacity > 0.99 && i.state === "none"), `减少动态效果时不该有进场动画：${JSON.stringify(reduced)}`);
 
   assert.deepEqual(browser.errors, [], `页面报错：${browser.errors.join("\n")}`);
-  console.log("PASS 文章、手记、思考列表：首屏条目一插进来就依次浮上（不等脚本、不闪），以下的滚到才播且只播一次，站内跳转也播，没有脚本时全部可见，减少动态效果时不动");
+  console.log("PASS 文章、手记、思考列表：首屏条目一插进来就依次浮上（不等脚本、不闪），以下的滚到才播且只播一次，站内跳转也播，减少动态效果时不动");
 } finally {
   browser.close();
 }

@@ -1,7 +1,7 @@
 // 浏览器回归测试：友链进场——卡片按页面顺序一张接一张弹上来（corners.css 的 .friend-grid > li，弹簧缓动 --ease-spring）。
 // 本地真实友链只有两个，依次的节奏用 /debug“友链进场”的十二个示例测，真实友链页测两个也会播。
 // 检查：① 每张卡晚 70ms、按页面顺序；② 缓动是弹簧：逐帧采样能看到卡片冲过最终位置（往上越过）再落稳；
-// ③ 播完全部可见、在原位、悬停卡片照常上浮；④ 离开再回来重播；⑤ 关掉页面脚本照样播；⑥ 减少动态效果时不动。
+// ③ 播完全部可见、在原位、悬停卡片照常上浮；④ 离开再回来重播；⑤ 减少动态效果时不动。（不测关掉页面脚本：正文在 Suspense 里，没有脚本时换不上来。）
 // 需要先运行 pnpm dev（默认 http://127.0.0.1:2323，可用 WEB_URL 覆盖）。用法：pnpm e2e
 import assert from "node:assert/strict";
 import { openBrowser, sleep } from "../headless-browser.mjs";
@@ -72,21 +72,14 @@ try {
   const back = await browser.evaluate(cards("main"));
   assert.ok(back.every((c, i) => c.start !== null && c.start > before[i]), "离开再回来应重播");
 
-  // 关掉页面脚本：照样播，播完可见
-  await browser.send("Emulation.setScriptExecutionDisabled", { value: true });
-  await browser.goto(base + "/friends", 2000);
-  const noScript = await browser.evaluate(cards("main"));
-  assert.ok(noScript.every((c) => c.name === "friend-spring" && c.opacity > 0.99), "没有脚本时也播、播完全部可见");
-  await browser.send("Emulation.setScriptExecutionDisabled", { value: false });
-
   // 减少动态效果：不动
   await browser.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
   await browser.goto(base + "/friends", 2000);
   const reduced = await browser.evaluate(cards("main"));
-  assert.ok(reduced.every((c) => c.name === "none" && c.opacity > 0.99), "减少动态效果时友链不该有进场动画");
+  assert.ok(reduced.length > 0 && reduced.every((c) => c.name === "none" && c.opacity > 0.99), "减少动态效果时友链不该有进场动画");
 
   assert.deepEqual(browser.errors, [], `页面报错：${browser.errors.join("\n")}`);
-  console.log(`PASS 友链：调试页十二张卡按顺序每张晚 70ms 弹上来，弹簧冲过 ${Math.abs(path.min).toFixed(1)}px 再落稳；友链页 ${real.length} 张也依次弹上来，悬停照常，离开再回来重播，没有脚本照样播，减少动态效果时不动`);
+  console.log(`PASS 友链：调试页十二张卡按顺序每张晚 70ms 弹上来，弹簧冲过 ${Math.abs(path.min).toFixed(1)}px 再落稳；友链页 ${real.length} 张也依次弹上来，悬停照常，离开再回来重播，减少动态效果时不动`);
 } finally {
   browser.close();
 }
