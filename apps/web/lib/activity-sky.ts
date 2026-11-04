@@ -35,9 +35,11 @@ async function leetCode(account: string, from: number) {
 
 // 线上服务器在洛杉矶，力扣中国站的 Cloudflare 对它一律返回人机验证（403）；取不到时读站长 Mac 每天同步进 Core 的那份
 // （scripts/sync-leetcode.mjs，配置片段 theme/leetcode-calendar，日历和力扣返回的一样是字符串）。本地开发在国内，直接取得到。
-async function leetCodeFromCore() {
-  const { submissionCalendar } = await getApiClient().snippet.getByReferenceAndName<{ submissionCalendar: string }>("theme", "leetcode-calendar");
-  return parseLeetCode(submissionCalendar);
+// 那份日历记着是哪个账号的：和现在配置的账号不同（刚换账号、还没同步）或没写账号的旧记录都不用，免得拿别人的记录冒充
+async function leetCodeFromCore(account: string) {
+  const synced = await getApiClient().snippet.getByReferenceAndName<{ account?: string; submissionCalendar: string }>("theme", "leetcode-calendar");
+  if (synced.account !== account) throw new Error("synced LeetCode calendar belongs to another account");
+  return parseLeetCode(synced.submissionCalendar);
 }
 
 async function gitHub(account: string, from: number, to: number) {
@@ -55,11 +57,12 @@ export async function getActivitySky() {
   cacheLife({ stale: 3600, revalidate: 21600, expire: 86400 });
   cacheTag("activity-sky", "blog:theme");
   const { accounts } = await getSiteContent();
+  const leetcodeAccount = accounts.leetcode;
   const none = () => Promise.reject(new Error("account not configured"));
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date());
   const thisYear = Number(today.slice(0, 4));
   const [leetcode, github] = await Promise.allSettled([
-    accounts.leetcode ? leetCode(accounts.leetcode, thisYear - years + 1).catch(() => leetCodeFromCore()) : none(),
+    leetcodeAccount ? leetCode(leetcodeAccount, thisYear - years + 1).catch(() => leetCodeFromCore(leetcodeAccount)) : none(),
     accounts.github ? gitHub(accounts.github, thisYear - years + 1, thisYear) : none(),
   ]);
   if (leetcode.status === "rejected" && github.status === "rejected") throw new Error("activity sky unavailable", { cause: [leetcode.reason, github.reason] });

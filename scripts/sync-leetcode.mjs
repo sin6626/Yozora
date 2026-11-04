@@ -110,10 +110,12 @@ const merged = Object.fromEntries(calendars.flatMap(({ submissionCalendar }) => 
 const submissionCalendar = JSON.stringify(merged);
 
 const existing = themeSnippets.find((item) => item.type === "json" && item.name === "leetcode-calendar");
-const previous = existing ? JSON.parse(existing.raw).submissionCalendar : null;
+const previousRecord = existing ? JSON.parse(existing.raw) : null;
+// 账号换了也要重写：前台只用和当前账号一致的那份
+const unchanged = previousRecord?.account === account && previousRecord?.submissionCalendar === submissionCalendar;
 const days = Object.keys(merged).length;
 const stamp = new Date().toISOString();
-if (previous === submissionCalendar) {
+if (unchanged) {
   console.log(`${stamp} ${target}：力扣 ${days} 天，没有变化`);
   process.exit(0);
 }
@@ -123,7 +125,7 @@ const body = {
   name: "leetcode-calendar",
   private: false,
   comment: "力扣中国站每日提交（页脚星带用），由站长 Mac 上的 scripts/sync-leetcode.mjs 每天同步，不要手改",
-  raw: JSON.stringify({ updatedAt: stamp, submissionCalendar }, null, 2),
+  raw: JSON.stringify({ account, updatedAt: stamp, submissionCalendar }, null, 2),
 };
 console.log(`${stamp} ${target}：力扣 ${days} 天（${activeYears.join("、")}），${existing ? "更新" : "新建"} theme/leetcode-calendar${dryRun ? "（--dry-run，不写入）" : ""}`);
 if (!dryRun) {
