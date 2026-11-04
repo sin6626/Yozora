@@ -117,10 +117,17 @@ export default async function HomeHero() {
               </span>
               {/* 标题第二行和说明来自后台配置片段 theme/yozora 的 hero（getSiteContent），**…** 是强调的字 */}
               {hero.title.length > 0 && <br />}
-              {hero.title.map((part, index) => (part.strong ? <strong key={index} lang={hero.lang}>{part.text}</strong> : <span key={index} lang={hero.lang}>{part.text}</span>))}
+              {hero.title.map((part, index) => (
+                // 每段是 inline-block，段首段尾的空格放在块外面，英文词间才不会被吃掉
+                <Fragment key={index}>
+                  {/^\s/.test(part.text) && " "}
+                  {part.strong ? <strong lang={hero.titleLang}>{part.text.trim()}</strong> : <span lang={hero.titleLang}>{part.text.trim()}</span>}
+                  {/\s$/.test(part.text) && " "}
+                </Fragment>
+              ))}
             </h1>
             {hero.description.length > 0 && (
-              <p className="home-hero-description" lang={hero.lang}>
+              <p className="home-hero-description" lang={hero.descriptionLang}>
                 {hero.description.map((line, index) => <Fragment key={index}>{index > 0 && <br />}{line}</Fragment>)}
               </p>
             )}

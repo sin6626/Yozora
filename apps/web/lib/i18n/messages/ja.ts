@@ -103,8 +103,6 @@ const ja: Messages = {
     activity: { title: "最近のできごと", note: "コメント、いいね、更新" },
     loading: "読み込み中…",
     images: (count: number) => `画像 ${count} 枚`,
-    techTitle: "技術スタック",
-    techNote: "普段使っているもの、いま学んでいるもの",
   },
   activity: {
     commentIn: "が",

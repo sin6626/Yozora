@@ -15,7 +15,6 @@ function load(path) {
 }
 const { moonPhase, moonLitPath, moonInfo } = load('../apps/web/lib/moon.ts')
 const { excerpt, readingMinutes } = load('../apps/web/lib/excerpt.ts')
-const { parseTechStack } = load('../apps/web/lib/theme-config.ts')
 
 const near = (phase, target) => Math.min(Math.abs(phase - target), 1 - Math.abs(phase - target))
 // 2024-01-11 11:57 UTC 新月，2024-01-25 17:54 UTC 满月，2024-01-18 03:53 UTC 上弦，2024-02-02 23:18 UTC 下弦
@@ -57,14 +56,4 @@ assert.equal(readingMinutes('哈'), 1)
 assert.equal(readingMinutes(null), 1)
 assert.equal(readingMinutes('字'.repeat(2000)), 5)
 assert.equal(readingMinutes('字'.repeat(800) + '\n```js\n' + 'x'.repeat(4000) + '\n```'), 2)
-// 首页技术栈的后台配置：格式不对的项逐个丢掉，整块不可用时返回 null（页面退回默认值）
-const plain = (value) => JSON.parse(JSON.stringify(value))
-assert.equal(parseTechStack(null), null)
-assert.equal(parseTechStack({}), null)
-assert.equal(parseTechStack({ techStack: { rows: 'Vue' } }), null)
-assert.equal(parseTechStack({ techStack: { rows: [[], [{ name: 'Vue' }]] } }), null)
-assert.deepEqual(plain(parseTechStack({ techStack: {
-  title: ' 我的工具 ', description: '',
-  rows: [[{ name: 'Vue', icon: 'skill-icons:vuejs-dark', extra: 1 }, { name: ' ', icon: 'skill-icons:react-dark' }, 'Go'], 'x', [{ name: 'Go', icon: 'skill-icons:golang' }]],
-} })), { title: '我的工具', rows: [[{ name: 'Vue', icon: 'skill-icons:vuejs-dark' }], [{ name: 'Go', icon: 'skill-icons:golang' }]] })
-console.log('PASS moon phase dates, lit side, crescent/gibbous terminator, new and full moon, hover info; Markdown excerpt; tech stack config')
+console.log('PASS moon phase dates, lit side, crescent/gibbous terminator, new and full moon, hover info; Markdown excerpt (tech stack config: verify-site-content.mjs)')

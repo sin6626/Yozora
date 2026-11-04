@@ -103,8 +103,6 @@ const en: Messages = {
     activity: { title: "Lately", note: "Comments, likes and updates" },
     loading: "Loading…",
     images: (count: number) => `${count} ${count === 1 ? "image" : "images"}`,
-    techTitle: "Tech stack",
-    techNote: "What I use and what I'm learning",
   },
   activity: {
     commentIn: "on",

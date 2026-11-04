@@ -107,8 +107,6 @@ const zh = {
     activity: { title: "最近发生的事", note: "评论、点赞与更新" },
     loading: "正在读取…",
     images: (count: number) => `${count} 张图`,
-    techTitle: "技术栈",
-    techNote: "平时在用、正在学的东西",
   },
   activity: {
     commentIn: "在",
