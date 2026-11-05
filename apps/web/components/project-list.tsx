@@ -26,8 +26,8 @@ export async function ProjectCard({ project, headingLevel = 2 }: { project: Proj
         <img className="project-card-icon" src={avatar} alt="" width={48} height={48} />
       ) : <span className="project-card-icon is-letter" aria-hidden="true">{Array.from(project.name.trim())[0] ?? "✦"}</span>}
       {/* 外文页面上没在配置片段里写译文的作品，名字和介绍标明是中文 */}
-      <Heading lang={project.original ? "zh-CN" : undefined}>{project.name}</Heading>
-      {project.description && <p className="project-card-description" lang={project.original ? "zh-CN" : undefined}>{project.description}</p>}
+      <Heading lang={project.nameLang}>{project.name}</Heading>
+      {project.description && <p className="project-card-description" lang={project.descriptionLang}>{project.description}</p>}
       {links.length > 0 && (
         <div className="project-card-links">
           {links.map((link) => (

@@ -82,11 +82,12 @@ const sampleProjects = ["星图", "夜航岛", "小火箭", "碎碎念", "金句
   id: `sample-${index}`,
   name,
   description: "示例作品，用来看进场动画。",
+  nameLang: undefined,
+  descriptionLang: undefined,
   avatar: undefined,
   projectUrl: "https://example.com",
   previewUrl: undefined,
   docUrl: undefined,
-  original: false,
 }));
 
 // 友链进场示例：十二个朋友，看卡片依次弹上来（本地真实友链只有两个）

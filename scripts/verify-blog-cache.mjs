@@ -8,11 +8,15 @@ const ts = require('typescript')
 const source = readFileSync(new URL('../apps/web/lib/blog-data.ts', import.meta.url), 'utf8')
 const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
 const lifetimes = [], tags = [], calls = []
+const themeConfig = { exports: {} }
+vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../apps/web/lib/theme-config.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { module: themeConfig, exports: themeConfig.exports })
 const category = { id: 'category-id', name: '技术', slug: 'technology', type: 0, count: 1, created: '2026-10-22' }
 const post = { id: 'post-id', title: '正文', text: 'body', slug: 'test', category, created: '2026-10-22', liked: true, content: 'unused JSON', copyright: false, related: [{ id: 'rel-b', title: '旧标题 B', slug: 'b' }, { id: 'rel-draft', title: '草稿', slug: 'draft' }, { id: 'rel-a', title: 'A', slug: 'a' }] }
 const note = { id: 'note-id', nid: 5, title: '手记', text: 'note body', created: '2026-10-22', mood: '开心', weather: '晴', topic: { id: 't1', name: '近况', slug: 'now', introduce: 'unused' }, password: 'secret', liked: true, content: 'unused JSON' }
 const project = { id: 'project-id', name: '作品', description: '简介', avatar: 'https://example.com/a.png', text: 'unused', created: '2026-10-22' }
 let invalidNavigation = false
+let projectList = [project]
+let themeSnippet = null
 let detailError
 const api = {
   aggregate: {
@@ -28,7 +32,8 @@ const api = {
     getNoteByTopicId: async (id, page, size, options) => { calls.push(['topic', id, page, size, options]); return id === 't1' ? { data: [{ ...note, text: 'leak' }], pagination: { total: 9 } } : { data: [], pagination: { total: 0 } } },
     getNoteByNid: async () => { if (detailError) throw detailError; return { data: note, prev: { nid: 6, title: '较新' }, next: { nid: 4 } } },
   },
-  project: { getAll: async () => ({ data: [project] }) },
+  project: { getAll: async () => ({ data: projectList }) },
+  snippet: { getByReferenceAndName: async () => themeSnippet },
   comment: {
     // 两页主评论；第一条主评论有 2 条回复被折叠（Core 只给头尾），要用楼中楼接口按游标取回
     getByRefId: async (refId, options) => {
@@ -65,7 +70,7 @@ const api = {
 const module = { exports: {} }
 vm.runInNewContext(code, {
   module, exports: module.exports,
-  require: (id) => id === 'server-only' ? {} : id === './excerpt' ? { excerpt: (value) => value ?? '', readingMinutes: () => 1 } : id === './social' ? { socialLinks: () => [], socialCards: () => [] } : id === './theme-config' ? { parseContentTranslations: () => ({ projects: {} }) } : id === './safe-url' ? { safeUrl: (value) => value && /^https?:\/\//i.test(value) ? value : undefined } : id === './api' ? { getApiClient: () => api } : id === 'next/cache' ? { cacheLife: (value) => lifetimes.push(value), cacheTag: (...value) => tags.push(...value) } : require(id),
+  require: (id) => id === 'server-only' ? {} : id === './excerpt' ? { excerpt: (value) => value ?? '', readingMinutes: () => 1 } : id === './social' ? { socialLinks: () => [], socialCards: () => [] } : id === './theme-config' ? themeConfig.exports : id === './safe-url' ? { safeUrl: (value) => value && /^https?:\/\//i.test(value) ? value : undefined } : id === './api' ? { getApiClient: () => api } : id === 'next/cache' ? { cacheLife: (value) => lifetimes.push(value), cacheTag: (...value) => tags.push(...value) } : require(id),
 })
 const cache = module.exports
 const navigation = await cache.getNavigationData()
@@ -168,3 +173,17 @@ assert.equal(thread.replies[1].owner, true, '楼中楼接口返回的读者资�
 assert.equal(thread.replies[0].parentId, 'comment-id')
 assert.equal(/leak@|reader@|owner@|1\.2\.3\.4|"UA"/.test(JSON.stringify(comments)), false, '评论缓存不含邮箱、IP、UA')
 
+// 作品名和介绍各自有没有译文：没有的那一项显示中文并单独标 zh-CN，有的那一项不标
+projectList = ['both', 'none', 'name', 'desc'].map((id) => ({ ...project, id, name: `中文名-${id}`, description: `中文介绍-${id}` }))
+for (const lang of ['en', 'ja']) {
+  themeSnippet = { i18n: { [lang]: { projects: { both: { name: `N-${lang}`, description: `D-${lang}` }, name: { name: `N-${lang}` }, desc: { description: `D-${lang}` } } } } }
+  const byId = Object.fromEntries((await cache.getProjects(lang)).map((item) => [item.id, item]))
+  const shown = (id) => [byId[id].name, byId[id].nameLang, byId[id].description, byId[id].descriptionLang]
+  assert.deepEqual(shown('both'), [`N-${lang}`, undefined, `D-${lang}`, undefined], `${lang} 两项都有译文`)
+  assert.deepEqual(shown('none'), ['中文名-none', 'zh-CN', '中文介绍-none', 'zh-CN'], `${lang} 两项都没有译文`)
+  assert.deepEqual(shown('name'), [`N-${lang}`, undefined, '中文介绍-name', 'zh-CN'], `${lang} 只译了名字：介绍标中文`)
+  assert.deepEqual(shown('desc'), ['中文名-desc', 'zh-CN', `D-${lang}`, undefined], `${lang} 只译了介绍：名字标中文、介绍不标`)
+}
+assert.deepEqual((await cache.getProjects('zh')).map((item) => [item.nameLang, item.descriptionLang]), projectList.map(() => [undefined, undefined]), '中文页面不标')
+projectList = [project]
+themeSnippet = null

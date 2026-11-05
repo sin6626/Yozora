@@ -87,7 +87,7 @@ export default function StyleGuide() {
       <NoteEntry note={{ id: "n", nid: 1, title: "标记过的手记（后台“回忆项”）：同样的星轨 + 微光，按时间排在原处", created, mood: "平静", weather: "晴", topic: "近况", bookmark: true, excerpt: { text: "停下来的时候，去阳台看看外面的星星，月亮也在。", source: "text" }, stats: { minutes: 2, reads: 8, likes: 0 }, original: false }} headingLevel={3} />
       <NoteEntry note={{ id: "m", nid: 2, title: "手记：熄灯以后的阳台", created, mood: "平静", weather: "晴", topic: "近况", bookmark: false, excerpt: { text: "没有标记的手记，按时间排在原处。", source: "text" }, stats: { minutes: 2, reads: 8, likes: 0 }, original: false }} headingLevel={3} />
       <ul className="project-grid guide-gap">
-        <li><ProjectCard project={{ id: "p", name: "作品卡片", description: "没有图标时用名字的首字。", avatar: undefined, projectUrl: "https://example.com", previewUrl: undefined, docUrl: undefined, original: false }} headingLevel={3} /></li>
+        <li><ProjectCard project={{ id: "p", name: "作品卡片", nameLang: undefined, description: "没有图标时用名字的首字。", descriptionLang: undefined, avatar: undefined, projectUrl: "https://example.com", previewUrl: undefined, docUrl: undefined }} headingLevel={3} /></li>
       </ul>
       <div className="thinking-card guide-gap"><p>思考卡片：完整显示的一小段话。</p><p className="post-meta thinking-meta"><time dateTime={created}>2026/10/27</time></p></div>
     </>

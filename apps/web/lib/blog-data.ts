@@ -364,11 +364,14 @@ export async function getProjects(lang: ContentLang = "zh") {
   cacheTag("blog:projects", "blog:theme");
   const [{ data }, config] = await Promise.all([getApiClient().project.getAll(), lang === "zh" ? null : getThemeConfig().catch(() => null)]);
   const translated = config ? parseContentTranslations(config, lang).projects : {};
+  // 名字和介绍可以只译一项：各自没有译文时显示中文、单独标 zh-CN
+  const original = (text: string | undefined) => (lang !== "zh" && !text ? ("zh-CN" as const) : undefined);
   return data.map(({ id, name, description, avatar, projectUrl, previewUrl, docUrl }) => ({
     id,
     name: translated[id]?.name ?? name,
+    nameLang: original(translated[id]?.name),
     description: translated[id]?.description ?? description,
-    original: lang !== "zh" && !translated[id]?.name,
+    descriptionLang: original(translated[id]?.description),
     avatar, projectUrl, previewUrl, docUrl,
   }));
 }
