@@ -6,6 +6,7 @@ import { useIsland } from "../lib/island-store";
 import { refreshAfterWrite } from "./cache-actions";
 import { LogIn } from "lucide-react";
 import { openLoginDialog } from "./account-menu";
+import { rich } from "../lib/i18n/rich";
 import { useLocale, useT } from "./locale-provider";
 import type { Messages } from "../lib/i18n/messages/zh";
 import { signOut, useLoginError, useReaderSession, type LoginProvider } from "./reader-session";
@@ -102,7 +103,7 @@ export default function CommentForm({ apiUrl, allowGuest, providers, refId, refT
         <div className="comment-identity">
           {/* eslint-disable-next-line @next/next/no-img-element -- GitHub / Google 头像，不走 next/image 白名单 */}
           {reader.image && <img className="comment-avatar" src={reader.image} alt="" width={28} height={28} />}
-          <span>{t.asBefore}<strong>{reader.name}</strong>{t.asAfter}</span>
+          <span>{rich(t.asName, { name: <strong>{reader.name}</strong> })}</span>
           {!replyTo && <button className="btn btn-ghost btn-sm" type="button" onClick={() => void signOut(apiUrl)}>{t.logout}</button>}
         </div>
       ) : !replyTo && providers.length > 0 && session.status === "guest" && (

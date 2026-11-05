@@ -1,7 +1,8 @@
 import type { CSSProperties } from "react";
 import { unstable_rethrow } from "next/navigation";
 import { getActivitySky } from "../lib/activity-sky";
-import { getT } from "../lib/i18n/server";
+import { htmlLang } from "../lib/i18n/config";
+import { getLocale, getT } from "../lib/i18n/server";
 import FooterSkyFrame from "./footer-sky-frame";
 import "./footer-sky.css";
 
@@ -18,14 +19,16 @@ export default async function FooterSky() {
     return null;
   }
   if (!sky) return null;
-  const t = (await getT()).footer;
+  const [t, locale] = await Promise.all([getT().then((all) => all.footer), getLocale()]);
   const first = sky.days.find((day) => day?.kind)?.date ?? sky.days[0]!.date;
+  // “2024年3月”“March 2024”：年月的写法交给 Intl 按语言来
+  const since = new Intl.DateTimeFormat(htmlLang(locale), { year: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${first.slice(0, 7)}-01T00:00:00Z`));
   return (
     <FooterSkyFrame weeks={sky.weeks}>
       <div className="footer-sky-years" aria-hidden="true">
         {sky.years.map(({ year, week }) => <span key={year} style={{ "--week": week } as CSSProperties}>{year}</span>)}
       </div>
-      <div className="footer-sky-band" role="img" aria-label={t.sky(Number(first.slice(0, 4)), Number(first.slice(5, 7)))}>
+      <div className="footer-sky-band" role="img" aria-label={t.sky(since)}>
         {sky.days.map((day, index) => {
           if (!day) return <i key={index} className="is-future" />;
           if (!day.kind) return <i key={index} />;

@@ -13,6 +13,8 @@ export type IslandActivity = {
   icon: IslandActivityIcon;
   title: string;
   detail?: string;
+  // 第二行和页面不是同一种语言时标出来（外文页面播报中文原题时是 zh-CN）
+  detailLang?: string;
   href?: string;
   duration: number;
 };

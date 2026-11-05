@@ -4,7 +4,8 @@ import { NavigationMenu } from "@base-ui/react/navigation-menu";
 import { ArrowRight, ArrowUpRight, ChevronDown } from "lucide-react";
 import { LayoutGroup, MotionConfig, motion } from "motion/react";
 import type { Messages } from "../lib/i18n/messages";
-import Link, { useLocalePathname, useT } from "./locale-provider";
+import Link, { useLocale, useLocalePathname, useT } from "./locale-provider";
+import { htmlLang } from "../lib/i18n/config";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useIsland } from "../lib/island-store";
@@ -109,8 +110,19 @@ function PanelFooter({ href, label, aside }: { href: string; label: string; asid
 type Ready = Extract<NavigationState, { status: "ready" }>;
 type HomePanelProps = { pages: NavigationLink[]; socials: Ready["socials"]; contacts?: Ready["contacts"]; stats?: Panels["stats"]; pathname: string };
 
+// 字数：“1.2 万字”“12.3K words”。缩写交给 Intl；汉字的缩写（万）并进单位，字母的（K）跟着数字
+function compactCount(value: number, unit: string, locale: string): [string, string] {
+  const parts = new Intl.NumberFormat(htmlLang(locale), { notation: "compact", maximumFractionDigits: 1 }).formatToParts(value);
+  const suffix = parts.filter((part) => part.type === "compact").map((part) => part.value).join("");
+  const digits = parts.filter((part) => part.type !== "compact" && part.type !== "literal").map((part) => part.value).join("");
+  return /^[A-Za-z]*$/.test(suffix) ? [digits + suffix, unit] : [digits, suffix + unit];
+}
+
 function HomePanel({ pages, socials, contacts = [], stats, pathname }: HomePanelProps) {
   const t = useT().nav;
+  const locale = useLocale();
+  const number = new Intl.NumberFormat(htmlLang(locale));
+  const compact = (value: number, unit: string) => compactCount(value, unit, locale);
   // 名片卡片和社交图标的悬停提示挂进导航弹层（.navigation-Popup，不裁切内容）：鼠标移到卡片上仍算在面板里，面板不会收起。
   // 调试页把面板直接摆在页面上、没有弹层，就挂在面板自己身上。
   const panel = useRef<HTMLDivElement>(null);
@@ -126,7 +138,7 @@ function HomePanel({ pages, socials, contacts = [], stats, pathname }: HomePanel
             <b aria-hidden="true">{stats.days}</b>
             <span aria-hidden="true">{t.night}</span>
           </p>
-          {[t.pieces(stats.writings), t.words(stats.words)].map(([value, unit]) => (
+          {[[number.format(stats.writings), t.piecesUnit], compact(stats.words, t.wordsUnit)].map(([value, unit]) => (
             <p key={unit} className="nav-night-stat"><b>{value}</b> <span>{unit}</span></p>
           ))}
         </section>

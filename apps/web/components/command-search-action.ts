@@ -1,6 +1,7 @@
 "use server";
 
-import { isTranslationLanguage, searchNotes, searchPosts } from "../lib/blog-data";
+import { searchNotes, searchPosts } from "../lib/blog-data";
+import { getSiteLocales } from "../lib/i18n/data";
 
 export type SearchHit = { id: string; href: string; title: string; created: string; meta?: string };
 export type SearchResult = { posts: SearchHit[]; notes: SearchHit[]; postTotal: number; noteTotal: number };
@@ -10,7 +11,8 @@ export type SearchResult = { posts: SearchHit[]; notes: SearchHit[]; postTotal: 
 export async function quickSearch(keyword: string, lang: string): Promise<SearchResult | null> {
   const query = typeof keyword === "string" ? keyword.trim().slice(0, 100) : "";
   if (!query) return { posts: [], notes: [], postTotal: 0, noteTotal: 0 };
-  const contentLang = isTranslationLanguage(lang) ? lang : "zh";
+  // 语言来自浏览器，只认后台开着的，免得随便一个值都去 Core 读一遍、占一份缓存
+  const contentLang = (await getSiteLocales()).includes(lang) ? lang : "zh";
   try {
     const [posts, notes] = await Promise.all([searchPosts(query, contentLang), searchNotes(query, contentLang)]);
     return {

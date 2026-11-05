@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process'
+import { execFile, execFileSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import { createWriteStream, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -201,6 +201,10 @@ try {
     if (coreNoWatch && !existsSync(join(root, 'apps/core/dist/main.js'))) throw new Error('请先编译 Core，再运行无监听的隔离验证。')
     await start('core', process.execPath, coreNoWatch ? ['dist/main.js'] : [cliPath('apps/core', '@nestjs/cli', 'nest'), 'start', '-w', '--path', 'tsconfig.json', '--'], 'apps/core', { ...coreEnv, JWT_SECRET: secret })
     await waitForPort(ports.core)
+    // 界面文字的中文原文推给 Core（后台开着 AI i18n 时据此翻译新增、改过的条目）；不等它，失败只提示
+    if (!testing) execFile(process.execPath, [join(root, 'scripts/push-i18n-source.mjs')], (error, stdout, stderr) => {
+      console.log(error ? `界面文字没推给 Core：${(stderr || error.message).trim()}` : stdout.trim().split('\n').at(-1))
+    })
   }
   if (!coreOnly && !adminOnly) {
     await start('web', process.execPath, [cliPath('apps/web', 'next', 'next'), 'dev', '-H', host, '-p', String(ports.web)], 'apps/web', {

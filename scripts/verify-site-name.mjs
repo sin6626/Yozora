@@ -19,7 +19,9 @@ const stubs = {
   'next/cache': { cacheLife: () => {}, cacheTag: () => {} },
   './excerpt': { excerpt: (value) => value ?? '', readingMinutes: () => 1 },
   './social': { socialLinks: () => [], socialCards: () => [] },
-  './theme-config': { parseContentTranslations: () => ({ projects: {} }) },
+  './theme-config': { parseSiteContent: () => ({}) },
+  './i18n/config': { isLanguageCode: () => false },
+  './i18n/data': { getI18nBundle: async () => ({ messages: {}, site: {}, projects: {} }) },
   './safe-url': { safeUrl: (value) => value },
 }
 const module = { exports: {} }

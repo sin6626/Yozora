@@ -71,7 +71,8 @@ try {
   await sleep(1200);
   const compact = await island();
   assert.equal(compact.mode, "compact", "阅读页往下读应当收成胶囊（点过页头按钮、切走再切回也一样）");
-  assert.ok(compact.width < bar.width / 2 && !compact.navVisible, `阅读时的胶囊应当窄且不显示导航（宽 ${compact.width}）`);
+  // 标题最长 260px（超出省略），胶囊最宽约 470px；页头铺开时开发环境约 933px。原来按“不到一半”判断，只在最新文章标题很短时成立
+  assert.ok(compact.width < bar.width * 0.6 && !compact.navVisible, `阅读时的胶囊应当窄且不显示导航（宽 ${compact.width}，铺开 ${bar.width}）`);
   const reading = await browser.evaluate(`({ text: document.querySelector(".island-context")?.innerText ?? "", ring: !!document.querySelector(".island-ring"), title: document.querySelector(".post-detail-title").textContent })`);
   assert.ok(reading.ring && reading.text.includes(reading.title.slice(0, 6)), `读文章时胶囊应显示标题和进度环：${reading.text}`);
 

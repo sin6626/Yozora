@@ -85,14 +85,17 @@ try {
     assert.deepEqual(await tagsFor(`SNIPPET_${action}`, JSON.stringify({ id, reference: 'theme', name: 'yozora' })), ['blog:theme', 'activity-sky'])
     assert.deepEqual(await tagsFor(`TRANSLATION_${action}`, JSON.stringify({ id, refId: id, lang: 'en' })), ['blog:ai', 'blog:posts', 'blog:notes', 'blog:pages'])
   }
-  assert.deepEqual(await tagsFor('OPTION_UPDATE', JSON.stringify({ id, key: 'seo' })), ['blog:navigation', 'blog:links'])
+  assert.deepEqual(await tagsFor('OPTION_UPDATE', JSON.stringify({ id, key: 'seo' })), ['blog:navigation', 'blog:links', 'i18n'])
+  // AI i18n 译文更新：载荷只有 { langs }，没有内容 ID
+  assert.deepEqual(await tagsFor('I18N_UPDATE', JSON.stringify({ langs: ['en'] })), ['i18n'])
   assert.deepEqual(await tagsFor('OWNER_UPDATE', JSON.stringify({ id })), ['blog:navigation'])
-  assert.deepEqual((await tagsFor('CONTENT_REFRESH', '"restore_done"')).sort(), ['activity-sky', 'blog:ai', 'blog:categories', 'blog:comments', 'blog:links', 'blog:murmurs', 'blog:navigation', 'blog:notes', 'blog:pages', 'blog:posts', 'blog:projects', 'blog:recently', 'blog:says', 'blog:theme'])
+  assert.deepEqual((await tagsFor('CONTENT_REFRESH', '"restore_done"')).sort(), ['activity-sky', 'blog:ai', 'blog:categories', 'blog:comments', 'blog:links', 'blog:murmurs', 'blog:navigation', 'blog:notes', 'blog:pages', 'blog:posts', 'blog:projects', 'blog:recently', 'blog:says', 'blog:theme', 'i18n'])
   for (const event of ['READER_CREATE', 'LINK_APPLY', 'VISITOR_ONLINE', 'OPTION_CREATE']) await expectStatus(event, JSON.stringify({ id }), 400)
   await expectStatus('NOTE_UPDATE', JSON.stringify({ id: 'bad' }), 400)
+  await expectStatus('NOTE_UPDATE', JSON.stringify({ langs: ['en'] }), 400)
   failInvalidation = true
   await expectStatus('POST_UPDATE', JSON.stringify({ id }), 500)
-  console.log('PASS webhook signatures, raw UTF-8, input limits, health check, post/note/page/category/topic/say/recently/murmur/comment/project/link/translation/ai-summary/snippet/option/owner/restore tags, events registered in Core, allowlist and cache failure')
+  console.log('PASS webhook signatures, raw UTF-8, input limits, health check, post/note/page/category/topic/say/recently/murmur/comment/project/link/translation/ai-summary/snippet/option/owner/i18n/restore tags, events registered in Core, allowlist and cache failure')
 } finally {
   if (previous === undefined) delete process.env.MIX_SPACE_WEBHOOK_SECRET
   else process.env.MIX_SPACE_WEBHOOK_SECRET = previous

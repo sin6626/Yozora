@@ -97,7 +97,9 @@ try {
   assert.deepEqual(navTip, { text: [navTitles[0]], inPopup: true, panel: true }, '导航面板图标悬停显示名称')
 
   const navOrder = await b.evaluate(`[...document.querySelectorAll('.navigation-Popup .nav-socials > li')].map((li) => li.classList.contains('nav-socials-divider') ? '|' : li.querySelector('a, button').getAttribute('aria-label').split('：')[0])`)
-  assert.deepEqual(navOrder.slice(-3), ['|', '微信', 'QQ'], `导航面板里名片在竖线后面：${navOrder}`)
+  // 名片按后台填了哪些而定（本地 2026-11-04 起多了 Discord），只要求竖线后面全是名片、微信和 QQ 都在里面
+  const navCards = navOrder.slice(navOrder.indexOf('|') + 1)
+  assert.ok(navOrder.includes('|') && ['微信', 'QQ'].every((name) => navCards.includes(name)) && navCards.every((name) => ['微信', 'QQ', 'Discord', '赞赏'].includes(name)), `导航面板里名片在竖线后面：${navOrder}`)
   const qq = await b.evaluate(`(() => { const r = document.querySelector('.navigation-Popup .nav-socials button[aria-label^="QQ："]').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 } })()`)
   await b.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: qq.x, y: qq.y })
   for (const type of ['mousePressed', 'mouseReleased']) await b.send('Input.dispatchMouseEvent', { type, x: qq.x, y: qq.y, button: 'left', buttons: type === 'mousePressed' ? 1 : 0, clickCount: 1 })

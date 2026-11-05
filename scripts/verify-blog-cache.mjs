@@ -2,14 +2,18 @@ import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
+import { loadI18n, runTs } from './lib/i18n-source.mjs'
 
 const require = createRequire(new URL('../apps/web/package.json', import.meta.url))
 const ts = require('typescript')
 const source = readFileSync(new URL('../apps/web/lib/blog-data.ts', import.meta.url), 'utf8')
 const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
 const lifetimes = [], tags = [], calls = []
-const themeConfig = { exports: {} }
-vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../apps/web/lib/theme-config.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { module: themeConfig, exports: themeConfig.exports })
+const themeConfig = { exports: runTs('apps/web/lib/theme-config.ts', { './i18n/msg': loadI18n().msg }) }
+const i18nConfig = runTs('apps/web/lib/i18n/config.ts')
+// 后台“AI i18n”翻好的译文（Core GET /ai/i18n/:lang），按语言替换
+const emptyBundle = { messages: {}, site: {}, projects: {} }
+let i18nBundles = {}
 const category = { id: 'category-id', name: '技术', slug: 'technology', type: 0, count: 1, created: '2026-10-22' }
 const post = { id: 'post-id', title: '正文', text: 'body', slug: 'test', category, created: '2026-10-22', liked: true, content: 'unused JSON', copyright: false, related: [{ id: 'rel-b', title: '旧标题 B', slug: 'b' }, { id: 'rel-draft', title: '草稿', slug: 'draft' }, { id: 'rel-a', title: 'A', slug: 'a' }] }
 const note = { id: 'note-id', nid: 5, title: '手记', text: 'note body', created: '2026-10-22', mood: '开心', weather: '晴', topic: { id: 't1', name: '近况', slug: 'now', introduce: 'unused' }, password: 'secret', liked: true, content: 'unused JSON' }
@@ -70,7 +74,7 @@ const api = {
 const module = { exports: {} }
 vm.runInNewContext(code, {
   module, exports: module.exports,
-  require: (id) => id === 'server-only' ? {} : id === './excerpt' ? { excerpt: (value) => value ?? '', readingMinutes: () => 1 } : id === './social' ? { socialLinks: () => [], socialCards: () => [] } : id === './theme-config' ? themeConfig.exports : id === './safe-url' ? { safeUrl: (value) => value && /^https?:\/\//i.test(value) ? value : undefined } : id === './api' ? { getApiClient: () => api } : id === 'next/cache' ? { cacheLife: (value) => lifetimes.push(value), cacheTag: (...value) => tags.push(...value) } : require(id),
+  require: (id) => id === 'server-only' ? {} : id === './excerpt' ? { excerpt: (value) => value ?? '', readingMinutes: () => 1 } : id === './social' ? { socialLinks: () => [], socialCards: () => [] } : id === './theme-config' ? themeConfig.exports : id === './i18n/config' ? i18nConfig : id === './i18n/data' ? { getI18nBundle: async (lang) => i18nBundles[lang] ?? emptyBundle } : id === './safe-url' ? { safeUrl: (value) => value && /^https?:\/\//i.test(value) ? value : undefined } : id === './api' ? { getApiClient: () => api } : id === 'next/cache' ? { cacheLife: (value) => lifetimes.push(value), cacheTag: (...value) => tags.push(...value) } : require(id),
 })
 const cache = module.exports
 const navigation = await cache.getNavigationData()
@@ -173,10 +177,10 @@ assert.equal(thread.replies[1].owner, true, '楼中楼接口返回的读者资�
 assert.equal(thread.replies[0].parentId, 'comment-id')
 assert.equal(/leak@|reader@|owner@|1\.2\.3\.4|"UA"/.test(JSON.stringify(comments)), false, '评论缓存不含邮箱、IP、UA')
 
-// 作品名和介绍各自有没有译文：没有的那一项显示中文并单独标 zh-CN，有的那一项不标
+// 作品名和介绍各自有没有译文（后台“AI i18n”翻的，Core GET /ai/i18n/:lang 的 projects）：没有的那一项显示中文并单独标 zh-CN，有的那一项不标
 projectList = ['both', 'none', 'name', 'desc'].map((id) => ({ ...project, id, name: `中文名-${id}`, description: `中文介绍-${id}` }))
 for (const lang of ['en', 'ja']) {
-  themeSnippet = { i18n: { [lang]: { projects: { both: { name: `N-${lang}`, description: `D-${lang}` }, name: { name: `N-${lang}` }, desc: { description: `D-${lang}` } } } } }
+  i18nBundles = { [lang]: { ...emptyBundle, projects: { both: { name: `N-${lang}`, description: `D-${lang}` }, name: { name: `N-${lang}` }, desc: { description: `D-${lang}` } } } }
   const byId = Object.fromEntries((await cache.getProjects(lang)).map((item) => [item.id, item]))
   const shown = (id) => [byId[id].name, byId[id].nameLang, byId[id].description, byId[id].descriptionLang]
   assert.deepEqual(shown('both'), [`N-${lang}`, undefined, `D-${lang}`, undefined], `${lang} 两项都有译文`)
@@ -186,4 +190,4 @@ for (const lang of ['en', 'ja']) {
 }
 assert.deepEqual((await cache.getProjects('zh')).map((item) => [item.nameLang, item.descriptionLang]), projectList.map(() => [undefined, undefined]), '中文页面不标')
 projectList = [project]
-themeSnippet = null
+i18nBundles = {}

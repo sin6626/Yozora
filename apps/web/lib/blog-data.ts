@@ -4,7 +4,9 @@ import { getApiClient } from "./api";
 import { safeUrl } from "./safe-url";
 import { excerpt, readingMinutes } from "./excerpt";
 import { socialCards, socialLinks } from "./social";
-import { parseContentTranslations, parseSiteContent } from "./theme-config";
+import { parseSiteContent } from "./theme-config";
+import { isLanguageCode, type Locale } from "./i18n/config";
+import { getI18nBundle } from "./i18n/data";
 
 // 站名读后台“SEO → 网站标题”（2026-11-04 站长定，取代 10-31 的“个人资料名字 + ’s Yozora”），页头、浏览器标题、RSS 一起变；
 // 站长名字（首屏问候、页脚落款）仍读后台“个人资料”的昵称；描述读 SEO 的网站描述。
@@ -356,14 +358,13 @@ export async function getNote(nid: number, lang: ContentLang = "zh") {
   };
 }
 
-// lang：外文页面用配置片段 i18n 里写好的作品名和介绍（Core 没有作品翻译），没写的保持中文并标出原文语言。
+// lang：外文页面用后台“AI i18n”翻好的作品名和介绍（Core GET /ai/i18n/:lang 的 projects），没有的保持中文并标出原文语言。
 export async function getProjects(lang: ContentLang = "zh") {
   "use cache";
-  // 作品增删改经 PROJECT_* 事件立即失效（2026-11-04 起 Core 才登记这几个事件），没勾时靠短缓存。
+  // 作品增删改经 PROJECT_* 事件立即失效（2026-11-04 起 Core 才登记这几个事件），没勾时靠短缓存；译文更新经 I18N_UPDATE 失效 i18n。
   cacheLife({ stale: 60, revalidate: 300, expire: 3600 });
-  cacheTag("blog:projects", "blog:theme");
-  const [{ data }, config] = await Promise.all([getApiClient().project.getAll(), lang === "zh" ? null : getThemeConfig().catch(() => null)]);
-  const translated = config ? parseContentTranslations(config, lang).projects : {};
+  cacheTag("blog:projects", "i18n");
+  const [{ data }, { projects: translated }] = await Promise.all([getApiClient().project.getAll(), getI18nBundle(lang)]);
   // 名字和介绍可以只译一项：各自没有译文时显示中文、单独标 zh-CN
   const original = (text: string | undefined) => (lang !== "zh" && !text ? ("zh-CN" as const) : undefined);
   return data.map(({ id, name, description, avatar, projectUrl, previewUrl, docUrl }) => ({
@@ -376,21 +377,23 @@ export async function getProjects(lang: ContentLang = "zh") {
   }));
 }
 
-// 站点那句话（后台 SEO 描述）：外文页面用配置片段 i18n 里的译文，没写时用中文。
+// 站点那句话（后台 SEO 描述）：外文页面用后台“AI i18n”翻好的译文（按去掉首尾空白的中文原文查），没有时用中文。
 export async function getSiteDescription(lang: ContentLang = "zh") {
-  const [settings, config] = await Promise.all([getSiteSettings().catch(() => null), lang === "zh" ? null : getThemeConfig().catch(() => null)]);
-  const translated = config ? parseContentTranslations(config, lang).siteDescription : undefined;
-  return { text: translated ?? settings?.description ?? siteDescription, original: lang !== "zh" && !translated };
+  const [settings, { site }] = await Promise.all([getSiteSettings().catch(() => null), getI18nBundle(lang)]);
+  const source = (settings?.description ?? siteDescription).trim();
+  const translated = lang === "zh" ? undefined : site[source];
+  return { text: translated ?? source, original: lang !== "zh" && !translated };
 }
 
 // 站长维护的站点内容（首屏标题与说明、页脚那句话、萌备、星带账号、文章版权说明），都在配置片段 theme/yozora 里，规则见 lib/theme-config.ts
 export async function getSiteContent(lang: ContentLang = "zh") {
-  return parseSiteContent(await getThemeConfig().catch(() => null), lang);
+  const [config, { site }] = await Promise.all([getThemeConfig().catch(() => null), getI18nBundle(lang)]);
+  return parseSiteContent(config, lang, site);
 }
 
 // 站点主题配置（后台配置片段 theme/yozora，格式见 lib/theme-config.ts）。保存片段经 SNIPPET_* 事件立即失效，没勾时靠短缓存；
 // 片段还没建时返回 null，页面用写死的默认值。SDK 返回的对象带方法，缓存前转成普通 JSON。
-// stale 至少 300：外文页面的根布局 generateMetadata 经 getSiteDescription 读它，Next 只把 stale ≥ 5 分钟的缓存放进预渲染外壳，
+// stale 至少 300：留着给根布局 generateMetadata 用（2026-11-05 前经 getSiteDescription 读它），Next 只把 stale ≥ 5 分钟的缓存放进预渲染外壳，
 // 短了 metadata 会被当成动态，整页静态的 /en/debug 就报 “encountered URL data in generateMetadata()”（e2e dev-issues.mjs）。
 export async function getThemeConfig(): Promise<unknown> {
   "use cache";
@@ -602,13 +605,12 @@ export async function getComments(refId: string) {
 }
 
 // AI 摘要与翻译：只读取后台已生成的内容（onlyDb），前端从不触发生成，费用完全由后台控制。
-// 摘要经 AI_SUMMARY_*、翻译经 TRANSLATION_* 事件立即失效；没勾时缓存 1 小时。站点原文是中文，翻译只列出非中文的语言。
-export const translationLanguages = { en: "English", ja: "日本語" } as const;
-export type TranslationLanguage = keyof typeof translationLanguages;
-export const isTranslationLanguage = (value: unknown): value is TranslationLanguage =>
-  typeof value === "string" && Object.hasOwn(translationLanguages, value);
+// 摘要经 AI_SUMMARY_*、翻译经 TRANSLATION_* 事件立即失效；没勾时缓存 1 小时。站点原文是中文，翻译只列出非中文的语言
+// （站点有没有开这种语言由用的地方再看）。
+export type TranslationLanguage = Locale;
+const isTranslationLanguage = (value: unknown): value is TranslationLanguage => isLanguageCode(value) && value !== "zh";
 
-export async function getArticleAi(id: string, lang: "zh" | TranslationLanguage = "zh") {
+export async function getArticleAi(id: string, lang: ContentLang = "zh") {
   "use cache";
   cacheLife({ stale: 300, revalidate: 3600, expire: 86400 });
   cacheTag("blog:ai", `blog:ai:${id}`);
@@ -625,8 +627,8 @@ export async function getArticleAi(id: string, lang: "zh" | TranslationLanguage 
   };
 }
 
-// 站点内容的语言：中文是原文，en / ja 读 Core 里已有的译文。
-export type ContentLang = "zh" | TranslationLanguage;
+// 站点内容的语言：中文是原文，后台“i18n 语言”里开着的语言读 Core 里已有的译文。
+export type ContentLang = Locale;
 
 // 外文页面的“名字对照表”：文章、手记、页面的标题（AI 翻译），分类名、话题名、心情、天气（Core 的翻译条目）。
 // 时间线、导航面板、搜索结果、相邻文章这些 Core 不按语言返回的地方，用它把中文换成译文；没有译文的保持中文。

@@ -29,8 +29,8 @@ function byDay(items: Murmur[]) {
 export async function MurmurStream({ items, avatar, name }: { items: Murmur[]; avatar?: string; name: string }) {
   const days = byDay(items);
   const [locale, { murmurs: t }] = await Promise.all([getLocale(), getT()]);
-  const dayFormatter = new Intl.DateTimeFormat(htmlLang[locale], { month: "long", day: "numeric", timeZone: "Asia/Shanghai" });
-  const weekdayFormatter = new Intl.DateTimeFormat(htmlLang[locale], { weekday: "short", timeZone: "Asia/Shanghai" });
+  const dayFormatter = new Intl.DateTimeFormat(htmlLang(locale), { month: "long", day: "numeric", timeZone: "Asia/Shanghai" });
+  const weekdayFormatter = new Intl.DateTimeFormat(htmlLang(locale), { weekday: "short", timeZone: "Asia/Shanghai" });
   return (
     <ImageLightbox itemSelector=".murmur-zoom" groupSelector=".murmur-bubble">
       <div className="murmur-stream">

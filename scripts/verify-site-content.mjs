@@ -1,18 +1,13 @@
 // 站长维护的站点内容（首屏标题与说明、页脚那句话、萌备、贡献星带账号、文章版权说明、首页技术栈）都在 Core 的配置片段 theme/yozora 里，
 // 检查 lib/theme-config.ts 的 parseSiteContent：片段读不到或某项没写用占位；写成空（含整组写成 null）就不显示，旧值不会冒回来；
-// 强调标记只去掉 **、不吃掉空格；外文页面用 i18n 里的译文，没有译文的那一项显示中文并单独标 zh-CN。
+// 强调标记只去掉 **、不吃掉空格；外文页面用后台“AI i18n”翻好的译文（Core GET /ai/i18n/:lang 的 site：中文原文 → 译文），
+// 没有译文、或译文的 ** 对不上的那一项显示中文并单独标 zh-CN。
 // 用法：node scripts/verify-site-content.mjs（已并入 pnpm verify）
 import assert from 'node:assert/strict'
-import { createRequire } from 'node:module'
-import { readFileSync } from 'node:fs'
-import vm from 'node:vm'
+import { loadI18n, runTs } from './lib/i18n-source.mjs'
 
-const require = createRequire(new URL('../apps/web/package.json', import.meta.url))
-const ts = require('typescript')
-const code = ts.transpileModule(readFileSync(new URL('../apps/web/lib/theme-config.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
-const module = { exports: {} }
-vm.runInNewContext(code, { module, exports: module.exports })
-const parse = (config, lang = 'zh') => JSON.parse(JSON.stringify(module.exports.parseSiteContent(config, lang)))
+const { parseSiteContent } = runTs('apps/web/lib/theme-config.ts', { './i18n/msg': loadI18n().msg })
+const parse = (config, lang = 'zh', site = {}) => JSON.parse(JSON.stringify(parseSiteContent(config, lang, site)))
 // 和首屏一样拼：每段去掉首尾空白放进 inline-block，首尾有空白的在块外补一个空格，浏览器再把连续空白合成一个
 const visible = (title) => title.map((part) => `${/^\s/.test(part.text) ? ' ' : ''}${part.text.trim()}${/\s$/.test(part.text) ? ' ' : ''}`).join('').replace(/\s+/g, ' ').trim()
 
@@ -20,7 +15,8 @@ const visible = (title) => title.map((part) => `${/^\s/.test(part.text) ? ' ' : 
 const fallback = parse(null)
 assert.ok(fallback.hero.title.length && fallback.hero.description.length && fallback.footer.motto.text && fallback.footer.icp, '片段读不到时用占位')
 assert.equal(fallback.techStack.rows.length, 2, '技术栈读不到时用默认两行')
-assert.equal(parse(null, 'en').techStack.title.text, 'Tech stack', '外文占位是这种语言的')
+assert.deepEqual(parse(null, 'en').techStack.title, { text: '技术栈', lang: 'zh-CN' }, '占位只有中文，外文页面标 zh-CN')
+assert.deepEqual(parse(null, 'en', { 技术栈: 'Tech stack' }).techStack.title, { text: 'Tech stack' }, '占位有译文时也换上')
 assert.deepEqual(parse({ unrelated: 1 }), fallback, '某项没写时用占位')
 assert.equal(fallback.copyright, null, '版权说明默认不显示（许可要站长自己选）')
 
@@ -75,17 +71,23 @@ for (const cleared of [
 }
 assert.equal(parse({ footer: { icp: { label: 'x', href: 'javascript:alert(1)' } } }).footer.icp, null, '萌备链接只放行 http(s)')
 
-// 外文：标题和说明各自标语言
-const hero = { title: '一个在深夜写代码的**大三学生**', description: ['中文说明'] }
-const en = (i18nHero) => parse({ hero, techStack: { title: '我的工具', rows: [[{ name: 'Vue', icon: 'skill-icons:vuejs-dark' }]] }, i18n: { en: { hero: i18nHero, techStack: { title: 'My tools' } } } }, 'en').hero
-const both = en({ title: 'A **night owl**', description: ['English'] })
-assert.deepEqual([visible(both.title), both.description, both.titleLang, both.descriptionLang], ['A night owl', ['English'], undefined, undefined], '全译')
-const none = en(undefined)
+// 外文：每一项按中文原文找译文，标题和说明各自标语言
+const hero = { title: '一个在深夜写代码的**大三学生**', description: ['第一行', '第二行'] }
+const snippet = { hero, techStack: { title: '我的工具', description: '中文说明', rows: [[{ name: 'Vue', icon: 'skill-icons:vuejs-dark' }]] } }
+const en = (site) => parse(snippet, 'en', site)
+const translations = { '一个在深夜写代码的**大三学生**': 'A **night owl**', 第一行: 'Line one', 第二行: 'Line two', 我的工具: 'My tools' }
+const both = en(translations).hero
+assert.deepEqual([visible(both.title), both.description, both.titleLang, both.descriptionLang], ['A night owl', ['Line one', 'Line two'], undefined, undefined], '全译')
+assert.deepEqual(both.title.filter((part) => part.strong).map((part) => part.text), ['night owl'], '译文里的 ** 也是强调')
+const none = en({}).hero
 assert.deepEqual([visible(none.title), none.titleLang, none.descriptionLang], ['一个在深夜写代码的大三学生', 'zh-CN', 'zh-CN'], '未译')
-const titleOnly = en({ title: 'A **night owl**' })
-assert.deepEqual([titleOnly.titleLang, titleOnly.description, titleOnly.descriptionLang], [undefined, ['中文说明'], 'zh-CN'], '只译了标题：英文标题不能被标成中文')
-const descriptionOnly = en({ description: ['English'] })
-assert.deepEqual([descriptionOnly.titleLang, descriptionOnly.descriptionLang], ['zh-CN', undefined], '只译了说明')
-const enStack = parse({ techStack: { title: '我的工具', description: '中文说明' }, i18n: { en: { techStack: { title: 'My tools' } } } }, 'en').techStack
-assert.deepEqual([enStack.title, enStack.description], [{ text: 'My tools' }, { text: '中文说明', lang: 'zh-CN' }], '技术栈标题、说明的译文读片段 i18n')
-console.log('PASS site content from the theme/yozora snippet: fallback, missing, cleared leaves and groups, spaces around emphasis, per-field translations, tech stack, link safety')
+const titleOnly = en({ '一个在深夜写代码的**大三学生**': 'A **night owl**' }).hero
+assert.deepEqual([titleOnly.titleLang, titleOnly.description, titleOnly.descriptionLang], [undefined, ['第一行', '第二行'], 'zh-CN'], '只译了标题：英文标题不能被标成中文')
+const halfDescription = en({ 第一行: 'Line one' }).hero
+assert.deepEqual([halfDescription.description, halfDescription.descriptionLang], [['第一行', '第二行'], 'zh-CN'], '说明有一行没译：整段显示中文，不中外混排')
+const badEmphasis = en({ '一个在深夜写代码的**大三学生**': 'A night owl' }).hero
+assert.deepEqual([visible(badEmphasis.title), badEmphasis.titleLang], ['一个在深夜写代码的大三学生', 'zh-CN'], '译文丢了 ** 不用')
+assert.deepEqual(parse(snippet, 'zh', translations).hero.description, ['第一行', '第二行'], '中文页面不换')
+const enStack = en(translations).techStack
+assert.deepEqual([enStack.title, enStack.description], [{ text: 'My tools' }, { text: '中文说明', lang: 'zh-CN' }], '技术栈标题、说明各自找译文')
+console.log('PASS site content from the theme/yozora snippet: fallback, missing, cleared leaves and groups, spaces around emphasis, per-field AI translations, tech stack, link safety')

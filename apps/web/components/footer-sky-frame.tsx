@@ -22,7 +22,7 @@ export default function FooterSkyFrame({ weeks, children }: { weeks: number; chi
         {sources.map(({ id, name }) => {
           const shown = !hidden.includes(id);
           return (
-            <button key={id} type="button" className={`is-${id}`} aria-pressed={shown} title={t.skyToggle(name, shown)} onClick={() => toggle(id)}>
+            <button key={id} type="button" className={`is-${id}`} aria-pressed={shown} title={(shown ? t.skyHide : t.skyShow)(name)} onClick={() => toggle(id)}>
               {name}
             </button>
           );

@@ -2,6 +2,7 @@ import Link from "./locale-provider";
 import { unstable_rethrow } from "next/navigation";
 import { getTimeline } from "../lib/blog-data";
 import { formatDate } from "../lib/date";
+import { htmlLang } from "../lib/i18n/config";
 import { getLocale, getT } from "../lib/i18n/server";
 import LoadError from "./load-error";
 import Reveal from "./reveal";
@@ -21,16 +22,23 @@ const views = [
   { kind: "note", href: "/timeline/notes" },
 ] as const;
 
+// 月份：“3 月”“Mar”“3월”，写法交给 Intl；开头的数字放大，后面的字是单位
+function MonthLabel({ month, locale }: { month: number; locale: string }) {
+  const name = new Intl.DateTimeFormat(htmlLang(locale), { month: "short", timeZone: "UTC" }).format(new Date(Date.UTC(2000, month - 1, 1)));
+  const [, digits, unit] = /^(\d*)(.*)$/.exec(name)!;
+  return digits ? <><span className="timeline-month-number">{digits}</span>{unit && ` ${unit}`}</> : <span className="timeline-month-number">{name}</span>;
+}
+
 // 归档：按年、再按月分组列出文章与手记（kind 指定时只列一种）。年月取自 formatDate（固定东八区），与站内其他日期一致。
 // 宽屏时月份在左栏、读到哪个月就贴在页头下面；每条只写“日”。一条星座竖线串起当月各条，文章是紫色小星、手记是月光色小星。
 // 每个月进入视野时播一次：竖线从上往下画出，画到哪条哪颗星亮、那条浮上（timeline.css）。
 export default async function TimelineList({ kind }: { kind?: Item["kind"] }) {
   const view = views.find((item) => item.kind === kind) ?? views[0];
-  const { timeline: t, posts, notes } = await getT();
+  const [{ timeline: t, posts, notes }, locale] = await Promise.all([getT(), getLocale()]);
   const label = (item: (typeof views)[number]) => (item.kind === "post" ? posts.title : item.kind === "note" ? notes.title : t.all);
   let all: Item[];
   try {
-    all = await getTimeline(await getLocale());
+    all = await getTimeline(locale);
   } catch (error) {
     unstable_rethrow(error);
     // 重试用整页加载（普通 <a>），确保重新请求
@@ -75,7 +83,7 @@ export default async function TimelineList({ kind }: { kind?: Item["kind"] }) {
             {[...months].map(([month, entries]) => (
               <Reveal as="section" kind="timeline" key={month} index={offsets.get(`${year}-${month}`)} data-reveal-weight={String(entries.length)} className="timeline-month" aria-labelledby={`timeline-${year}-${month}`}>
                 <h3 id={`timeline-${year}-${month}`} className="timeline-month-label">
-                  <span className="timeline-month-number">{t.month(Number(month)).number}</span>{t.month(Number(month)).unit && ` ${t.month(Number(month)).unit}`}
+                  <MonthLabel month={Number(month)} locale={locale} />
                   <span className="timeline-count">{t.items(entries.length)}</span>
                 </h3>
                 <ol className="timeline-list" style={{ "--count": entries.length } as CSSProperties}>

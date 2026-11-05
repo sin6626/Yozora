@@ -16,7 +16,10 @@ import OwnerPresence from "@/components/owner-presence";
 import HeaderSearch from "@/components/header-search";
 import { getOwner } from "@/lib/blog-data";
 import { LocaleProvider } from "@/components/locale-provider";
-import { htmlLang, locales, ogLocale } from "@/lib/i18n/config";
+import { htmlLang, ogLocale, type Locale } from "@/lib/i18n/config";
+import { getI18nBundle, getSiteLocales } from "@/lib/i18n/data";
+import { zh } from "@/lib/i18n/messages";
+import { usable } from "@/lib/i18n/msg";
 import { getLocale, getT } from "@/lib/i18n/server";
 import "../globals.css";
 
@@ -69,9 +72,9 @@ const themeScript = `try{var t=localStorage.getItem("theme"),d=document.document
 
 // 首页标题像 Shiro 一样是“站名 - 描述”，子页面套用模板“文章 - 站名”；站名、描述都取后台 SEO 设置（外文页面描述用译文）；
 // metadataBase 取后台“网站地址”，让分享链接、RSS 自动发现等相对地址变成完整网址；读取失败时省略。
-// 三种语言都在构建时生成（cacheComponents 要求根路由参数至少列出一个值）
-export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
+// 后台开着的语言都在构建时生成（cacheComponents 要求根路由参数至少列出一个值）；之后新开的语言按需渲染
+export async function generateStaticParams() {
+  return (await getSiteLocales()).map((locale) => ({ locale }));
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -83,7 +86,7 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: settings ? new URL(settings.siteUrl) : undefined,
     title: { default: `${name} - ${description}`, template: `%s - ${name}` },
     description,
-    openGraph: { siteName: name, title: name, description, type: "website", locale: ogLocale[locale] },
+    openGraph: { siteName: name, title: name, description, type: "website", locale: ogLocale(locale) },
     alternates: { types: { "application/rss+xml": [{ url: "/feed.xml", title: name }] } },
     // 灰度时（SITE_NOINDEX=1）整站不让搜索引擎收录
     robots: hiddenFromSearch() ? { index: false, follow: false } : undefined,
@@ -103,11 +106,24 @@ async function SiteName() {
   return <OwnerPresence apiUrl={getApiUrl()} name={settings?.name ?? siteName} owner={settings?.ownerName ?? siteOwnerName} />;
 }
 
+// 客户端要的语言信息：开着的语言、当前语言的界面译文，以及每种语言自己的“已切换到…”（切换时用新语言播报）
+async function localeState(locale: Locale) {
+  const locales = await getSiteLocales();
+  const bundles = await Promise.all(locales.map(getI18nBundle));
+  const template = zh.locale.switched.template;
+  const switched = Object.fromEntries(locales.map((lang, index) => {
+    const text = bundles[index].messages["locale.switched"];
+    return [lang, usable(template, text) ? text : template];
+  }));
+  return { locales, translations: bundles[locales.indexOf(locale)]?.messages ?? {}, switched };
+}
+
 export default async function RootLayout({ children }: LayoutProps<"/[locale]">) {
-  const [locale, t] = await Promise.all([getLocale(), getT()]);
+  const locale = await getLocale();
+  const [t, state] = await Promise.all([getT(), localeState(locale)]);
   return (
     <html
-      lang={htmlLang[locale]}
+      lang={htmlLang(locale)}
       data-theme="dark"
       className={`${nunito.variable} ${notoSans.variable} ${geistMono.variable} ${notoSerif.variable} ${oldstyle.variable} h-full antialiased`}
       // 下面的脚本会在水合前设置 data-theme，属性与服务端不同是预期的。
@@ -121,8 +137,8 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>
-        <LocaleProvider locale={locale}>
-        <Notifications url={`${new URL(getApiUrl()).origin}/web`}>
+        <LocaleProvider locale={locale} {...state}>
+        <Notifications url={`${new URL(getApiUrl()).origin}/web`} apiUrl={getApiUrl()}>
           <a className="skip-link" href="#main-content">
             {t.common.skipToContent}
           </a>

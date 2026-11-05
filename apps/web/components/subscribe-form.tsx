@@ -2,6 +2,7 @@
 
 import { ArrowRight } from "lucide-react";
 import { Fragment, useState, type FormEvent, type Ref } from "react";
+import { rich } from "../lib/i18n/rich";
 import { useLocale, useT } from "./locale-provider";
 
 type SubscribeType = "post_c" | "note_c";
@@ -66,7 +67,7 @@ export default function SubscribeForm({ apiUrl, types, emailRef }: { apiUrl: str
       {status.type === "done" || status.type === "error" ? (
         <p className={`subscribe-status is-${status.type}`} role={status.type === "error" ? "alert" : "status"}>{status.message}</p>
       ) : (
-        <p className="subscribe-rss">{t.rssBefore}<a href="/feed.xml">RSS</a>{t.rssAfter}</p>
+        <p className="subscribe-rss">{rich(t.rss, { rss: <a href="/feed.xml">RSS</a> })}</p>
       )}
     </form>
   );

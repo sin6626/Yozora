@@ -5,6 +5,7 @@ import { unstable_rethrow } from "next/navigation";
 import { getRecentActivity, type RecentActivity } from "../lib/blog-data";
 import { formatDate } from "../lib/date";
 import type { Messages } from "../lib/i18n/messages";
+import { rich } from "../lib/i18n/rich";
 import { getLocale, getT } from "../lib/i18n/server";
 
 // 首页右栏“最近发生的事”（同 Shiro 的 ActivityRecent）：一条竖线串起来的时间线，
@@ -22,6 +23,9 @@ function Title({ item, t }: { item: RecentActivity; t: Messages["activity"] }) {
   return item.href ? <Link className="activity-link" href={item.href}>{title}</Link> : title;
 }
 
+// 句子里的普通文字淡色显示
+const small = (text: string) => <small>{text}</small>;
+
 function Body({ item, t }: { item: RecentActivity; t: Messages["activity"] }) {
   switch (item.kind) {
     case "comment":
@@ -32,10 +36,10 @@ function Body({ item, t }: { item: RecentActivity; t: Messages["activity"] }) {
               // eslint-disable-next-line @next/next/no-img-element -- 评论者头像来自 Gravatar 或第三方登录
               <img className="activity-avatar" src={item.avatar} alt="" width={18} height={18} loading="lazy" />
             )}
-            <span className="activity-author">{item.author}</span>
-            {t.commentIn && <small>{t.commentIn}</small>}
-            {item.title || item.onThinking ? <Title item={item} t={t} /> : <small>{t.somewhere}</small>}
-            <small>{t.said}</small>
+            {rich(t.commented, {
+              author: <span className="activity-author">{item.author}</span>,
+              target: item.title || item.onThinking ? <Title item={item} t={t} /> : <small>{t.somewhere}</small>,
+            }, small)}
           </p>
           {item.text && <p className="activity-bubble" lang="zh-CN">{item.text}</p>}
         </>
@@ -44,17 +48,16 @@ function Body({ item, t }: { item: RecentActivity; t: Messages["activity"] }) {
       return (
         <>
           <p className="activity-line">
-            {t.wroteThinking && <small>{t.wroteThinking}</small>}
-            <Link className="activity-link" href={item.href ?? "/"}><b>{t.thinking}</b></Link>{t.postedSuffix && <small>{t.postedSuffix}</small>}
+            {rich(t.wroteThinking, { thinking: <Link className="activity-link" href={item.href ?? "/"}><b>{t.thinking}</b></Link> }, small)}
           </p>
           {/* 评论、思考是站长和读者自己写的话，保持中文并标明语言 */}
           {item.text && <p className="activity-bubble" lang="zh-CN">{item.text}</p>}
         </>
       );
     case "like":
-      return <p className="activity-line"><small>{t.liked}</small><Title item={item} t={t} /></p>;
+      return <p className="activity-line">{rich(t.liked, { title: <Title item={item} t={t} /> }, small)}</p>;
     default:
-      return <p className="activity-line"><small>{t.published}</small><Title item={item} t={t} /></p>;
+      return <p className="activity-line">{rich(t.published, { title: <Title item={item} t={t} /> }, small)}</p>;
   }
 }
 

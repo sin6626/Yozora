@@ -51,7 +51,7 @@ export default function CommentChatPanel({ title, total, form, closedReason, tar
         if (!next) setReplyTo(null);
       }}
     >
-      <Popover.Trigger className="article-action" aria-label={t.trigger(total)} title={t.title}>
+      <Popover.Trigger className="article-action" aria-label={total ? t.triggerCount(total) : t.trigger} title={t.title}>
         <MessagesSquare size={18} strokeWidth={1.75} aria-hidden="true" />
         {total > 0 && <span className="article-action-count">{total}</span>}
       </Popover.Trigger>

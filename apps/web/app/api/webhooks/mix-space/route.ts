@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { revalidateTag } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
-import { allTags, eventTags } from "../../../../lib/webhook-events";
+import { allTags, eventTags, idlessEvents } from "../../../../lib/webhook-events";
 
 const maxBodyBytes = 4 * 1024 * 1024;
 
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "不支持的事件" }, { status: 400 });
   }
   const id = "id" in payload ? payload.id : "_id" in payload ? payload._id : undefined;
-  if (typeof id !== "string" || !/^[a-f\d]{24}$/i.test(id)) {
+  if (!idlessEvents.has(event) && (typeof id !== "string" || !/^[a-f\d]{24}$/i.test(id))) {
     return Response.json({ error: "内容 ID 无效" }, { status: 400 });
   }
   return revalidate(event, tags);

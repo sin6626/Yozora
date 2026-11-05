@@ -26,6 +26,15 @@ assert.deepEqual([response.status, target(response)], [307, "/ja/posts"], "手�
 response = await request("/posts/study%26think/zod?lang=ja");
 assert.deepEqual([response.status, target(response)], [308, "/ja/posts/study%26think/zod"], "旧的 ?lang 翻译链接跳到对应语言");
 for (const path of ["/en/nope/x/y", "/a/b/c"]) assert.equal((await request(path)).status, 404, `${path} 应为 404`);
+// 2026-11-05 起开哪些语言由后台“AI i18n”决定（Core GET /ai/i18n）：没开的语言的旧链接送回中文，两三个字母的页面不受影响
+const { enabled, languages } = await (await fetch(`${process.env.CORE_URL ?? "http://127.0.0.1:2333"}/ai/i18n`)).json();
+const off = ["ko", "fr", "de"].find((code) => !languages.includes(code));
+response = await request(`/${off}/posts?page=1`);
+assert.deepEqual([response.status, target(response)], [307, "/posts?page=1"], "没开的语言的旧链接送回中文");
+response = await request(`/${off}`);
+assert.deepEqual([response.status, target(response)], [307, "/"], "没开的语言的首页送回中文首页");
+assert.notEqual((await request("/me")).status, 307, "/me 不是语言，按页面处理");
+assert.ok(enabled && languages.includes("en") && languages.includes("ja"), "本地测试需要后台开着 en、ja");
 
 const browser = await openBrowser({ port: 9362 });
 try {
@@ -65,6 +74,15 @@ try {
   })()`);
   const announcing = () => browser.evaluate(`({ path: location.pathname, menu: !!document.querySelector(".language-menu"), title: document.querySelector(".island-activity-text strong")?.textContent ?? null, lines: document.querySelectorAll(".island-activity-text > *").length })`);
   await browser.goto(`${base}/en/notes`, 4000);
+  const menuLanguages = await browser.evaluate(`(async () => {
+    document.querySelector(".site-header .language-trigger").click();
+    for (let i = 0; i < 40 && !document.querySelector(".language-item"); i++) await new Promise((r) => setTimeout(r, 50));
+    const codes = [...document.querySelectorAll(".language-item .language-code")].map((e) => e.textContent.toLowerCase());
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    return codes;
+  })()`);
+  assert.deepEqual(menuLanguages, ["zh", ...languages], "语言菜单列出的就是后台开着的语言，中文在最前");
+  await sleep(400);
   await choose("日本語");
   await sleep(700);
   assert.deepEqual(await announcing(), { path: "/en/notes", menu: false, title: "日本語に切り替えました", lines: 1 }, "先在当前页播报（菜单已收起、用新语言、只有一行），页面还没换");

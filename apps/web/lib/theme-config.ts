@@ -1,3 +1,5 @@
+import { usable } from "./i18n/msg";
+
 // 站点主题配置：后台“配置与云函数”里引用 theme、名称 yozora 的 JSON 片段（getThemeConfig 读取）。
 // 片段对访客公开，只放公开内容。手写 JSON 容易填错，下面逐项丢掉格式不对的。
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -8,21 +10,6 @@ function text(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
-// 后台内容里 Core 没有翻译功能的几样（站点描述、作品名和介绍）的外文版本，写在同一个配置片段的 i18n 下：
-// { "i18n": { "en": { "siteDescription": "…", "projects": { "<作品 id>": { "name": "…", "description": "…" } } }, "ja": { … } } }
-// 没写的项保持中文。翻译的唯一来源仍是 Core（这个片段存在 Core 里）。
-export type ContentTranslations = { siteDescription?: string; projects: Record<string, { name?: string; description?: string }> };
-
-export function parseContentTranslations(config: unknown, lang: string): ContentTranslations {
-  const i18n = isObject(config) && isObject(config.i18n) ? config.i18n : undefined;
-  const value = i18n && isObject(i18n[lang]) ? i18n[lang] : undefined;
-  const projects = value && isObject(value.projects) ? value.projects : {};
-  return {
-    siteDescription: value ? text(value.siteDescription) : undefined,
-    projects: Object.fromEntries(Object.entries(projects).flatMap(([id, item]) => (isObject(item) ? [[id, { name: text(item.name), description: text(item.description) }]] : []))),
-  };
-}
-
 // 站长维护的站点内容，都在 Core 的配置片段 theme/yozora 里（Shiro 也是把主题文案放在后台的配置片段里），后台“配置与云函数”里改：
 // {
 //   "hero": { "title": "一个在深夜写代码的**大三学生**", "description": ["第一行", "第二行"] },   首屏标题（**…** 是强调的字）和说明（一行一段）
@@ -30,14 +17,13 @@ export function parseContentTranslations(config: unknown, lang: string): Content
 //   "accounts": { "github": "…", "leetcode": "…" },   页脚星带读谁的 GitHub 贡献和力扣（中国站）提交
 //   "copyright": "…",                                 开了“版权注明”的文章末尾显示的说明
 //   "techStack": { "title": "…", "description": "…", "rows": [[{ "name": "Vue", "icon": "skill-icons:vuejs-dark" }, …], …] },
-//   "i18n": { "en": { "hero": {…}, "footer": { "motto": "…" }, "copyright": "…", "techStack": { "title": "…", "description": "…" } }, "ja": { … } }
 // }
 // 规则：片段读不到、或某一项根本没写，用下面的占位（和站长 2026-10 定的文案相同）；
 // 写成空字符串、空数组或 null（包括整组写成 null）就是故意不显示，旧值不会冒回来。
-// 外文页面每一项单独找 i18n 里的译文，没有就显示中文那一项并单独标 zh-CN。
+// 片段里只写中文：外文页面的译文由后台“AI i18n”翻好（Core GET /ai/i18n/:lang 的 site，中文原文 → 译文，传进来的 site），
+// 每一项单独找，没有就显示中文那一项并单独标 zh-CN。
 export type Tech = { name: string; icon: string };
 export type HeroTitle = { text: string; strong: boolean }[];
-type Lang = "zh" | "en" | "ja";
 type Localized = { text: string; lang?: "zh-CN" };
 export type SiteContent = {
   hero: { title: HeroTitle; titleLang?: "zh-CN"; description: string[]; descriptionLang?: "zh-CN" };
@@ -47,11 +33,7 @@ export type SiteContent = {
   techStack: { title: Localized | null; description: Localized | null; rows: Tech[][] };
 };
 
-const placeholders: Record<Lang, { title: string; description: string[]; motto: string; techTitle: string; techNote: string }> = {
-  zh: { title: "一个在深夜写代码的**大三学生**", description: ["白天上课，晚上折腾前端、写博客、做点小东西。", "探索全栈与设计的普通开发者。"], motto: "头顶的星空，是心里的星空。", techTitle: "技术栈", techNote: "平时在用、正在学的东西" },
-  en: { title: "Coding by night, a **third-year student**", description: ["Classes by day; front-end tinkering, blogging and small side projects by night.", "An ordinary developer exploring full stack and design."], motto: "The stars overhead are the stars within.", techTitle: "Tech stack", techNote: "What I use and what I'm learning" },
-  ja: { title: "深夜にコードを書く**大学三年生**", description: ["昼は授業、夜はフロントエンドをいじったり、ブログを書いたり、小さなものを作ったり。", "フルスタックとデザインを探求する、ふつうの開発者です。"], motto: "頭上の星空は、心の中の星空。", techTitle: "技術スタック", techNote: "普段使っているもの、いま学んでいるもの" },
-};
+const placeholder = { title: "一个在深夜写代码的**大三学生**", description: ["白天上课，晚上折腾前端、写博客、做点小东西。", "探索全栈与设计的普通开发者。"], motto: "头顶的星空，是心里的星空。", techTitle: "技术栈", techNote: "平时在用、正在学的东西" };
 const placeholderIcp = { label: "萌ICP备20265334号", href: "https://icp.gov.moe/?keyword=20265334" };
 const placeholderAccounts = { github: "sin6626", leetcode: "sin-mt" };
 const s = (name: string, icon: string) => ({ name, icon: `skill-icons:${icon}` });
@@ -96,28 +78,30 @@ function field(source: unknown, path: string[]): { value: unknown } | undefined 
   return { value };
 }
 
-export function parseSiteContent(config: unknown, lang: Lang): SiteContent {
+export function parseSiteContent(config: unknown, lang: string, site: Record<string, string> = {}): SiteContent {
   const root = isObject(config) ? config : undefined;
-  const i18n = root && isObject(root.i18n) && isObject(root.i18n[lang]) ? root.i18n[lang] : undefined;
-  const fallback = placeholders[lang];
-  // 片段读不到时一切用占位；外文页面先找 i18n 里的译文，没有就用中文那一项并标 zh-CN，片段里根本没有这一项时用这种语言的占位
-  const pick = (path: string[], placeholder: unknown): { value: unknown; lang?: "zh-CN" } => {
-    if (!root) return { value: placeholder };
-    const translated = lang === "zh" || !i18n ? undefined : field(i18n, path);
-    if (translated) return translated;
-    const original = field(root, path);
-    if (original) return { value: original.value, lang: lang === "zh" ? undefined : "zh-CN" };
-    return { value: placeholder };
+  const foreign = lang !== "zh";
+  // 一段中文换成译文（Core 存的是去掉首尾空白的原文）；占位符和 ** 对不上的译文不用
+  const translate = (source: string) => (foreign && usable(source, site[source]) ? site[source] : undefined);
+  // 片段读不到、或这一项根本没写，用占位；写了就用片段里的（包括清空）
+  const pick = (path: string[], fallback: unknown) => {
+    if (!root) return fallback;
+    const found = field(root, path);
+    return found ? found.value : fallback;
   };
-  const localized = (path: string[], placeholder: string | null): Localized | null => {
-    const { value, lang: mark } = pick(path, placeholder);
-    const found = text(value);
-    return found ? { text: found, ...(mark && { lang: mark }) } : null;
+  const localized = (path: string[], fallback: string | null): Localized | null => {
+    const found = text(pick(path, fallback));
+    if (!found) return null;
+    const translated = translate(found);
+    return translated ? { text: translated } : { text: found, ...(foreign && { lang: "zh-CN" as const }) };
   };
-  const title = pick(["hero", "title"], fallback.title);
-  const description = pick(["hero", "description"], fallback.description);
-  const icp = root ? field(root, ["footer", "icp"]) : undefined;
-  const icpValue = icp ? icp.value : placeholderIcp;
+  const title = text(pick(["hero", "title"], placeholder.title)) ?? "";
+  const titleTranslated = title ? translate(title) : undefined;
+  // 说明一行一段，每行单独翻；有一行没有译文就整段显示中文，不中外混排
+  const description = lines(pick(["hero", "description"], placeholder.description));
+  const descriptionTranslated = description.map(translate);
+  const descriptionDone = descriptionTranslated.every((line) => line !== undefined);
+  const icpValue = pick(["footer", "icp"], placeholderIcp);
   const icpLabel = isObject(icpValue) ? text(icpValue.label) : undefined;
   const icpHref = isObject(icpValue) ? text(icpValue.href) : undefined;
   const account = (key: "github" | "leetcode") => {
@@ -127,17 +111,17 @@ export function parseSiteContent(config: unknown, lang: Lang): SiteContent {
   const rows = root ? field(root, ["techStack", "rows"]) : undefined;
   return {
     hero: {
-      title: heroTitle(text(title.value) ?? ""),
-      ...(title.lang && { titleLang: title.lang }),
-      description: lines(description.value),
-      ...(description.lang && { descriptionLang: description.lang }),
+      title: heroTitle(titleTranslated ?? title),
+      ...(foreign && title && !titleTranslated && { titleLang: "zh-CN" as const }),
+      description: descriptionDone ? (descriptionTranslated as string[]) : description,
+      ...(foreign && description.length > 0 && !descriptionDone && { descriptionLang: "zh-CN" as const }),
     },
-    footer: { motto: localized(["footer", "motto"], fallback.motto), icp: icpLabel && icpHref && /^https?:\/\//i.test(icpHref) ? { label: icpLabel, href: icpHref } : null },
+    footer: { motto: localized(["footer", "motto"], placeholder.motto), icp: icpLabel && icpHref && /^https?:\/\//i.test(icpHref) ? { label: icpLabel, href: icpHref } : null },
     accounts: { github: account("github"), leetcode: account("leetcode") },
     copyright: localized(["copyright"], null),
     techStack: {
-      title: localized(["techStack", "title"], fallback.techTitle),
-      description: localized(["techStack", "description"], fallback.techNote),
+      title: localized(["techStack", "title"], placeholder.techTitle),
+      description: localized(["techStack", "description"], placeholder.techNote),
       rows: rows ? techRows(rows.value) : placeholderRows,
     },
   };

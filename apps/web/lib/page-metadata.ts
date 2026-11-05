@@ -12,7 +12,7 @@ export { siteDescription, siteName } from "./blog-data";
 async function describe(title: string, description?: string | null, type: "article" | "website" = "article"): Promise<Metadata> {
   const text = description?.trim() || undefined;
   const name = (await getSiteSettings().catch(() => null))?.name ?? siteName;
-  return { title, description: text, openGraph: { siteName: name, title, description: text, type, locale: ogLocale[await getLocale()] } };
+  return { title, description: text, openGraph: { siteName: name, title, description: text, type, locale: ogLocale(await getLocale()) } };
 }
 
 async function safe(load: () => Promise<Metadata | null>): Promise<Metadata> {

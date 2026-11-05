@@ -5,18 +5,19 @@ import { Toast } from "@base-ui/react/toast";
 import { io, type Socket } from "socket.io-client";
 import { useIsland, type IslandActivityIcon } from "../lib/island-store";
 import { getNotification, notificationSettings } from "../lib/notification-copy";
-import { useT } from "./locale-provider";
+import { useLocale, useT } from "./locale-provider";
 import "./notifications.css";
 
 const SocketContext = createContext<Socket | null>(null);
 // 全站在线人数：Core 在有人上线、下线时广播 VISITOR_ONLINE / VISITOR_OFFLINE，载荷带当前人数。
 const OnlineContext = createContext<number | null>(null);
 
-export default function Notifications({ url, children }: { url: string; children: React.ReactNode }) {
+// url：Core 的实时连接（/web）；apiUrl：外文页面向 Core 要新文章标题的译文
+export default function Notifications({ url, apiUrl, children }: { url: string; apiUrl: string; children: React.ReactNode }) {
   const t = useT().notifications;
   return (
     <Toast.Provider timeout={notificationSettings.timeout} limit={notificationSettings.limit}>
-      <Connection url={url}>{children}</Connection>
+      <Connection url={url} apiUrl={apiUrl}>{children}</Connection>
       <Toast.Portal>
         <Toast.Viewport className="notification-viewport" aria-label={t.viewport}>
           <ToastList />
@@ -26,26 +27,39 @@ export default function Notifications({ url, children }: { url: string; children
   );
 }
 
-function Connection({ url, children }: { url: string; children: React.ReactNode }) {
+// 外文页面播报文章标题：向 Core 要这种语言的 AI 译文（GET /ai/translations/article/:id?lang=）；
+// 刚发布时 AI 还没翻好、或读不到，就用 Core 推来的中文原题并标 zh-CN
+async function localTitle(apiUrl: string, id: unknown, locale: string, title: string): Promise<{ text: string; lang?: string }> {
+  if (locale === "zh" || typeof id !== "string") return { text: title, lang: locale === "zh" ? undefined : "zh-CN" };
+  try {
+    const response = await fetch(`${apiUrl}/ai/translations/article/${encodeURIComponent(id)}?lang=${locale}`, { signal: AbortSignal.timeout(3000) });
+    const data = response.ok ? await response.json() : null;
+    if (typeof data?.title === "string" && data.title.trim()) return { text: data.title };
+  } catch {}
+  return { text: title, lang: "zh-CN" };
+}
+
+function Connection({ url, apiUrl, children }: { url: string; apiUrl: string; children: React.ReactNode }) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [online, setOnline] = useState<number | null>(null);
   // 播报文案按当前语言取；放进 ref，连接不用因为文案对象变化而重建
   const copy = useRef(useT().notifications);
+  const locale = useRef(useLocale());
   useEffect(() => {
     const connection = io(url, { transports: ["websocket"], autoConnect: false });
     // 文章发布、修改、删除改由页头夜航岛播报（原来是右下角 Toast）；新文章带上标题
-    const onMessage = (message: unknown) => {
+    const onMessage = async (message: unknown) => {
       const count = onlineCount(message);
       if (count !== null) setOnline(count);
       const notification = getNotification(message);
       if (!notification) return;
       const type = (message as { type: string }).type;
       const icons: Record<string, IslandActivityIcon> = { POST_CREATE: "post", POST_UPDATE: "update", POST_DELETE: "remove" };
-      const data = (message as { data?: { title?: unknown } }).data;
-      const title = typeof data?.title === "string" ? `《${data.title}》` : undefined;
-      // getNotification（lib/notification-copy.ts）只决定播不播，文字按类型从当前语言的文案里取
+      const data = (message as { data?: { id?: unknown; title?: unknown } }).data;
+      const title = typeof data?.title === "string" && data.title.trim() ? await localTitle(apiUrl, type === "POST_DELETE" ? null : data.id, locale.current, data.title) : null;
+      // getNotification（lib/notification-copy.ts）只决定播不播，文字按类型从当前语言的文案里取；书名号也在文案里（英文是引号）
       const text = copy.current[type as "POST_CREATE" | "POST_UPDATE" | "POST_DELETE"] ?? notification;
-      useIsland.getState().push({ icon: icons[type] ?? "info", title: text.title, detail: title ?? text.description, duration: 5000 });
+      useIsland.getState().push({ icon: icons[type] ?? "info", title: text.title, detail: title ? copy.current.quoted(title.text) : text.description, detailLang: title?.lang, duration: 5000 });
     };
     connection.on("message", onMessage);
     connection.on("connect", () => setSocket(connection));
@@ -54,7 +68,7 @@ function Connection({ url, children }: { url: string; children: React.ReactNode 
       connection.off("message", onMessage);
       connection.disconnect();
     };
-  }, [url]);
+  }, [url, apiUrl]);
   return <SocketContext value={socket}><OnlineContext value={online}>{children}</OnlineContext></SocketContext>;
 }
 

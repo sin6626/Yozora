@@ -5,9 +5,10 @@ import type { Locale } from "./i18n/config";
 // 图标是 Iconify 离线图标集里的品牌标志（components/iconify-icon.tsx 渲染）：平时单色、跟随文字颜色，
 // 鼠标移上去（或键盘聚焦）换成 color 里的品牌色（simple-icons 收录的官方色值；邮箱没有品牌色，用站点强调色）。
 // 品牌色接近黑色的（dark）在熄灯时改成“品牌色圆底 + 白色图标”，否则黑图标在夜空上看不见。样式在 home-hero.css、navigation-menu.css。
-// label 是中文名；en、ja 是英文、日文页面用的名称（悬停提示和读屏文字），和中文一样的（GitHub、QQ 这类）不用写。
+// label 是中文名；en、ja 是英文、日文页面用的名称（悬停提示和读屏文字，别的外文用英文名），和中文一样的（GitHub、QQ 这类）不用写。
 type Platform = { label: string; en?: string; ja?: string; icon: string; color: string; url: (id: string) => string };
-const nameOf = (platform: Pick<Platform, "label" | "en" | "ja">, lang: Locale) => (lang === "zh" ? platform.label : platform[lang] ?? platform.label);
+// 别的语言（后台开着的 ko 等）没写名称时用英文名，再没有就用中文名
+const nameOf = (platform: Pick<Platform, "label" | "en" | "ja">, lang: Locale) => (lang === "zh" ? platform.label : (lang === "ja" ? platform.ja : undefined) ?? platform.en ?? platform.label);
 const darkBrands = new Set(["github", "douyin", "v2ex", "x", "steam"]);
 
 const platforms: Record<string, Platform> = {

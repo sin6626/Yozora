@@ -130,7 +130,7 @@ function PresenceCard({ owner, app, media }: Presence & { owner: string }) {
   const now = useNow(1000);
   const position = media ? mediaPosition(media, now) : undefined;
   const progress = media?.duration && position !== undefined ? position / media.duration : undefined;
-  const template = t.note({ app: Boolean(app), media: Boolean(media), artist: Boolean(media?.artist) });
+  const template = media ? (app ? (media.artist ? t.noteAppMediaArtist : t.noteAppMedia) : media.artist ? t.noteMediaArtist : t.noteMedia) : t.noteApp;
   const playerIcon = media?.player ? appIconSrc(media.player) : undefined;
   // eslint-disable-next-line @next/next/no-img-element -- 本站的 SVG 图标
   const player = (inline: boolean) => playerIcon ? <img className={`presence-note-player${inline ? " presence-note-inline" : ""}`} src={playerIcon} alt="" aria-hidden="true" /> : <span className={`presence-disc${inline ? " presence-note-inline" : ""}`} aria-hidden="true" />;
@@ -207,7 +207,7 @@ export default function OwnerPresence({ apiUrl, name, owner, preview }: { apiUrl
     return () => clearInterval(timer);
   }, [live, paused, shown]);
 
-  const parts = [app && t.using(app.name), media && t.listening(media.title, media.artist)].filter(Boolean).join(" · ");
+  const parts = [app && t.using(app.name), media && (media.artist ? t.listeningBy(media.title, media.artist) : t.listening(media.title))].filter(Boolean).join(" · ");
   return (
     <>
       <span

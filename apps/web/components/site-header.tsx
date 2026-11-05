@@ -261,7 +261,7 @@ export default function SiteHeader({ brand, presence, nav, search, account, acti
                   transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1], delay: 0.32 }}
                 >
                   <strong>{activity.title}</strong>
-                  {activity.detail && <span>{activity.detail}</span>}
+                  {activity.detail && <span lang={activity.detailLang}>{activity.detail}</span>}
                 </motion.span>
                 {activity.href && <Link className="island-activity-link" href={activity.href}>{t.goSee}</Link>}
               </motion.div>
