@@ -102,7 +102,9 @@ export class SnippetService {
     )
   }
 
-  async update(id: string, newModel: SnippetModel) {
+  async update(id: string, newModel: SnippetModel & { baseRaw?: string }) {
+    const { baseRaw } = newModel
+    delete newModel.baseRaw
     await this.validateTypeAndCleanup(newModel)
     delete newModel.created
     const old = await this.model.findById(id).select('+secret').lean({
@@ -111,6 +113,9 @@ export class SnippetService {
 
     if (!old) {
       throw new BizException(ErrorCodeEnum.SnippetNotFound)
+    }
+    if (baseRaw !== undefined && old.raw !== baseRaw) {
+      throw new BizException(ErrorCodeEnum.SnippetChanged)
     }
 
     if (
@@ -187,9 +192,15 @@ export class SnippetService {
       updateQuery.$unset = unsetFields
     }
 
-    const newerDoc = await this.model.findByIdAndUpdate(id, updateQuery, {
-      new: true,
-    })
+    // The raw condition makes the version check atomic with the write
+    const newerDoc = await this.model.findOneAndUpdate(
+      { _id: id, ...(baseRaw !== undefined && { raw: baseRaw }) },
+      updateQuery,
+      { new: true },
+    )
+    if (!newerDoc && baseRaw !== undefined) {
+      throw new BizException(ErrorCodeEnum.SnippetChanged)
+    }
 
     if (old.reference === 'theme' || newModel.reference === 'theme') {
       await this.eventManager.emit(EventBusEvents.CleanAggregateCache, null, {

@@ -239,4 +239,24 @@ describe('test /snippets', async () => {
 
     expect(result.statusCode).toBe(200)
   })
+
+  test('PUT /snippets/:id with baseRaw only writes over the content it was based on', async () => {
+    const doc = await model.create({ ...mockPayload1, name: 'base_raw', reference: 'theme', raw: '{"footer":{"motto":"old"}}' })
+    const put = (raw: string, baseRaw?: string) =>
+      app.inject({
+        method: 'PUT',
+        url: `${apiRoutePrefix}/snippets/${doc.id}`,
+        payload: { name: 'base_raw', reference: 'theme', type: SnippetType.JSON, raw, ...(baseRaw !== undefined && { baseRaw }) },
+        headers: { ...authPassHeader },
+      })
+
+    expect((await put('{"footer":{"motto":"first"}}', '{"footer":{"motto":"old"}}')).statusCode).toBe(200)
+
+    const stale = await put('{"footer":{"motto":"second"}}', '{"footer":{"motto":"old"}}')
+    expect(stale.statusCode).toBe(409)
+    expect((await model.findById(doc.id).lean())!.raw).toBe('{"footer":{"motto":"first"}}')
+    expect((await model.findById(doc.id).lean()) as any).not.toHaveProperty('baseRaw')
+
+    expect((await put('{"footer":{"motto":"third"}}')).statusCode).toBe(200)
+  })
 })

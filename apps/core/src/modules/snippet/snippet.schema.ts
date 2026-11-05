@@ -51,6 +51,11 @@ export const SnippetSchema = BaseSchema.extend({
       return qs.stringify(val)
     }),
   enable: z.boolean().optional(),
+  /** Optional version check: only update while the stored raw still equals this (the content the edit was based on). */
+  baseRaw: z
+    .string()
+    .optional()
+    .transform((val) => val?.trim()),
 })
 
 export class SnippetDto extends createZodDto(SnippetSchema) {}

@@ -47,6 +47,7 @@ export enum ErrorCodeEnum {
   AlreadySupported = 12003,
   UserAlreadyExists = 12004,
   FileExists = 12005,
+  SnippetChanged = 12006,
 
   // biz - disabled/not enabled (400/403)
   LinkDisabled = 13000,
@@ -197,6 +198,7 @@ export const ErrorCode = Object.freeze<Record<ErrorCodeEnum, [string, number]>>(
     [ErrorCodeEnum.AlreadySupported]: ['你已经支持过啦！', 400],
     [ErrorCodeEnum.UserAlreadyExists]: ['我已经有一个主人了哦', 400],
     [ErrorCodeEnum.FileExists]: ['文件已存在', 400],
+    [ErrorCodeEnum.SnippetChanged]: ['配置片段已在别处被修改，请重新读取后再保存', 409],
 
     // disabled/not enabled (400/403)
     [ErrorCodeEnum.LinkDisabled]: ['您的友链已被禁用，请联系管理员', 400],
