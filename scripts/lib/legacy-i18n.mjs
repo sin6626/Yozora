@@ -53,3 +53,11 @@ export function planImport(entries, { ui, site, projects }) {
   }
   return { writes, kept, missing, unmatched: [...unmatched] }
 }
+
+// 删片段里 i18n 的保存请求：Core 的保存接口没写的字段会用默认值（私密变回公开），所以带上最新读到的每个字段，
+// 只换正文；baseRaw 是这次读到的正文，期间被改过就 409
+export function snippetWithoutI18n(latest) {
+  const { _id, id, created, updated, raw, ...fields } = latest
+  const { i18n, ...rest } = JSON.parse(raw)
+  return { ...fields, raw: JSON.stringify(rest, null, 2), baseRaw: raw }
+}

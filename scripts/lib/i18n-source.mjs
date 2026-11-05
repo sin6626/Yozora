@@ -11,7 +11,7 @@ export function runTs(path, requireMap = {}) {
   const source = readFileSync(new URL(path, root), 'utf8')
   const module = { exports: {} }
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText
-  vm.runInNewContext(code, { module, exports: module.exports, require: (id) => requireMap[id] ?? require(id) })
+  vm.runInNewContext(code, { module, exports: module.exports, require: (id) => requireMap[id] ?? require(id), process, AbortSignal, URL, console })
   return module.exports
 }
 

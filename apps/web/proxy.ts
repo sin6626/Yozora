@@ -14,19 +14,27 @@ const staticFile = /\.(?:ico|png|jpe?g|gif|webp|avif|svg|txt|xml|json|webmanifes
 // 内部改写成 /zh/… 时加在请求上的标记
 const rewriteMark = "x-locale-rewrite";
 
-// 开着的语言：每分钟最多问一次 Core（GET /ai/i18n），读不到时沿用上次的，从没读到过就只有中文。
-// ponytail: 进程内缓存，后台改了语言最多一分钟后生效；要立即生效再接 Webhook
-let known: { locales: string[]; at: number } | null = null;
-async function enabledLocales() {
-  if (known && Date.now() - known.at < 60_000) return known.locales;
+// 问一次 Core 开着哪些语言（GET /ai/i18n）。Core 没有这个接口（404）就是只有中文；
+// 读失败（Core 重启、5xx、超时）沿用上次读到的，从没读到过就先只有中文。检查在 scripts/verify-i18n.mjs
+export async function readLocales(previous: string[] | null, load: typeof fetch = fetch): Promise<{ locales: string[]; ok: boolean }> {
   try {
-    const response = await fetch(`${process.env.MIX_SPACE_API_URL?.replace(/\/$/, "")}/ai/i18n`, { cache: "no-store", signal: AbortSignal.timeout(3000) });
+    const response = await load(`${process.env.MIX_SPACE_API_URL?.replace(/\/$/, "")}/ai/i18n`, { cache: "no-store", signal: AbortSignal.timeout(3000) });
+    if (!response.ok && response.status !== 404) throw new Error(`Core /ai/i18n 返回 ${response.status}`);
     const data = response.ok ? await response.json() : null;
-    known = { locales: siteLocales(data?.enabled === true && Array.isArray(data.languages) ? data.languages : []), at: Date.now() };
+    return { locales: siteLocales(data?.enabled === true && Array.isArray(data.languages) ? data.languages : []), ok: true };
   } catch {
-    known = { locales: known?.locales ?? [defaultLocale], at: Date.now() };
+    return { locales: previous ?? [defaultLocale], ok: false };
   }
-  return known.locales;
+}
+
+// 每分钟最多问一次；读失败时 10 秒后再试。
+// ponytail: 进程内缓存，后台改了语言最多一分钟后生效；要立即生效再接 Webhook
+let known: { locales: string[]; until: number } | null = null;
+async function enabledLocales() {
+  if (known && Date.now() < known.until) return known.locales;
+  const { locales, ok } = await readLocales(known?.locales ?? null);
+  known = { locales, until: Date.now() + (ok ? 60_000 : 10_000) };
+  return locales;
 }
 
 const withVary = (response: NextResponse) => {

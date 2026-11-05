@@ -124,4 +124,14 @@ const { rich } = runTs('apps/web/lib/i18n/rich.tsx')
 const parts = rich('{author} 在 {target} 说：', { author: 'A', target: 'T' }, (text) => `<${text}>`)
 assert.deepEqual(plain(parts.map((part) => part.props.children)), ['A', '<在>', 'T', '<说：>'])
 
+// proxy 读开着的语言：Core 一时出错时沿用上次的，不能把开着的英文当成关掉（否则 /en/… 会被送回中文）
+const { readLocales } = runTs('apps/web/proxy.ts', { 'next/server': {}, './lib/i18n/config': config })
+const respond = (status, body) => async () => ({ ok: status < 300, status, json: async () => body })
+assert.deepEqual(plain(await readLocales(null, respond(200, { enabled: true, languages: ['en', 'ja'] }))), { locales: ['zh', 'en', 'ja'], ok: true })
+assert.deepEqual(plain(await readLocales(null, respond(200, { enabled: false, languages: ['en'] }))), { locales: ['zh'], ok: true }, '关着 AI i18n 时只有中文')
+assert.deepEqual(plain(await readLocales(['zh', 'en'], respond(404, null))), { locales: ['zh'], ok: true }, 'Core 没有这个接口：只有中文')
+for (const status of [500, 502, 503]) assert.deepEqual(plain(await readLocales(['zh', 'en'], respond(status, null))), { locales: ['zh', 'en'], ok: false }, `${status} 时沿用上次的`)
+assert.deepEqual(plain(await readLocales(['zh', 'en'], async () => { throw new Error('timeout') })), { locales: ['zh', 'en'], ok: false }, '超时沿用上次的')
+assert.deepEqual(plain(await readLocales(null, respond(503, null))), { locales: ['zh'], ok: false }, '从没读到过时先只有中文')
+
 console.log('PASS i18n locales, path prefixes, msg/localize, translation checks shared with Core, legacy translations, rich text')

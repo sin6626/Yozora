@@ -2,7 +2,7 @@
 // 手改过的条目一律不动（包括原文已改、前台不再显示的），片段里对不上条目的手写译文要报出来（这时不能删片段 i18n）。
 // 用法：node scripts/verify-legacy-i18n.mjs（已并入 pnpm verify）
 import assert from 'node:assert/strict'
-import { legacyProjectTranslations, legacySiteTranslations, planImport } from './lib/legacy-i18n.mjs'
+import { legacyProjectTranslations, legacySiteTranslations, planImport, snippetWithoutI18n } from './lib/legacy-i18n.mjs'
 
 const root = {
   hero: { title: '你好', description: ['第一行', ' 第二行 '] },
@@ -37,4 +37,7 @@ assert.deepEqual(plan.writes, [
 ], 'AI 译文和没有译文的写入；手改过的（含原文已改的 b/en、footer.motto/ja）不动')
 assert.equal(plan.kept, 2)
 assert.deepEqual(plan.unmatched.sort(), ['en project.name gone', 'en site.text hero.description.0', 'en site.text hero.description.1', 'en site.text seo.description'].sort(), '对不上条目的手写译文报出来')
+// 删片段 i18n：私密、备注等字段用最新读到的，只换正文
+const latest = { id: 'snippet-id', name: 'yozora', reference: 'theme', type: 'json', private: true, comment: '站长刚改的备注', created: 'x', updated: 'y', raw: JSON.stringify({ hero: { title: '你好' }, i18n: { en: {} } }) }
+assert.deepEqual(snippetWithoutI18n(latest), { name: 'yozora', reference: 'theme', type: 'json', private: true, comment: '站长刚改的备注', raw: JSON.stringify({ hero: { title: '你好' } }, null, 2), baseRaw: latest.raw }, '删 i18n 时保留最新的私密和备注')
 console.log('PASS legacy i18n import: site text paired by slot, hand-edited (even outdated) entries kept, unmatched legacy translations reported')

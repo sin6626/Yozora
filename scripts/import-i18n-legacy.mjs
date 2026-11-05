@@ -10,7 +10,7 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { coreUrl } from './lib/core-url.mjs'
 import { loadI18n } from './lib/i18n-source.mjs'
-import { legacyProjectTranslations, legacySiteTranslations, planImport } from './lib/legacy-i18n.mjs'
+import { legacyProjectTranslations, legacySiteTranslations, planImport, snippetWithoutI18n } from './lib/legacy-i18n.mjs'
 
 const target = process.argv.includes('--prod') ? 'prod' : 'local'
 const dryRun = process.argv.includes('--dry-run')
@@ -95,15 +95,17 @@ if (dropSnippetI18n && snippet && 'i18n' in root) {
   const backup = new URL(`snippet-yozora-before-i18n-drop-${target}-${new Date().toISOString().slice(0, 10)}.json`, backups)
   writeFileSync(backup, `${JSON.stringify(snippet, null, 2)}\n`)
   chmodSync(backup, 0o600)
-  const { i18n, ...rest } = root
+  const { i18n } = root
   if (dryRun) {
     console.log(`试运行：会去掉片段里的 i18n（${Object.keys(i18n).join('、')}），原文已备份到 ${backup.pathname}`)
   } else {
-    const saved = await call('PUT', `/snippets/${snippet._id ?? snippet.id}`, {
-      name: snippet.name, reference: snippet.reference, type: snippet.type, private: snippet.private, comment: snippet.comment, metatype: snippet.metatype, enable: snippet.enable,
-      raw: JSON.stringify(rest, null, 2),
-      baseRaw: snippet.raw,
-    })
+    // 保存接口没写的字段会用默认值（比如私密变回公开），所以要把每个字段都带上。导入要一会儿，这期间站长可能改过私密、备注：
+    // 保存前再读一次，用最新的字段；正文由 baseRaw 保证还是快照里的样子（被改过就 409、不删）。
+    // ponytail: 再读和保存之间还有几毫秒的空档；要彻底没有，得让 Core 的保存接口支持只改正文
+    const id = snippet._id ?? snippet.id
+    const latest = (ok(await call('GET', '/snippets/group/theme'), '重读配置片段') ?? []).find((item) => (item._id ?? item.id) === id)
+    if (!latest || latest.raw !== snippet.raw) throw new Error('片段在导入期间被改过正文，没有删 i18n，请重新运行')
+    const saved = await call('PUT', `/snippets/${id}`, snippetWithoutI18n(latest))
     if (saved.status !== 200) throw new Error(`片段保存失败：${saved.status} ${JSON.stringify(saved.data)}`)
     console.log(`片段里的 i18n 已删掉，原文备份在 ${backup.pathname}`)
   }

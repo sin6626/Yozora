@@ -140,9 +140,12 @@ const TranslationCell = defineComponent({
     const draft = ref(current.value?.text ?? '')
     const error = ref('')
     const saving = ref(false)
+    // 列表刷新（比如生成跑完自动刷新）带来新译文时跟着换；正在改、还没保存的不冲掉，失焦后照常保存
     watch(
       () => current.value?.text,
-      (text) => (draft.value = text ?? ''),
+      (text, previous) => {
+        if (draft.value === (previous ?? '')) draft.value = text ?? ''
+      },
     )
 
     const target = () => ({

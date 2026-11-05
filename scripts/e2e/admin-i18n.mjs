@@ -39,7 +39,7 @@ const fake = {
     { keyPath: 'ui.text', lookupKey: 'header.menu', key: 'header.menu', source: '菜单', translations: { en: { text: 'Menu', manual: false, needsReview: false }, ja: { text: 'メニュー', manual: false, needsReview: false }, ko: { text: '메뉴', manual: false, needsReview: false } } },
   ],
 }
-const seen = { puts: [], deletes: [], generates: [], patches: [], status: [], groups: 0 }
+const seen = { puts: [], deletes: [], generates: [], patches: [], status: [], groups: 0, entries: 0 }
 const leaked = []
 let generateRuns = 0 // 生成后第几次查状态：第一次还在跑，第二次跑完
 
@@ -87,6 +87,7 @@ try {
         return fulfill(seen.generates.length ? { ...fake.status, lastRun: { at: new Date().toISOString(), created: 5, failed: 0, skipped: 1 } } : fake.status)
       }
       if (pathname === '/ai/i18n/groups') { seen.groups++; return fulfill(fake.groups) }
+      if (pathname === '/ai/i18n/entries' && request.method === 'GET') seen.entries++
       if (pathname === '/ai/i18n/entries' && request.method === 'GET') return fulfill(searchParams.get('group') === 'header' ? fake.entries : [])
       if (pathname === '/ai/i18n/entries' && request.method === 'PUT') {
         const body = JSON.parse(request.postData)
@@ -198,6 +199,20 @@ try {
   await b.evaluate(`(() => { const el = document.querySelector('tr[data-entry="header.menu"] [data-cell=en] textarea'); el.focus(); el.blur() })()`)
   await sleep(300)
   assert.equal(seen.puts.length, 2, '没改不发 PUT')
+
+  // 正在输入、还没保存时列表刷新（比如生成跑完自动刷新，这条带来了新的 AI 译文）：输入框里的字不能被冲掉，失焦后照常保存
+  await b.evaluate(`(() => { const el = document.querySelector('tr[data-entry="header.title"] [data-cell=ja] textarea'); el.focus(); el.select() })()`)
+  await b.send('Input.insertText', { text: '夜の空' })
+  fake.entries[0].translations.ja = { text: '夜空（AI）', manual: false, needsReview: false }
+  const entriesBefore = seen.entries
+  // 用脚本点“刷新”：.click() 不会让输入框失焦，和自动刷新一样
+  await b.evaluate(`document.querySelector('button[aria-label="刷新"]').click()`)
+  await until(() => seen.entries > entriesBefore)
+  await sleep(400)
+  assert.equal(await b.evaluate(`document.querySelector('tr[data-entry="header.title"] [data-cell=ja] textarea').value`), '夜の空', '刷新不冲掉正在输入的译文')
+  await b.evaluate(`document.activeElement.blur()`)
+  await until(() => seen.puts.length === 3)
+  assert.deepEqual(seen.puts[2], { keyPath: 'ui.text', lookupKey: 'header.title', lang: 'ja', text: '夜の空' }, '失焦后保存输入的译文')
 
   // 清空一条：确认后发 DELETE，输入框变空
   await b.evaluate(`document.querySelector('tr[data-entry="header.menu"] [data-cell=ko] button[aria-label="清空这条译文"]').click()`)
