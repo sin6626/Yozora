@@ -5,7 +5,7 @@ import IORedis from 'ioredis'
 
 import { REDIS } from '~/app.config'
 import { RedisIoAdapterKey } from '~/common/adapters/socket.adapter'
-import { API_CACHE_PREFIX } from '~/constants/cache.constant'
+import { API_CACHE_PREFIX, RedisKeys } from '~/constants/cache.constant'
 import { getRedisKey } from '~/utils/redis.util'
 
 export const REDIS_CLIENT_OPTIONS: RedisOptions = {
@@ -107,8 +107,17 @@ export class RedisService {
     return this._emitter
   }
 
+  public async getApiCacheGeneration(): Promise<string> {
+    return (
+      (await this.getClient().get(getRedisKey(RedisKeys.ApiCacheGeneration))) ??
+      '0'
+    )
+  }
+
   public async cleanCatch() {
     const redis = this.getClient()
+    // Bump first: a request that started before this point sees the change after it stores its response and drops it
+    await redis.incr(getRedisKey(RedisKeys.ApiCacheGeneration))
     const keys: string[] = await redis.keys(`${API_CACHE_PREFIX}*`)
     await Promise.all(keys.map((key) => redis.del(key)))
 

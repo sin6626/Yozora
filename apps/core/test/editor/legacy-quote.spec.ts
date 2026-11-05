@@ -10,6 +10,7 @@ import { Test } from '@nestjs/testing'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { HttpCacheInterceptor } from '~/common/interceptors/cache.interceptor'
+import { RedisService } from '~/processors/redis/redis.service'
 import { CacheService } from '~/processors/redis/cache.service'
 import { JSONTransformInterceptor } from '~/common/interceptors/json-transform.interceptor'
 import { LexicalService } from '~/processors/helper/helper.lexical.service'
@@ -53,6 +54,8 @@ describe('legacy Quote read and save boundaries', () => {
           get: async (key: string) => cache.get(key),
           set: async (key: string, value: unknown) => cache.set(key, JSON.parse(JSON.stringify(value))),
         },
+      }, {
+        provide: RedisService, useValue: { getApiCacheGeneration: async () => '0', cleanKey: async (key: string) => cache.delete(key) },
       }],
     }).compile()
     app = module.createNestApplication(new FastifyAdapter())

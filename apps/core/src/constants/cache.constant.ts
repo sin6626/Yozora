@@ -1,4 +1,6 @@
 export enum RedisKeys {
+  /** Bumped by cleanCatch so a GET that started earlier cannot put its old response back */
+  ApiCacheGeneration = 'api_cache_generation',
   AccessIp = 'access_ip',
   Like = 'like',
   Read = 'read',
