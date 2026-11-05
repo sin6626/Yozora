@@ -60,9 +60,15 @@ const placeholderRows: Tech[][] = [
   [s("Node.js", "nodejs-dark"), s("NestJS", "nestjs-dark"), s("Express", "expressjs-dark"), s("MongoDB", "mongodb"), s("Redis", "redis-dark"), s("Git", "git"), s("GitHub", "github-dark"), s("Linux", "linux-dark"), s("C++", "cpp"), s("VS Code", "vscode-dark")],
 ];
 
-// 只去掉 ** 标记：词间空格原样留在各段里，由页面放在强调字外面
+// 只去掉 ** 标记：词间空格原样留在各段里，由页面放在强调字外面。
+// 两个强调词之间只隔着空格（**Hello** **world**）时，那段空格并到前一段末尾，不能丢
 function heroTitle(value: string): HeroTitle {
-  return value.trim().split(/\*\*(.+?)\*\*/).flatMap((part, index) => (part.trim() ? [{ text: part, strong: index % 2 === 1 }] : []));
+  const parts: HeroTitle = [];
+  value.trim().split(/\*\*(.+?)\*\*/).forEach((part, index) => {
+    if (part.trim()) parts.push({ text: part, strong: index % 2 === 1 });
+    else if (part && parts.length > 0) parts[parts.length - 1].text += part;
+  });
+  return parts;
 }
 
 function lines(value: unknown) {

@@ -13,7 +13,8 @@ const code = ts.transpileModule(readFileSync(new URL('../apps/web/lib/theme-conf
 const module = { exports: {} }
 vm.runInNewContext(code, { module, exports: module.exports })
 const parse = (config, lang = 'zh') => JSON.parse(JSON.stringify(module.exports.parseSiteContent(config, lang)))
-const visible = (title) => title.map((part) => part.text).join('')
+// 和首屏一样拼：每段去掉首尾空白放进 inline-block，首尾有空白的在块外补一个空格，浏览器再把连续空白合成一个
+const visible = (title) => title.map((part) => `${/^\s/.test(part.text) ? ' ' : ''}${part.text.trim()}${/\s$/.test(part.text) ? ' ' : ''}`).join('').replace(/\s+/g, ' ').trim()
 
 // 读不到 / 没写：占位
 const fallback = parse(null)
@@ -47,6 +48,17 @@ assert.deepEqual(zh.techStack.rows, [[{ name: 'Vue', icon: 'skill-icons:vuejs-da
 const spaced = parse({ hero: { title: 'A **night owl** in space' } })
 assert.equal(visible(spaced.hero.title), 'A night owl in space', '只去掉 **，词间空格保留')
 assert.deepEqual(spaced.hero.title.filter((part) => part.strong).map((part) => part.text), ['night owl'])
+for (const [title, shown, strong] of [
+  ['**Hello** **world**', 'Hello world', ['Hello', 'world']],
+  ['**Lead** words after', 'Lead words after', ['Lead']],
+  ['Words before **tail**', 'Words before tail', ['tail']],
+  ['**a** and **b**', 'a and b', ['a', 'b']],
+  ['plain title', 'plain title', []],
+]) {
+  const parsed = parse({ hero: { title } }).hero.title
+  assert.equal(visible(parsed), shown, `只去掉 **，词间空格保留：${title}`)
+  assert.deepEqual(parsed.filter((part) => part.strong).map((part) => part.text.trim()), strong, `强调的词：${title}`)
+}
 
 // 清空：叶子写成空，或整组写成 null，都不显示
 for (const cleared of [
