@@ -70,11 +70,15 @@ const entries = ok(await call('GET', '/ai/i18n/entries?withStale=1'), '读翻译
 if (!Array.isArray(entries)) throw new Error(`读不到条目：${JSON.stringify(entries)}`)
 const plan = planImport(entries, { ui: legacy, site: legacySiteTranslations(root, seo?.description), projects: legacyProjectTranslations(root) })
 const failed = []
+const keptBefore = plan.kept
 for (const write of dryRun ? [] : plan.writes) {
-  const result = await call('PUT', '/ai/i18n/entries', write)
-  if (result.status !== 200) failed.push(`${write.lang} ${write.keyPath} ${write.lookupKey}：${result.status} ${JSON.stringify(result.data)}`)
+  // keepManual：Core 在同一次写入里确认这条还不是手改过的；读快照之后站长刚改过的，Core 回 409，算“不动”
+  const result = await call('PUT', '/ai/i18n/entries', { ...write, keepManual: true })
+  if (result.status === 409 && result.data?.code === 12008) plan.kept++
+  else if (result.status !== 200) failed.push(`${write.lang} ${write.keyPath} ${write.lookupKey}：${result.status} ${JSON.stringify(result.data)}`)
 }
-console.log(`${target}${dryRun ? '（试运行）' : ''}：写入 ${plan.writes.length - failed.length}，已手改过不动 ${plan.kept}，没有手写译文 ${plan.missing}，失败 ${failed.length}`)
+const written = dryRun ? plan.writes.length : plan.writes.length - failed.length - (plan.kept - keptBefore)
+console.log(`${target}${dryRun ? '（试运行）' : ''}：写入 ${written}，已手改过不动 ${plan.kept}，没有手写译文 ${plan.missing}，失败 ${failed.length}`)
 if (failed.length) {
   console.log(failed.join('\n'))
   process.exit(1)

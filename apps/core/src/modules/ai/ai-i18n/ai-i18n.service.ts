@@ -304,11 +304,13 @@ export class AiI18nService {
     }))
   }
 
+  /** `keepManual`: only write while the entry has no hand-written translation (checked in the same write), else 409 — for the migration script */
   async saveEntry(input: {
     keyPath: I18nKeyPath
     lookupKey: string
     lang: string
     text: string
+    keepManual?: boolean
   }): Promise<EntryCell> {
     const lang = this.parseLang(input.lang)
     const { sources } = await this.collectSources()
@@ -323,23 +325,32 @@ export class AiI18nService {
       throw new BizException(ErrorCodeEnum.I18nTranslationInvalid, reason)
     }
 
-    await this.entryModel.updateOne(
-      {
-        keyPath: item.keyPath,
-        lang,
-        keyType: KEY_TYPE,
-        lookupKey: item.lookupKey,
-      },
-      {
-        $set: {
-          sourceText: item.source,
-          translatedText: input.text,
-          manual: true,
-          needsReview: false,
+    try {
+      await this.entryModel.updateOne(
+        {
+          keyPath: item.keyPath,
+          lang,
+          keyType: KEY_TYPE,
+          lookupKey: item.lookupKey,
+          ...(input.keepManual && { manual: { $ne: true } }),
         },
-      },
-      { upsert: true },
-    )
+        {
+          $set: {
+            sourceText: item.source,
+            translatedText: input.text,
+            manual: true,
+            needsReview: false,
+          },
+        },
+        { upsert: true },
+      )
+    } catch (error) {
+      // keepManual: a hand-written entry doesn't match the filter, so the upsert hits the unique index
+      if (input.keepManual && (error as { code?: number }).code === 11000) {
+        throw new BizException(ErrorCodeEnum.I18nEntryManual)
+      }
+      throw error
+    }
     await this.notify([lang])
     return { text: input.text, manual: true, needsReview: false }
   }

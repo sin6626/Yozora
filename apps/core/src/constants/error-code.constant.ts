@@ -50,6 +50,7 @@ export enum ErrorCodeEnum {
   FileExists = 12005,
   SnippetChanged = 12006,
   I18nGenerating = 12007,
+  I18nEntryManual = 12008,
 
   // biz - disabled/not enabled (400/403)
   LinkDisabled = 13000,
@@ -203,6 +204,7 @@ export const ErrorCode = Object.freeze<Record<ErrorCodeEnum, [string, number]>>(
     [ErrorCodeEnum.FileExists]: ['文件已存在', 400],
     [ErrorCodeEnum.SnippetChanged]: ['配置片段已在别处被修改，请重新读取后再保存', 409],
     [ErrorCodeEnum.I18nGenerating]: ['i18n 翻译正在生成，请等这一次结束', 409],
+    [ErrorCodeEnum.I18nEntryManual]: ['这条译文已经手改过，没有覆盖', 409],
 
     // disabled/not enabled (400/403)
     [ErrorCodeEnum.LinkDisabled]: ['您的友链已被禁用，请联系管理员', 400],

@@ -33,5 +33,7 @@ export class I18nEntryKeyDto extends createZodDto(I18nEntryKeySchema) {}
 
 export const SaveI18nEntrySchema = I18nEntryKeySchema.extend({
   text: z.string(),
+  /** Only write while the entry has no hand-written translation, else 409 (the migration script) */
+  keepManual: z.boolean().optional(),
 })
 export class SaveI18nEntryDto extends createZodDto(SaveI18nEntrySchema) {}

@@ -499,6 +499,23 @@ describe('AI i18n', () => {
     expect((await service.getEntries('a', true))[0].translations.en).toEqual({ text: 'A', manual: true, needsReview: false, stale: true })
   })
 
+  it('saves with keepManual only while the entry has no hand-written translation', async () => {
+    await service.uploadSource({ a: '甲', b: '乙', c: '丙' })
+    await idle()
+    await service.saveEntry({ keyPath: 'ui.text', lookupKey: 'a', lang: 'en', text: 'Owner A' })
+    await entries.deleteOne({ keyPath: 'ui.text', lookupKey: 'c', lang: 'en' })
+
+    await expect(
+      service.saveEntry({ keyPath: 'ui.text', lookupKey: 'a', lang: 'en', text: 'Legacy A', keepManual: true }),
+    ).rejects.toMatchObject({ status: 409 })
+    expect((await entry('ui.text', 'a', 'en'))?.translatedText).toBe('Owner A')
+
+    await service.saveEntry({ keyPath: 'ui.text', lookupKey: 'b', lang: 'en', text: 'Legacy B', keepManual: true })
+    expect(await entry('ui.text', 'b', 'en')).toMatchObject({ translatedText: 'Legacy B', manual: true })
+    await service.saveEntry({ keyPath: 'ui.text', lookupKey: 'c', lang: 'en', text: 'Legacy C', keepManual: true })
+    expect(await entry('ui.text', 'c', 'en')).toMatchObject({ translatedText: 'Legacy C', manual: true })
+  })
+
   it('keeps a translation the owner saves while the AI is still working on it', async () => {
     await service.uploadSource({ 'a.x': '你好' })
     await idle()
