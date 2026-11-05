@@ -137,7 +137,7 @@ GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 S
 - 158 cm，普通大学生的身材，不刻意强调曲线，干净清爽。
 - 表情基调：平静里带着好奇，不是甜美系。
 
-**剪影辨识度**（首页的“影子”只有轮廓，所以这几处一定要在剪影里认得出来）
+**剪影辨识度**（以后做剪影、小图标时，这几处一定要认得出来）
 - 发尾外翘的半长发和那根呆毛
 - 左侧的月牙星星发夹
 - 挂在脖子上的头戴式耳机
@@ -198,7 +198,7 @@ GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 S
 
 | # | 表情 | 描述 | 用在站里哪 |
 |---|---|---|---|
-| 1 | 平常 | 抱着本子，嘴角微微上扬，看向前方 | 首页“影子”默认、社交平台头像 |
+| 1 | 平常 | 抱着本子，嘴角微微上扬，看向前方 | 首页“影子”头像、社交平台头像 |
 | 2 | 好奇 | 歪头，呆毛立起，指着什么问“这个叫什么？” | ⌘K 搜索、碎碎念页 |
 | 3 | 困惑 | 眯起眼睛凑近看，皱眉翻着空空的小本子 | 404“这里只有夜空” |
 | 4 | 专注 | 戴上眼镜和耳机，盯着屏幕敲键盘 | 读取中（可替换小火箭） |
@@ -213,7 +213,7 @@ GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 S
 
 ## 十二、常用姿势
 
-- **抱本子站着**：双手把小本子抱在胸前，站得很直，身体微微朝右，脸转回来平视前方，看着看她的人（“看人的时候不躲”）。**首页影子和正式形象都用这个。**仰头看月只属于“向往”那一层，正式形象不用。
+- **抱本子站着**：双手把小本子抱在胸前，站得很直，身体微微朝右，脸转回来平视前方，看着看她的人（“看人的时候不躲”）。**正式形象用这个。**仰头看月只属于“向往”那一层，正式形象不用。
 - **夜行回头**：走在路上，回头看一眼。
 - **仰望**：站着抬头看星，一手按着发夹。
 - **伸手**：向右上方伸手，像要够到月亮（向往形态）。
@@ -244,7 +244,7 @@ GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 S
 
 - **和 Sin**：她是 Sin 的影子，不是 Sin 本人，也不是看板娘。Sin 是白天的、实在的那一面；真是夜里的、诚实的那一面。在网上，她可以替 Sin 出现在头像和图里，让陌生人先认识 Sin 心里的那部分。
 - **在站里出现的地方**：
-  - 首页：头像背后、偏左下的紫色剪影（抱本子站着），带一圈淡月光边，悬停变清晰。
+  - 首页：首屏站长圆形头像的后面，藏着她的圆形头像，只在左下露出一点边；鼠标移上去她滑出来，点了进人设页。
   - 人设页：后台新建的页面，放这份设定和她的图。
   - 各种状态：按第十一节的表情差分接进去。
   - 首屏：以后替换丛雨（见待办）。
@@ -284,12 +284,17 @@ GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 S
 **2. Coding, glasses (variant)**
 > Original anime girl illustration with design notes, 20-year-old university student, 158 cm tall. Straight hair that ends just above the shoulder blades, ends flicking outward, one ahoge, a crescent-moon-and-star hair clip on the left fringe. Hair color: roots and shadows almost black, deep violet only where light hits; only the last 10 cm of the tips fade into a very pale moonlight cream (whitish ivory, not gold, not yellow). Thin dark-violet metal oval glasses with very thin lenses that do not hide the eyes. Soft pink-violet eyes with a tiny four-pointed star highlight, focused expression. White shirt under an oversized night-purple knit cardigan with sleeves pushed up to the forearms, dark navy pleated skirt, black knee socks, headphones on her head. Main image: late at night at a dorm desk typing on a laptop, cool screen light on her face, the moon outside the window at the upper right, a small notebook with a star sticker open on the desk. Beside it, a bust shot with glasses and three expressions (focused, frowning at a problem, smiling when she finally gets it). Clean lineart, soft cel shading.
 
+**3. 圆形头像（首页“影子”和社交平台用）**
+> 原创动漫少女头像，正方形构图，只画到肩膀的胸像，人物居中，四周留出一圈空间方便裁成圆形。久遠 真：直发到肩胛骨上方，发根近乎黑色、受光处透出深紫，发梢最末端渐变为很淡的月光奶白色（不是金色），头顶一根呆毛，左侧刘海别着月牙和星星发夹；柔粉紫色眼睛，高光是小小的四角星；不戴眼镜；夜紫色宽松针织开衫、白衬衫领口，脖子上挂着头戴式耳机。脸朝正前方平视，直视看画的人，表情平静，嘴角很轻地上扬，带一点倔。背景是深夜紫色的夜空，右上方有柔和的月光照在她的头发和脸的右侧，左侧偏暗。干净线稿，柔和赛璐璐上色，高清。
+
+> Original anime girl avatar, square composition, head-and-shoulders bust, centered with margin around for a circle crop. Kuon Shin: straight hair just above the shoulder blades, roots almost black with deep violet where light hits, only the very tips fading into a very pale moonlight cream (not gold), one ahoge, a crescent-moon-and-star hair clip on the left fringe; soft pink-violet eyes with a tiny four-pointed star highlight; no glasses; oversized night-purple knit cardigan over a white shirt collar, headphones around the neck. Facing forward, eyes level, looking straight at the viewer, calm with a faint smile, a little stubborn. Background is a deep violet night sky, soft moonlight from the upper right lighting the right side of her hair and face, the left side darker. Clean lineart, soft cel shading, high resolution.
+
 ### 负面提示
 
 两版共用：
 > looking up, head tilted back, looking at the sky, blonde hair, golden hair, yellow hair, half-dyed hair, silver hair, white hair, pastel pink, light blue, cherry blossoms, green hair, kimono, overly sexualized, chibi, pants, white socks, photo on ID card, barcode, wings, flying, text, watermark
 
-第 1 版再加 `glasses`；第 2 版再加 `gold glasses frame, round glasses, thick frame`。
+第 1、3 版再加 `glasses`，第 3 版另加 `full body, text, frame, border`；第 2 版再加 `gold glasses frame, round glasses, thick frame`。
 
 ---
 
@@ -297,4 +302,4 @@ GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 S
 
 - 暂无。
 
-已定（2026-11-05）：要呆毛；身高 158 cm；穿短裙；近视两百度左右，写代码、工作时戴眼镜，平时不戴；首页影子用“抱本子站着”；设定里不写“想飞”；姓“久遠”（不迎合站）；“真”是王林式的求真（本心、不自欺、对得起自己）。
+已定（2026-11-05）：要呆毛；身高 158 cm；穿短裙；近视两百度左右，写代码、工作时戴眼镜，平时不戴；正式形象用“抱本子站着”；首页“影子”是藏在站长头像后面的她的圆形头像；设定里不写“想飞”；姓“久遠”（不迎合站）；“真”是王林式的求真（本心、不自欺、对得起自己）。
