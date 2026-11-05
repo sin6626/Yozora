@@ -43,6 +43,7 @@ export const AI_AGENT_ACTION_COLLECTION_NAME = 'ai_agent_actions'
 export const AI_AGENT_RUNTIME_CONFIG_COLLECTION_NAME =
   'ai_agent_runtime_configs'
 export const TRANSLATION_ENTRY_COLLECTION_NAME = 'translation_entries'
+export const I18N_SOURCE_COLLECTION_NAME = 'i18n_sources'
 
 export const USER_COLLECTION_NAME = 'users'
 export enum CollectionRefTypes {

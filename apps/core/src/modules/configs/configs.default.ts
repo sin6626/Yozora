@@ -120,6 +120,8 @@ export const generateDefaultConfig: () => IConfig = () => ({
     enableSummary: false,
     enableAutoGenerateSummary: false,
     summaryTargetLanguages: [],
+    enableI18n: false,
+    i18nLanguages: [],
   },
   oauth: {
     providers: [],

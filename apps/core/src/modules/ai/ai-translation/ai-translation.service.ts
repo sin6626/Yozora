@@ -28,7 +28,10 @@ import {
 import { AiService } from '../ai.service'
 import { AiInFlightService } from '../ai-inflight/ai-inflight.service'
 import type { AiStreamEvent } from '../ai-inflight/ai-inflight.types'
-import { resolveTargetLanguages } from '../ai-language.util'
+import {
+  articleTranslationLanguages,
+  resolveTargetLanguages,
+} from '../ai-language.util'
 import { AiTaskService } from '../ai-task/ai-task.service'
 import {
   AITaskType,
@@ -137,7 +140,7 @@ export class AiTranslationService
     const aiConfig = await this.configService.get('ai')
     const languages = resolveTargetLanguages(
       payload.targetLanguages,
-      aiConfig.translationTargetLanguages,
+      articleTranslationLanguages(aiConfig),
     )
 
     if (!languages.length) {
@@ -285,7 +288,7 @@ export class AiTranslationService
     const aiConfig = await this.configService.get('ai')
     const languages = resolveTargetLanguages(
       payload.targetLanguages,
-      aiConfig.translationTargetLanguages,
+      articleTranslationLanguages(aiConfig),
     )
 
     if (!languages.length) {
@@ -838,7 +841,7 @@ export class AiTranslationService
     const aiConfig = await this.configService.get('ai')
     const languages = resolveTargetLanguages(
       targetLanguages,
-      aiConfig.translationTargetLanguages,
+      articleTranslationLanguages(aiConfig),
     )
 
     if (!languages.length) {

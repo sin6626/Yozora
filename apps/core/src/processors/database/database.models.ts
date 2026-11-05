@@ -1,6 +1,7 @@
 import { ActivityModel } from '~/modules/activity/activity.model'
 import { AISummaryModel } from '~/modules/ai/ai-summary/ai-summary.model'
 import { AITranslationModel } from '~/modules/ai/ai-translation/ai-translation.model'
+import { I18nSourceModel } from '~/modules/ai/ai-i18n/i18n-source.model'
 import { TranslationEntryModel } from '~/modules/ai/ai-translation/translation-entry.model'
 import { AnalyzeModel } from '~/modules/analyze/analyze.model'
 import { CategoryModel } from '~/modules/category/category.model'
@@ -56,6 +57,7 @@ export const databaseModels = [
   SubscribeModel,
   TopicModel,
   TranslationEntryModel,
+  I18nSourceModel,
   OwnerProfileModel,
   WebhookEventModel,
   WebhookModel,

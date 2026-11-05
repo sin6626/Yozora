@@ -9,6 +9,16 @@ export type TranslationEntryKeyPath =
   | 'topic.introduce'
   | 'note.mood'
   | 'note.weather'
+  | I18nKeyPath
+
+/** AI i18n entries: UI text by entry name, site text by source hash, projects by id. */
+export const I18N_KEY_PATHS = [
+  'ui.text',
+  'site.text',
+  'project.name',
+  'project.description',
+] as const
+export type I18nKeyPath = (typeof I18N_KEY_PATHS)[number]
 
 export type TranslationEntryKeyType = 'entity' | 'dict'
 
@@ -41,4 +51,12 @@ export class TranslationEntryModel extends BaseModel {
 
   @prop({ type: Date })
   sourceUpdatedAt?: Date
+
+  /** Written by the owner (or imported from hand-written translations); AI never retranslates it unless the source changes */
+  @prop()
+  manual?: boolean
+
+  /** A manual translation the AI redid after its source changed, waiting for the owner to look at it */
+  @prop()
+  needsReview?: boolean
 }

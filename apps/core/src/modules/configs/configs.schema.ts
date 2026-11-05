@@ -404,6 +404,18 @@ export const AISchema = section('AI 设定', {
         '自动生成翻译的目标语言列表，使用 [ISO 639-1 语言代码](https://www.w3schools.com/tags/ref_language_codes.asp)，如 ["en", "ja", "ko"]',
     },
   ),
+  enableI18n: field.toggle(z.boolean().optional(), '启用 AI i18n', {
+    description:
+      '开启后，界面文字和站点文案由 AI 翻成下面的 i18n 语言，前台语言菜单跟着这份列表走；关掉时前台只有中文',
+  }),
+  i18nLanguages: field.array(
+    z.array(z.string()).optional(),
+    'i18n 语言',
+    {
+      description:
+        '前台提供的语言（中文以外），使用 ISO 639-1 语言代码，如 ["en", "ja", "ko"]。暂不支持从右往左写的语言（ar、he、fa、ur）',
+    },
+  ),
 })
 export class AIDto extends createZodDto(AISchema) {}
 export type AIConfig = z.infer<typeof AISchema>

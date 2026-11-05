@@ -13,8 +13,10 @@ import { getRedisKey } from '~/utils/redis.util'
 
 import { ConfigsService } from '../../configs/configs.service'
 import { AI_PROMPTS } from '../ai.prompts'
+import { articleTranslationLanguages } from '../ai-language.util'
 import { AiService } from '../ai.service'
 import {
+  I18N_KEY_PATHS,
   type TranslationEntryKeyPath,
   type TranslationEntryKeyType,
   TranslationEntryModel,
@@ -275,7 +277,7 @@ export class TranslationEntryService {
     const aiConfig = await this.configService.get('ai')
     const rawLangs = options.targetLangs?.length
       ? options.targetLangs
-      : aiConfig.translationTargetLanguages || []
+      : articleTranslationLanguages(aiConfig)
 
     const targetLangs = rawLangs
       .map((l) => normalizeLanguageCode(l))
@@ -397,7 +399,7 @@ export class TranslationEntryService {
     if (!values.length) return { created: 0, skipped: 0 }
 
     const aiConfig = await this.configService.get('ai')
-    const rawLangs = aiConfig.translationTargetLanguages || []
+    const rawLangs = articleTranslationLanguages(aiConfig)
     const targetLangs = rawLangs
       .map((l) => normalizeLanguageCode(l))
       .filter(Boolean) as string[]
@@ -562,8 +564,8 @@ export class TranslationEntryService {
     page?: number
     size?: number
   }) {
-    const filter: any = {}
-    if (query.keyPath) filter.keyPath = query.keyPath
+    // The i18n page owns the UI and site text entries; hundreds of them would bury the glossary
+    const filter: any = { keyPath: query.keyPath ?? { $nin: I18N_KEY_PATHS } }
     if (query.lang) filter.lang = query.lang
 
     const page = query.page || 1

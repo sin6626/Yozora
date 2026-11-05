@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common'
 
 import { AiController } from './ai.controller'
 import { AiService } from './ai.service'
+import { AiI18nController } from './ai-i18n/ai-i18n.controller'
+import { AiI18nService } from './ai-i18n/ai-i18n.service'
 import { AiInFlightService } from './ai-inflight/ai-inflight.service'
 import { AiSummaryController } from './ai-summary/ai-summary.controller'
 import { AiSummaryService } from './ai-summary/ai-summary.service'
@@ -42,6 +44,7 @@ import { AiWriterService } from './ai-writer/ai-writer.service'
     AiTranslationService,
     AiTranslationEventHandlerService,
     TranslationEntryService,
+    AiI18nService,
   ],
   controllers: [
     AiController,
@@ -49,6 +52,7 @@ import { AiWriterService } from './ai-writer/ai-writer.service'
     AiWriterController,
     AiTranslationController,
     TranslationEntryController,
+    AiI18nController,
   ],
   exports: [
     AiService,

@@ -19,6 +19,7 @@ export enum ErrorCodeEnum {
   InvalidSearchType = 10106,
   InvalidRoomName = 10107,
   InvalidSubscribeType = 10108,
+  I18nTranslationInvalid = 10109,
 
   // biz - resource not found (404)
   ResourceNotFound = 11000,
@@ -48,6 +49,7 @@ export enum ErrorCodeEnum {
   UserAlreadyExists = 12004,
   FileExists = 12005,
   SnippetChanged = 12006,
+  I18nGenerating = 12007,
 
   // biz - disabled/not enabled (400/403)
   LinkDisabled = 13000,
@@ -167,6 +169,7 @@ export const ErrorCode = Object.freeze<Record<ErrorCodeEnum, [string, number]>>(
     [ErrorCodeEnum.InvalidName]: ['name 必须是字符串', 422],
     [ErrorCodeEnum.InvalidReference]: ['reference 必须是字符串', 422],
     [ErrorCodeEnum.InvalidOrderValue]: ['order 值必须唯一', 422],
+    [ErrorCodeEnum.I18nTranslationInvalid]: ['译文没通过检查', 422],
     [ErrorCodeEnum.InvalidSearchType]: ['无效的搜索类型', 400],
     [ErrorCodeEnum.InvalidRoomName]: ['无效的房间名', 400],
     [ErrorCodeEnum.InvalidSubscribeType]: ['订阅类型无效', 400],
@@ -199,6 +202,7 @@ export const ErrorCode = Object.freeze<Record<ErrorCodeEnum, [string, number]>>(
     [ErrorCodeEnum.UserAlreadyExists]: ['我已经有一个主人了哦', 400],
     [ErrorCodeEnum.FileExists]: ['文件已存在', 400],
     [ErrorCodeEnum.SnippetChanged]: ['配置片段已在别处被修改，请重新读取后再保存', 409],
+    [ErrorCodeEnum.I18nGenerating]: ['i18n 翻译正在生成，请等这一次结束', 409],
 
     // disabled/not enabled (400/403)
     [ErrorCodeEnum.LinkDisabled]: ['您的友链已被禁用，请联系管理员', 400],
