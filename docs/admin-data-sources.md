@@ -2,7 +2,7 @@
 
 原则：Core 是唯一的数据来源，后台（mx-admin）是编辑入口，Yozora 只读取和展示。样式、布局、动画和通用界面文案留在前台代码里。
 
-“立即”指 Core 先清掉自己的公开接口缓存，再发 Webhook，前台对应的缓存标签马上失效（2026-11-04 复查后修：原来 Core 自己的接口缓存 15 秒到 10 分钟，前台会重新读回旧值）。事件和标签的对照在 `apps/web/lib/webhook-events.ts`，后台 Webhook 要勾上这些事件。没勾的事件只能等缓存自然过期，过期时间写在 `apps/web/lib/blog-data.ts` 各函数里。
+“立即”指 Core 先清掉自己的公开接口缓存，再发 Webhook，前台对应的缓存标签马上失效（2026-11-04 复查后修：原来 Core 自己的接口缓存 15 秒到 10 分钟，前台会重新读回旧值）。清缓存时 Core 先把“缓存代际”加一，清缓存之前就开始的读请求返回后发现代际变了，会把自己刚存的旧结果删掉，不会在 Webhook 之后把旧值填回去（2026-11-05）。事件和标签的对照在 `apps/web/lib/webhook-events.ts`，后台 Webhook 要勾上这些事件。没勾的事件只能等缓存自然过期，过期时间写在 `apps/web/lib/blog-data.ts` 各函数里。
 
 ## 已统一
 
@@ -18,18 +18,24 @@
 | 作品 | projects | 作品 | /projects | 立即（PROJECT_*，2026-11-04 起 Core 才登记） |
 | 友链 | links | 友链 | /friends | 立即（LINK_*）；审核通过申请不发事件，最多 5 分钟 |
 | 评论（全部主评论和楼中楼） | comments | 评论 | 文末评论区、边读边聊 | 立即（COMMENT_*）；审核通过、置顶最多 1 分钟 |
-| AI 摘要、AI 翻译、翻译条目 | ai_summaries、ai_translations、translation_entries | AI | 详情摘要、列表摘要、外文页面 | 立即（AI_SUMMARY_*、TRANSLATION_*）；直接改翻译条目不发事件 |
+| AI 摘要、AI 翻译、翻译条目 | ai_summaries、ai_translations、translation_entries | AI | 详情摘要、列表摘要、外文页面 | 立即（AI_SUMMARY_*、TRANSLATION_CREATE/UPDATE/DELETE；在后台手动改、删译文也发，2026-11-05 起）；直接改翻译条目不发事件。译文推给访客前会核对原文是否公开（草稿、加密、定时手记的译文不推） |
 | 站名 | options.seo.title | 设置 → SEO → 网站标题 | 页头、浏览器标题、RSS、分享卡片 | 立即（OPTION_UPDATE） |
-| 站点描述 | options.seo.description（外文在片段 `i18n.<lang>.siteDescription`） | 设置 → SEO → 网站描述 | 首屏底部、首页标题、meta | 立即 |
+| 站点描述 | options.seo.description（外文在片段 `i18n.<lang>.siteDescription`） | 设置 → SEO → 网站描述；外文在 附加功能 → Yozora 主题 的 English / 日本語 | 首屏底部、首页标题、meta | 立即 |
 | 网站地址、评论开关、订阅开关、登录方式、友链申请开关 | options | 设置 | sitemap/RSS、评论区、订阅、登录、友链申请 | 立即（OPTION_UPDATE） |
 | 站长名字、头像、社交账号与名片 | owner（readers + owner_profiles） | 设置 → 用户 | 首屏、页脚落款、页头头像、导航面板 | 立即（OWNER_UPDATE） |
 | 首屏标题与说明 | 片段 theme/yozora 的 `hero` | 附加功能 → Yozora 主题（三种语言） | 首屏 | 立即（SNIPPET_*） |
 | 页脚那句话、萌备号 | 片段 `footer.motto`、`footer.icp` | 同上 | 页脚 | 立即 |
 | 页脚星带读谁的账号 | 片段 `accounts.github`、`accounts.leetcode` | 同上 | 页脚星带；`scripts/sync-leetcode.mjs` 也读它，同步的日历记着账号，账号不一致就不用 | 立即 |
 | 首页技术栈 | 片段 `techStack`（标题、说明在 Yozora 主题页改；图标行在“配置与云函数”里改 `techStack.rows`） | 同上 | 首页；`rows` 清空就整块不显示 | 立即 |
-| 作品名与介绍的外文版 | 片段 `i18n.<lang>.projects` | 同上 | 外文作品页 | 立即 |
+| 作品名与介绍的外文版 | 片段 `i18n.<lang>.projects.<作品 id>` | 附加功能 → Yozora 主题 的 English / 日本語（每个作品一栏） | 外文作品页 | 立即 |
 
-theme/yozora 片段的格式写在 `apps/web/lib/theme-config.ts` 开头。外文版本放在 `i18n.en`、`i18n.ja` 下面。日常在后台“附加功能 → Yozora 主题”表单里改，它只写改过的字段，片段里其他内容不动。
+theme/yozora 片段的格式写在 `apps/web/lib/theme-config.ts` 开头。外文版本放在 `i18n.en`、`i18n.ja` 下面。日常在后台“附加功能 → Yozora 主题”表单里改；只有技术栈的图标行（`techStack.rows`）仍要在“配置与云函数”里改 JSON。
+
+表单的保存方式（2026-11-05）：
+- 每项三种状态：默认（没写）、自定义、不显示，标在输入框下面，可以直接从“默认”设成“不显示”，也能“恢复默认”。外文里分别是“显示中文 / 译文 / 这种语言不显示”。站点描述和作品译文只有“有译文 / 显示中文”两态（前台留空也显示中文）。
+- 保存时只算改了哪几项，先读一次最新片段再套上去，所以打开页面后在“配置与云函数”里做的修改不会被覆盖。同一项两边都改了就报冲突、不保存。
+- 保存请求带 `baseRaw`（所依据的片段内容），Core 只在库里的内容仍是它时才写，否则返回 409，表单重读后再试。
+- 往整组清空（写成 null）的组里填一项时，组里其他项明确写成 null，不会冒出前台的默认内容。
 
 读取规则如下：
 - 片段读不到时，用代码里的占位。
