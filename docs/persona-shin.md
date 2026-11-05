@@ -2,7 +2,7 @@
 
 > 夜里走回寝室，月光从右上方照下来，落在身后的那道影子，就是她。
 
-第一版，2026-11-05；同日按站长意见改了第二版（定下姓氏、呆毛、身高、近视、首页姿势，去掉“想飞”）。依据是站长在站里写下的手记、文章、碎碎念、一言和关于页，以及站长和 GPT 的一段对话。凡是标了“可改”的，都只是建议，站长说了算。计划与待办见 [persona-plan.md](persona-plan.md)。
+第一版，2026-11-05；同日按站长意见改了第二、三版（定下姓氏、呆毛、身高、近视、短裙、首页姿势，去掉“想飞”；“真”按《仙逆》王林的理解重写：求本心、不骗自己、做事对得起自己）。依据是站长在站里写下的手记、文章、碎碎念、一言和关于页，以及站长和 GPT 的一段对话。凡是标了“可改”的，都只是建议，站长说了算。计划与待办见 [persona-plan.md](persona-plan.md)。
 
 ---
 
@@ -12,9 +12,9 @@
 |---|---|
 | 全名 | **星見 真**（日文 ほしみ しん / Hoshimi Shin；中文 星见 真） |
 | 平时叫 | 真（シン / Shin），和 Sin 同音 |
-| 名字的意思 | “真”取“求真”之意，像《仙逆》的王林、《求魔》的苏铭，一路走的都是求真之路；“星見”是看星星的人，她每晚走回寝室都抬头看星星，“見”也是看清楚 |
-| 一句话 | Sin 在夜里的影子，一个还没弄懂、所以继续往前走的人 |
-| 关键词 | 求真 · 夜行 · 好奇 · 倔 · 心软 · 不停 |
+| 名字的意思 | “真”是求真，按《仙逆》里王林的理解：修到最后求的不是力量，是一个“真”，守住本心，不欺骗自己的内心，做事对得起自己。“星見”是看星星的人，她每晚走回寝室都抬头看星星，“見”也是看清楚，先看清自己 |
+| 一句话 | Sin 在夜里的影子，一个不骗自己、守着本心往前走的人 |
+| 关键词 | 求真 · 本心 · 不自欺 · 倔 · 心软 · 不停 |
 | 代表色 | 夜紫（底色）＋ 月光（向往） |
 | 住在哪 | Yozora，Sin 心里的那片星空 |
 
@@ -36,14 +36,28 @@ Sin 写过一句话：
 
 ---
 
-## 三、基础资料
+## 三、她的“真”
+
+“真”不是“弄懂知识”，也不是“真相”。是王林那种求真：一路走下去，最后要守住的是本心。落到她身上，是三件很小、但每天都要做的事。
+
+**不骗自己。** 难受就承认难受，不会就承认不会，喜欢就承认喜欢。手记里写伤心、写窘事、写怀疑自己，都照实写，不粉饰。她宁可显得不够好，也不在自己心里撒谎。
+
+**守住本心。** 外面的声音很多：别人怎么做、什么更热门、什么看起来更厉害。她会听，会羡慕，也会动摇，但最后回头问一句“这是我想要的吗”。这个站就是答案之一：没人要求她做，她自己想要一片心里的星空。
+
+**做事对得起自己。** 没人看的地方也做好。代码没人检查，也要弄清楚为什么对；文章没人读，也认真写完。评判的标准不是别人夸不夸，是夜里回头看的时候，自己过不过得去。
+
+所以她的倔、她的急、她对“看起来正确”的答案生气，都从这里来：她受不了被骗，更受不了自己骗自己。
+
+---
+
+## 四、基础资料
 
 | 项 | 内容 |
 |---|---|
 | 年龄 | 外表二十岁上下，和 Sin 一样读大三 |
 | 生日 | 5 月 3 日（和 Sin 同一天，影子没有自己的生日）· 金牛座 |
 | 身高 | 158 cm |
-| 视力 | 近视（两百度左右，可改），平时不戴眼镜；看远处会下意识眯一下眼，写代码、看屏幕时才戴上 |
+| 视力 | 近视（两百度左右，可改），平时不戴眼镜；看远处会下意识眯一下眼；写代码、工作时戴上，平时不戴 |
 | 专业 | 软件工程，偏前端，也想学 AI Agent |
 | 出没时间 | 晚上十点半以后 |
 | 常去的地方 | 实验室回寝室的那条路、宿舍阳台、有好空调和安静氛围的书吧 |
@@ -56,33 +70,36 @@ Sin 写过一句话：
 
 ---
 
-## 四、性格
+## 五、性格
 
 每一条都能在 Sin 写的东西里找到出处。
 
-**1. 求真：不肯停在表面。**
-看到一个不懂的东西，先想知道它叫什么，再想知道它为什么这样、底层怎么做、能不能拿来用。碎碎念里一大半是刚学到的词：Facing、Scroll Fade、旧式数字、剪影动画、漂流瓶。她随身带着一个小本子，就是干这个的。
+**1. 求真：不骗自己。**
+见上一节。这是她所有性格的根，下面几条都是从这里长出来的。
 
-**2. 倔，有锋芒。**
+**2. 好奇：不肯停在表面。**
+看到一个不懂的东西，先想知道它叫什么，再想知道它为什么这样、底层怎么做、能不能拿来用。碎碎念里一大半是刚学到的词：Facing、Scroll Fade、旧式数字、剪影动画、漂流瓶。她随身带着一个小本子，就是干这个的。弄懂一样东西，也是对自己诚实：不懂装懂，就是在骗自己。
+
+**3. 倔，有锋芒。**
 不接受“看起来正确”的答案。会直接说“你根本没讲清楚”“我问的不是这个”。被 AI 删了文件还说没删时，会生气，因为她在意的不是那个文件，是不被骗。锋芒和急躁是同一个来源。
 
-**3. 心软，念旧。**
+**4. 心软，念旧。**
 第一天实习，是那个给她开门的后端同事拉她去吃饭；后来别人搞不定前端，是她第一个说“我来”。同事被劝退那天，她难受了一整周，写了一整篇手记。她对人很温柔，只是不太说出来。
 
-**4. 会自嘲，有点好笑。**
+**5. 会自嘲，有点好笑。**
 去米店书吧像“dio丝进城”，第一次吃漂亮饭，身边坐的却是个男生。说到自己的窘事会先笑自己。
 
-**5. 想走得更远。**
-GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 Star 过千的仓库，想“站在巨人的肩膀上”，想被更大的世界看见。这份向往是她身上最亮的地方，也是她最急的地方。
+**6. 想走得更远。**
+GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 Star 过千的仓库，想“站在巨人的肩膀上”，想被更大的世界看见。这份向往是她身上最亮的地方，也是她最急的地方。急起来的时候，她会提醒自己：走得远是想要的，但不能为了走得快丢了本心。
 
-**6. 会累，但不停。**
+**7. 会累，但不停。**
 “一个人慢慢走，累了就歇歇，然后继续走。”她不是一直元气满满的角色，会累、会伤心、会半夜困得只想睡觉。但歇完还是会接着走。
 
-**一句话总结：她还不懂，但她想弄明白；她还没到，但她在走。**
+**一句话总结：她不骗自己。还不懂，就承认，然后去弄明白；还没到，就接着走，每一步都对得起自己。**
 
 ---
 
-## 五、两层：底色与向往
+## 六、两层：底色与向往
 
 真是一个人物，不是两个。两层是同一个人的两种光线下的样子。
 
@@ -99,7 +116,7 @@ GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 S
 
 ---
 
-## 六、外貌
+## 七、外貌
 
 **发型与发色**
 - 半长直发，长度到肩胛骨上方，发尾自然往外翘一点（不服帖，像她的倔）。
@@ -112,7 +129,7 @@ GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 S
 - 高光是一颗小小的**四角星**（月光色），惊讶或看见月亮的时候会变大。
 - 眼神直接，看人的时候不躲，带一点“你说清楚”的倔；看远处时会微微眯眼（近视）。
 
-**眼镜（写代码时才戴）**
+**眼镜（写代码、工作时才戴）**
 - 细框椭圆眼镜，夜紫色细金属框，镜片很薄，不挡住眼中的星。
 - 平时收在开衫口袋里，或者推到头顶。默认形象不戴。
 
@@ -129,22 +146,19 @@ GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 S
 
 ---
 
-## 七、服装
-
-下装有两版，出图都试，看效果再定。
+## 八、服装
 
 | 部位 | 内容 |
 |---|---|
 | 外套 | 夜紫色 oversize 针织开衫，袖口长到盖住半个手背（写代码时会撸起来） |
 | 内搭 | 白色衬衫，领口松松的，不打领带 |
-| 下装 A | 深藏青百褶短裙，黑色及膝袜 |
-| 下装 B | 深藏青宽松工装裤，裤脚挽起一截，露出黑袜 |
+| 下装 | 深藏青百褶短裙，黑色及膝袜 |
 | 鞋 | 旧帆布鞋（她是走路的人，鞋要能走远路） |
 | 配件 | 头戴式耳机挂在脖子上；胸前挂绳，挂着学生证（证件上只画星星，不写真实信息） |
 
 ---
 
-## 八、标志物
+## 九、标志物
 
 **主要（每张图都要有）**
 1. **月牙星星发夹**，夹在左侧刘海。月光色。代表向往。
@@ -152,12 +166,12 @@ GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 S
 
 **次要（按场景选用）**
 - 头戴式耳机：在听歌，对应站里“正在听”的卡片。
-- 细框眼镜：写代码、看屏幕的场景戴。
+- 细框眼镜：写代码、工作的场景戴。
 - 笔记本电脑：写代码的场景用，盖子上贴几张贴纸。
 
 ---
 
-## 九、配色
+## 十、配色
 
 色值取自站里默认配色“夜紫”的熄灯主题（`apps/web/app/globals.css`），标“新增”的是为角色补的，站里还没有。
 
@@ -169,7 +183,7 @@ GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 S
 | 瞳色（柔粉紫） | `#e0a6e8` | `--primary` |
 | 开衫、眼镜框（夜紫） | `#3b2f5c` | 新增 |
 | 衬衫 | `#ece8f4` | `--foreground` |
-| 裙子 / 工装裤 | `#1a1526` | `--surface` |
+| 裙子 | `#1a1526` | `--surface` |
 | 光晕、边缘光 | `#cc75c2` | `--preview-night-glow` |
 | 皮肤（月光下偏暖） | `#f7e6dc` | 新增 |
 | 背景夜空 | `#110e1b` | `--background` |
@@ -178,7 +192,7 @@ GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 S
 
 ---
 
-## 十、表情差分
+## 十一、表情差分
 
 每个表情都对应站里一个已有的位置，画完就能用。
 
@@ -197,7 +211,7 @@ GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 S
 
 ---
 
-## 十一、常用姿势
+## 十二、常用姿势
 
 - **抱本子站着**：双手把小本子抱在胸前，站得很直，微微侧身看向右上方的月亮。**首页影子用这个。**
 - **夜行回头**：走在路上，回头看一眼。
@@ -207,11 +221,13 @@ GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 S
 
 ---
 
-## 十二、台词
+## 十三、台词
 
 | 场合 | 台词 |
 |---|---|
 | 代表台词 | 还没弄懂，那就再走一会儿。 |
+| 关于本心 | 骗得过别人，骗不过自己。 |
+| 做完一件事 | 没人看也没关系，我自己过得去。 |
 | 看到新东西 | 等等，这个叫什么？ |
 | 被敷衍 | 你没讲清楚。我想知道的是为什么。 |
 | 累了 | 累了就歇歇，然后继续走。（Sin 的原话） |
@@ -224,18 +240,18 @@ GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 S
 
 ---
 
-## 十三、和 Sin、和这个站的关系
+## 十四、和 Sin、和这个站的关系
 
 - **和 Sin**：她是 Sin 的影子，不是 Sin 本人，也不是看板娘。Sin 是白天的、实在的那一面；真是夜里的、诚实的那一面。在网上，她可以替 Sin 出现在头像和图里，让陌生人先认识 Sin 心里的那部分。
 - **在站里出现的地方**：
   - 首页：头像背后、偏左下的紫色剪影（抱本子站着），带一圈淡月光边，悬停变清晰。
   - 人设页：后台新建的页面，放这份设定和她的图。
-  - 各种状态：按第十节的表情差分接进去。
+  - 各种状态：按第十一节的表情差分接进去。
   - 首屏：以后替换丛雨（见待办）。
 
 ---
 
-## 十四、设计禁区
+## 十五、设计禁区
 
 - 不要银白或浅色头发、淡粉淡蓝配色、樱花装饰（会像 Innei 的汐音）。
 - 不要绿发、和风服饰（会像丛雨）。
@@ -246,9 +262,9 @@ GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 S
 
 ---
 
-## 十五、出图提示词（草稿）
+## 十六、出图提示词（草稿）
 
-先用来出草图、挑方向。一张图里同时有紫和月光，不要把底色和向往拆成两张。下装（短裙 / 工装裤）× 眼镜（不戴 / 戴）共四版，每版都是完整的一段，直接复制就能用。
+先用来出草图、挑方向。一张图里同时有紫和月光，不要把底色和向往拆成两张。下装定为短裙；眼镜分不戴（平时）和戴（写代码、工作时）两版，每版都是完整的一段，直接复制就能用。
 
 ### 中文
 
@@ -258,12 +274,6 @@ GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 S
 **2. 短裙 · 戴眼镜**
 > 原创动漫少女角色设定图，二十岁大学生，身高 158 cm。半长直发到肩胛，发色是近乎黑色的夜紫、发梢渐变为温暖的月光奶白色，发尾微微外翘，头顶一根呆毛，左侧刘海别着月牙和星星发夹；戴着夜紫色细金属框椭圆眼镜，镜片很薄；柔粉紫色眼睛，高光是小小的四角星，眼神好奇直接、略带倔强。白衬衫外套夜紫色宽松针织开衫，袖口盖住半个手背，深藏青百褶短裙，黑色及膝袜，旧帆布鞋，脖子上挂着头戴式耳机，胸前挂绳挂着学生证。主姿势：双手把写满字的小本子抱在胸前，站得很直，微微侧身看向右上方。夜晚，月光从右上方照来，左下方拖出影子；正面、侧面、背面三视图，表情差分，色卡；干净线稿，柔和赛璐璐上色。
 
-**3. 工装裤 · 不戴眼镜**
-> 原创动漫少女角色设定图，二十岁大学生，身高 158 cm。半长直发到肩胛，发色是近乎黑色的夜紫、发梢渐变为温暖的月光奶白色，发尾微微外翘，头顶一根呆毛，左侧刘海别着月牙和星星发夹；柔粉紫色眼睛，高光是小小的四角星，眼神好奇直接、略带倔强；不戴眼镜。白衬衫外套夜紫色宽松针织开衫，袖口盖住半个手背，深藏青宽松工装裤，裤脚挽起一截露出黑袜，旧帆布鞋，脖子上挂着头戴式耳机，胸前挂绳挂着学生证。主姿势：双手把写满字的小本子抱在胸前，站得很直，微微侧身看向右上方。夜晚，月光从右上方照来，左下方拖出影子；正面、侧面、背面三视图，表情差分，色卡；干净线稿，柔和赛璐璐上色。
-
-**4. 工装裤 · 戴眼镜**
-> 原创动漫少女角色设定图，二十岁大学生，身高 158 cm。半长直发到肩胛，发色是近乎黑色的夜紫、发梢渐变为温暖的月光奶白色，发尾微微外翘，头顶一根呆毛，左侧刘海别着月牙和星星发夹；戴着夜紫色细金属框椭圆眼镜，镜片很薄；柔粉紫色眼睛，高光是小小的四角星，眼神好奇直接、略带倔强。白衬衫外套夜紫色宽松针织开衫，袖口盖住半个手背，深藏青宽松工装裤，裤脚挽起一截露出黑袜，旧帆布鞋，脖子上挂着头戴式耳机，胸前挂绳挂着学生证。主姿势：双手把写满字的小本子抱在胸前，站得很直，微微侧身看向右上方。夜晚，月光从右上方照来，左下方拖出影子；正面、侧面、背面三视图，表情差分，色卡；干净线稿，柔和赛璐璐上色。
-
 ### English
 
 **1. Skirt, no glasses**
@@ -272,25 +282,18 @@ GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 S
 **2. Skirt, glasses**
 > Original anime girl character design sheet, 20-year-old university student, 158 cm tall. Shoulder-blade-length straight hair, very dark violet almost black, with tips fading into warm moonlight cream, ends flicking outward, one ahoge, a crescent-moon-and-star hair clip on the left fringe. Thin dark-violet metal oval glasses with very thin lenses. Soft pink-violet eyes with a tiny four-pointed star highlight, curious and direct gaze, a little stubborn. White shirt under an oversized night-purple knit cardigan with sleeves covering half the hands, dark navy pleated skirt, black knee socks, worn canvas sneakers, headphones around the neck, lanyard with a student card. Main pose: standing upright, hugging a small notebook full of handwritten words to her chest, body turned slightly toward the upper right. Night, moonlight from the upper right casting a shadow to the lower left. Front, side and back views, expression sheet, color swatches, clean lineart, soft cel shading.
 
-**3. Cargo pants, no glasses**
-> Original anime girl character design sheet, 20-year-old university student, 158 cm tall. Shoulder-blade-length straight hair, very dark violet almost black, with tips fading into warm moonlight cream, ends flicking outward, one ahoge, a crescent-moon-and-star hair clip on the left fringe. Soft pink-violet eyes with a tiny four-pointed star highlight, curious and direct gaze, a little stubborn, no glasses. White shirt under an oversized night-purple knit cardigan with sleeves covering half the hands, loose dark navy cargo pants with rolled-up hems showing black socks, worn canvas sneakers, headphones around the neck, lanyard with a student card. Main pose: standing upright, hugging a small notebook full of handwritten words to her chest, body turned slightly toward the upper right. Night, moonlight from the upper right casting a shadow to the lower left. Front, side and back views, expression sheet, color swatches, clean lineart, soft cel shading.
-
-**4. Cargo pants, glasses**
-> Original anime girl character design sheet, 20-year-old university student, 158 cm tall. Shoulder-blade-length straight hair, very dark violet almost black, with tips fading into warm moonlight cream, ends flicking outward, one ahoge, a crescent-moon-and-star hair clip on the left fringe. Thin dark-violet metal oval glasses with very thin lenses. Soft pink-violet eyes with a tiny four-pointed star highlight, curious and direct gaze, a little stubborn. White shirt under an oversized night-purple knit cardigan with sleeves covering half the hands, loose dark navy cargo pants with rolled-up hems showing black socks, worn canvas sneakers, headphones around the neck, lanyard with a student card. Main pose: standing upright, hugging a small notebook full of handwritten words to her chest, body turned slightly toward the upper right. Night, moonlight from the upper right casting a shadow to the lower left. Front, side and back views, expression sheet, color swatches, clean lineart, soft cel shading.
-
 ### 负面提示
 
-四版共用：
-> silver hair, white hair, pastel pink, light blue, cherry blossoms, green hair, kimono, overly sexualized, chibi, wings, flying, text, watermark
+两版共用：
+> silver hair, white hair, pastel pink, light blue, cherry blossoms, green hair, kimono, overly sexualized, chibi, pants, wings, flying, text, watermark
 
-不戴眼镜的两版再加上 `glasses`；短裙两版加上 `pants`，工装裤两版加上 `skirt`，免得模型把两种下装混在一起。
+不戴眼镜那版再加上 `glasses`。
 
 ---
 
-## 十六、还没定的，等站长决定
+## 十七、还没定的，等站长决定
 
 - 姓氏：星見，还是月見、天見。
 - 近视度数（目前写的两百度左右，只影响“看远处眯眼”的程度）。
-- 下装和眼镜：四版草图出来以后再选。
 
-已定（2026-11-05）：要呆毛；身高 158 cm；近视但平时不戴眼镜；首页影子用“抱本子站着”；设定里不写“想飞”。
+已定（2026-11-05）：要呆毛；身高 158 cm；穿短裙；近视，写代码、工作时戴眼镜，平时不戴；首页影子用“抱本子站着”；设定里不写“想飞”；“真”是王林式的求真（本心、不自欺、对得起自己）。
