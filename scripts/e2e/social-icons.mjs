@@ -19,7 +19,7 @@ const cardButton = (label) => `#debug-social-cards button[aria-label^="${label}�
 const tips = () => b.evaluate(`[...document.querySelectorAll('.social-tooltip')].filter((e) => !e.hasAttribute('data-ending-style')).map((e) => e.textContent)`)
 
 try {
-  await b.setViewport(1440, 900)
+  await b.setViewport(1920, 991)
   await b.goto(`${base}/debug`)
   const idle = await b.evaluate(`getComputedStyle(document.querySelector(${JSON.stringify(hero('哔哩哔哩'))})).color`)
   assert.notEqual(idle, 'rgb(0, 161, 214)', '平时是单色')
