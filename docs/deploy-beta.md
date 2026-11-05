@@ -212,6 +212,32 @@ D=/root/mx-space/core/data/mx-space; mv $D/admin $D/admin-yozora-cf9d6bf && mv $
 
 磁盘留给站长自己清：`/root/mx-space/core-image-20261104`（60M）、前台旧版本 `releases/7dd878b`、`releases/1b5a6d4`、上传用的 `yozora-web.tgz`、`yozora-admin.tgz`。
 
+## 2026-11-05 已做：第三、四轮修复 + AI i18n + 首页影子上线（ac758f0）
+
+站长同意后执行，Core、后台、前台三样都换，外加 i18n 数据迁移和 /shin 页面（改动见 AGENTS.md 2026-11-05 各条）。
+
+- 备份：服务器 `/root/backups/2026-11-05b/`（`mongo-before-deploy-ac758f0.archive.gz` 整库，`mongorestore --dryRun` 通过；`docker-compose-before-ac758f0.yml`），本机另存 `.local/backups/server-20261105b/`。切换脚本 `switch-core.sh`、`switch-web.sh` 和日志也在这个目录。
+- **Core**：`/root/mx-space/core-image-ac758f0/`，镜像 `yozora/mx-server:20261105-ac758f0`，停机约 18 秒，healthy，无新迁移。公网 API、旧 Shiro、beta 200。
+- **后台**：数据目录 `admin/` 换成 ac758f0 构建，上一版改名 `admin-yozora-cf9d6bf`；`/proxy/qaqdmin` 200，入口脚本与本机构建一致。
+- **Webhook**：44 → 46 个事件（补 `TRANSLATION_DELETE`、`I18N_UPDATE`），原列表 `.local/backups/prod-webhook-events-20261105b.json`。
+- **i18n 迁移**：`push-i18n-source.mjs --prod`（430 条）→ 后台 AI 设置 `i18nLanguages` 设为 en、ja（原值空，备份 `.local/backups/prod-option-ai-i18n-20261105.json`）→ `import-i18n-legacy.mjs --prod --drop-snippet-i18n`（写入 880 条，片段 `i18n` 已删，原片段备份 `.local/backups/snippet-yozora-before-i18n-drop-prod-2026-11-05.json`）→ 剩下的 `hero.shadowLabel` 两条由 Agent 手写（站长选的，不调用 AI）→ 打开 `enableI18n`。**注意：开关关着时 `GET /ai/i18n` 的语言列表是空的，前台就没有英文、日文页面，所以开关必须在构建前台之前打开。** 旧前台不认识 `I18N_UPDATE`，切换前那两次投递是 400；新前台上线后重发一次是 200。
+- **/shin 页面**：按本地（站长改过的）版本在线上新建，三张图从本机文件传到线上图床，孤儿列表里没有它们。线上 AI 设置开着“自动生成翻译”，Core 建页面后自动生成了英文、日文译文（`/en/shin` 标题是 Kuon Shin）。
+- **前台**：`releases/ac758f0`（包 69MB），启动参数与上一版一致，停机约 3 秒。服务器本机 16 个地址 200（含 `/shin`、`/en/shin`），robots 整站禁止、页面 noindex；公网无头浏览器打开首页、英文、日文、/shin、文章、手记、一言、时间线无脚本报错，三种语言首页影子分别链到 `/shin`、`/en/shin`、`/ja/shin`，读屏文字是各自语言。容器约 231MB / 400MB，服务器可用内存约 164MB。
+
+回滚：
+
+```bash
+# Core（约 20 秒）
+sed -i 's#image: yozora/mx-server:20261105-ac758f0#image: yozora/mx-server:20261105#' /root/mx-space/core/docker-compose.yml
+cd /root/mx-space/core && docker compose up -d --no-deps app
+# 前台：current 指回 cf9d6bf，再按“新前台”一节的命令重建容器（旧前台读片段 i18n，回滚前台要先把片段备份里的 i18n 放回去）
+ln -sfn /root/mx-space/yozora-web/releases/cf9d6bf /root/mx-space/yozora-web/current
+# 后台
+D=/root/mx-space/core/data/mx-space; mv $D/admin $D/admin-yozora-ac758f0 && mv $D/admin-yozora-cf9d6bf $D/admin
+```
+
+磁盘留给站长自己清：`/root/mx-space/core-image-20261105`、上传用的 `yozora-web-ac758f0.tgz`、`yozora-admin-ac758f0.tgz`，以及上一节列的旧版本。
+
 ## 第 1 步：备份
 
 - MongoDB：`mongodump` 整库导出（Docker 跑的就在容器里执行再拷出来），放到服务器以外的地方再留一份。
