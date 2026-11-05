@@ -38,7 +38,6 @@ export enum RouteName {
   ListShortHand = 'shorthand',
   Murmur = 'murmur',
   Snippet = 'snippet',
-  YozoraTheme = 'yozora-theme',
   Webhook = 'webhook',
 
   AssetTemplate = 'asset-template',
@@ -46,6 +45,7 @@ export enum RouteName {
   Ai = 'ai',
   AiSummary = 'ai-summary',
   AiTranslation = 'ai-translation',
+  AiI18n = 'ai-i18n',
   AiTasks = 'ai-tasks',
   AiTranslationEntries = 'ai-translation-entries',
   AiSlugBackfill = 'ai-slug-backfill',

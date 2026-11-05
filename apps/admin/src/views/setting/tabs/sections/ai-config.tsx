@@ -2,6 +2,7 @@ import {
   CircleCheck as CheckCircleOutlinedIcon,
   ChevronDown as ChevronDownIcon,
   Cpu as CpuIcon,
+  Earth as EarthIcon,
   Globe as GlobeIcon,
   Languages as LanguagesIcon,
   Plus as PlusIcon,
@@ -54,7 +55,12 @@ interface AIConfig {
   enableTranslation?: boolean
   enableAutoGenerateTranslation?: boolean
   translationTargetLanguages?: string[]
+  enableI18n?: boolean
+  i18nLanguages?: string[]
 }
+
+// 从右往左写的语言要把整页布局翻过来，前台暂不支持（Core 读取时也会去掉）
+const RTL_LANGUAGES = new Set(['ar', 'he', 'fa', 'ur'])
 
 interface ModelInfo {
   id: string
@@ -552,6 +558,11 @@ const TranslationLanguagesInput = defineComponent({
       type: Boolean,
       default: false,
     },
+    /** i18n 语言：拒绝中文（原文一直都有）和从右往左写的语言 */
+    i18n: {
+      type: Boolean,
+      default: false,
+    },
   },
   setup(props) {
     const inputValue = ref('')
@@ -565,6 +576,14 @@ const TranslationLanguagesInput = defineComponent({
       }
       if (lang.length !== 2) {
         toast.warning('请使用 ISO 639-1 语言代码（2 个字母）')
+        return
+      }
+      if (props.i18n && lang === 'zh') {
+        toast.warning('中文是原文，一直都有，不用加')
+        return
+      }
+      if (props.i18n && RTL_LANGUAGES.has(lang)) {
+        toast.warning('从右往左写的语言暂不支持')
         return
       }
       props.onUpdate([...props.value, lang])
@@ -914,6 +933,34 @@ export const AIConfigSection = defineComponent({
               value={config.value.translationTargetLanguages || []}
               onUpdate={(v) => updateConfig({ translationTargetLanguages: v })}
               disabled={!config.value.enableTranslation}
+            />
+          </SettingsRow>
+        </SettingsSection>
+
+        <SettingsSection
+          title="AI i18n"
+          description="网站界面文字和站点文案的多语言，由 AI 从中文翻译"
+          icon={EarthIcon}
+        >
+          <SettingsRow
+            title="启用 AI i18n"
+            description="关着时前台只有中文，也不会自动生成。译文在“AI → i18n”里查看和修改"
+          >
+            <NSwitch
+              value={config.value.enableI18n}
+              onUpdateValue={(v: boolean) => updateConfig({ enableI18n: v })}
+            />
+          </SettingsRow>
+
+          <SettingsRow
+            title="i18n 语言"
+            description="前台的语言菜单就是“中文 + 这份列表”。开着 AI i18n 时，文章、手记、页面正文的自动翻译也会覆盖这些语言。使用 ISO 639-1 语言代码；从右往左写的语言（ar、he、fa、ur）暂不支持"
+          >
+            <TranslationLanguagesInput
+              value={config.value.i18nLanguages || []}
+              onUpdate={(v) => updateConfig({ i18nLanguages: v })}
+              disabled={!config.value.enableI18n}
+              i18n
             />
           </SettingsRow>
         </SettingsSection>

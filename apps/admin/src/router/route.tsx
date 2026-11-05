@@ -12,6 +12,7 @@ import {
   MessagesSquare as CommentsIcon,
   Bug as DebugIcon,
   FileEdit as DraftIcon,
+  Earth as EarthIcon,
   MoreHorizontal as EllipsisHIcon,
   Eye as EyeIcon,
   File as FileIcon,
@@ -27,7 +28,6 @@ import {
   MessageCircleMore as MurmurIcon,
   Pencil as PencilAltIcon,
   Pencil as PencilIcon,
-  Palette as PaletteIcon,
   Users as PhUsersThreeBold,
   Puzzle as PuzzlePieceIcon,
   Sparkles as SparklesIcon,
@@ -342,6 +342,15 @@ export const routeForMenu: Array<RouteRecordRaw> = [
         component: () => import('../views/ai/translation'),
       },
       {
+        path: 'i18n',
+        name: RouteName.AiI18n,
+        meta: {
+          title: 'i18n',
+          icon: <EarthIcon />,
+        },
+        component: () => import('../views/ai/i18n'),
+      },
+      {
         path: 'translation-entries',
         name: RouteName.AiTranslationEntries,
         meta: {
@@ -405,15 +414,6 @@ export const routeForMenu: Array<RouteRecordRaw> = [
           icon: <FunctionIcon />,
         },
         component: () => import('../views/extra-features/snippets'),
-      },
-      {
-        path: 'yozora-theme',
-        name: RouteName.YozoraTheme,
-        meta: {
-          title: 'Yozora 主题',
-          icon: <PaletteIcon />,
-        },
-        component: () => import('../views/extra-features/yozora-theme'),
       },
 
       {

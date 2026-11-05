@@ -249,6 +249,53 @@ export interface GenerateEntriesResponse {
   skipped: number
 }
 
+// AI i18n（界面文字与站点文案）类型，接口约定见 docs/site-text-translation-plan.md
+export type I18nKeyPath =
+  | 'ui.text'
+  | 'site.text'
+  | 'project.name'
+  | 'project.description'
+
+export interface I18nLanguageStats {
+  done: number
+  missing: number
+  review: number
+}
+
+export interface I18nGroup {
+  /** ui.text 取条目名第一段；site.text 是 site；project.* 是 projects */
+  group: string
+  total: number
+  languages: Record<string, I18nLanguageStats>
+}
+
+export interface I18nTranslation {
+  text: string
+  manual: boolean
+  needsReview: boolean
+}
+
+export interface I18nEntry {
+  keyPath: I18nKeyPath
+  lookupKey: string
+  key: string
+  source: string
+  translations: Record<string, I18nTranslation | null>
+}
+
+export interface I18nStatus {
+  running: boolean
+  lastRun?: { at: string; created: number; failed: number; skipped: number }
+  languages: string[]
+  enabled: boolean
+}
+
+export interface I18nEntryRef {
+  keyPath: I18nKeyPath
+  lookupKey: string
+  lang: string
+}
+
 export const aiApi = {
   // AI 评论审核测试
   testCommentReview: (data: AICommentReviewTestData) =>
@@ -410,6 +457,29 @@ export const aiApi = {
 
   deleteTranslationEntry: (id: string) =>
     request.delete<void>(`/ai/translations/entries/${id}`),
+
+  // === AI i18n ===
+
+  getI18nStatus: () => request.get<I18nStatus>('/ai/i18n/status'),
+
+  getI18nGroups: () => request.get<I18nGroup[]>('/ai/i18n/groups'),
+
+  getI18nEntries: (group: string) =>
+    request.get<I18nEntry[]>('/ai/i18n/entries', { params: { group } }),
+
+  /** 手改一条译文；Core 校验不过返回 422 和原因 */
+  updateI18nEntry: (data: I18nEntryRef & { text: string }) =>
+    request.put<unknown>('/ai/i18n/entries', { data }),
+
+  deleteI18nEntry: (data: I18nEntryRef) =>
+    request.delete<void>('/ai/i18n/entries', { data }),
+
+  /** 异步开始一次生成，已经在跑时返回 409 */
+  generateI18n: (data: {
+    langs?: string[]
+    group?: string
+    onlyMissing?: boolean
+  }) => request.post<{ started: boolean }>('/ai/i18n/generate', { data }),
 
   // === Slug Backfill ===
 
