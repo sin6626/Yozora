@@ -21,27 +21,6 @@ import { TranslationService } from '~/processors/helper/helper.translation.servi
 import { GatewayService } from '../gateway.service'
 import { WebEventsGateway } from './events.gateway'
 
-const articleVisibility: Record<
-  string,
-  { event: BusinessEvents; isPublic: (doc: any) => boolean }
-> = {
-  [CollectionRefTypes.Post]: {
-    event: BusinessEvents.POST_UPDATE,
-    isPublic: (doc) => doc.isPublished !== false,
-  },
-  [CollectionRefTypes.Note]: {
-    event: BusinessEvents.NOTE_UPDATE,
-    isPublic: (doc) =>
-      doc.isPublished !== false &&
-      !doc.password &&
-      !(doc.publicAt && new Date(doc.publicAt) > new Date()),
-  },
-  [CollectionRefTypes.Page]: {
-    event: BusinessEvents.PAGE_UPDATE,
-    isPublic: () => true,
-  },
-}
-
 @Injectable()
 export class VisitorEventDispatchService implements OnModuleInit {
   private readonly logger = new Logger(VisitorEventDispatchService.name)
@@ -136,12 +115,7 @@ export class VisitorEventDispatchService implements OnModuleInit {
       payload,
     )
     if (!doc || doc === payload) return
-
-    if (
-      doc.isPublished === false ||
-      doc.password ||
-      (doc.publicAt && new Date(doc.publicAt) > new Date())
-    ) {
+    if (!(await this.enricher.isVisibleToVisitors(CollectionRefTypes.Note, payload.id))) {
       return
     }
 
@@ -155,8 +129,10 @@ export class VisitorEventDispatchService implements OnModuleInit {
       payload,
     )
     if (!doc || doc === payload) return
-
-    if (doc.password || doc.isPublished === false || doc.publicAt) return
+    if (doc.publicAt) return
+    if (!(await this.enricher.isVisibleToVisitors(CollectionRefTypes.Note, payload.id))) {
+      return
+    }
 
     await this.broadcastWithTranslation(
       BusinessEvents.NOTE_UPDATE,
@@ -310,11 +286,9 @@ export class VisitorEventDispatchService implements OnModuleInit {
 
   private async broadcastTranslation(event: BusinessEvents, data: any) {
     if (!data?.refId) return
-    const visible = articleVisibility[data.refType as string]
-    if (!visible) return
-    const lookup = { id: data.refId }
-    const doc = await this.enricher.enrichPayload(visible.event, lookup)
-    if (!doc || doc === lookup || !visible.isPublic(doc)) return
+    if (!(await this.enricher.isVisibleToVisitors(data.refType, data.refId))) {
+      return
+    }
     this.webGateway.broadcast(event, data, {
       rooms: [buildArticleRoomName(data.refId)],
     })

@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common'
+import { isValidObjectId } from 'mongoose'
 
 import { BusinessEvents } from '~/constants/business-event.constant'
+import { CollectionRefTypes } from '~/constants/db.constant'
 import { NoteModel } from '~/modules/note/note.model'
 import { PageModel } from '~/modules/page/page.model'
 import { PostModel, relatedPostsPopulate } from '~/modules/post/post.model'
@@ -54,6 +56,33 @@ export class EventPayloadEnricherService {
       }
       default: {
         return data
+      }
+    }
+  }
+
+  // Whether a visitor may read this article right now. Asked of the database directly because the
+  // note password is select:false and must never be loaded into a document that gets broadcast.
+  async isVisibleToVisitors(refType: string, id: string): Promise<boolean> {
+    if (!isValidObjectId(id)) return false
+    switch (refType) {
+      case CollectionRefTypes.Post: {
+        return !!(await this.postModel.exists({ _id: id, isPublished: { $ne: false } }))
+      }
+      case CollectionRefTypes.Note: {
+        return !!(await this.noteModel.exists({
+          _id: id,
+          isPublished: { $ne: false },
+          $and: [
+            { $or: [{ password: null }, { password: '' }] },
+            { $or: [{ publicAt: null }, { publicAt: { $lte: new Date() } }] },
+          ],
+        }))
+      }
+      case CollectionRefTypes.Page: {
+        return !!(await this.pageModel.exists({ _id: id }))
+      }
+      default: {
+        return false
       }
     }
   }
