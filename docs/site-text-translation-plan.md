@@ -157,3 +157,76 @@ Core 的“翻译条目”已经有一套完整的机制：
 3. 手改过的译文，在中文改了以后：让 AI 重翻并标出来给你看，还是保留手改的旧译文？推荐重翻并标出来，因为中文都变了，旧译文多半已经对不上。
 4. 关掉的语言，旧链接跳回中文？推荐跳回中文。
 5. 删掉“Yozora 主题”表单，并把现有的手写译文导入成条目？推荐都做。
+
+## 接口约定（2026-11-05 站长同意全部按推荐做；三边按这里实现，改动先改这里）
+
+### Core 设置（`ai` 配置）
+
+- `enableI18n: boolean`（默认 false）：“启用 AI i18n”。关着时前台只有中文，也不自动生成。
+- `i18nLanguages: string[]`（默认 `[]`）：“i18n 语言”，ISO 639-1 代码，用现有的 `normalizeLanguageCode` 归一。读取时去掉 `zh` 和从右往左写的语言（`ar`、`he`、`fa`、`ur`），去重并保持顺序。
+- 文章、手记、页面的自动翻译目标语言：开着 `enableI18n` 时取 `translationTargetLanguages ∪ i18nLanguages`；关着时只用 `translationTargetLanguages`。统一用一个小函数算（分类、话题等翻译条目的生成也用它）。
+
+### 翻译条目（`translation_entries`）
+
+新增四种 `keyPath`：
+
+| keyPath | keyType | lookupKey | 原文来源 |
+| --- | --- | --- | --- |
+| `ui.text` | entity | 界面文字条目名，如 `locale.switched`、`header.presence.label` | 前台上传的原文表 |
+| `site.text` | dict | 中文原文的哈希（同心情、天气） | 片段 `theme/yozora` 的 `hero.title`、`hero.description[]` 每一行、`footer.motto`、`copyright`、`techStack.title`、`techStack.description`，以及 SEO 的“网站描述” |
+| `project.name` | entity | 作品 id | 作品名 |
+| `project.description` | entity | 作品 id | 作品介绍 |
+
+模型新增两个可选字段：`manual?: boolean`（站长手改过或从旧手写译文导入）和 `needsReview?: boolean`（手改过的条目在中文改了之后由 AI 重翻，等站长看一眼）。站长通过接口保存一条译文时 `manual = true`、`needsReview = false`。中文原文变了的条目一律交给 AI 重翻；原来是 `manual` 的，重翻后 `manual = false`、`needsReview = true`。
+
+“翻译词表”页（`GET /ai/translations/entries`）默认不返回这四种。
+
+### 界面文字原文
+
+新集合 `i18n_sources`：`{ key: string（唯一）, text: string, updated: Date }`，存前台最近一次上传的整张原文表。
+
+### 校验（保存前，Core 与前台各做一次）
+
+- 占位符：`{name}` 这种花括号里的英文名字，译文里的集合必须和中文完全一样（不多不少）。
+- 强调标记：`**` 出现的次数必须和中文一样。
+- 译文去掉首尾空白后不能是空的。
+
+对不上的不存（不写库），这一条就算“缺译文”，前台显示中文。
+
+### AI 提示词
+
+新增一份 `uiTranslation(targetLang, fields)`（同 `fieldTranslation` 的结构化输出格式）：网站界面文字和站点文案，简洁自然；`{占位符}` 原样保留、不翻译不改名；`**…**` 包住的强调词，译文里把 `**` 放到对应的词上；Yozora、GitHub、RSS、LeetCode 这类品牌和技术名词不翻；不加解释。每批最多 60 条，按条目名排序后分批。
+
+### 接口（前缀 `/ai/i18n`）
+
+公开（不要登录，走 Core 的接口缓存，`I18N_UPDATE` 时清缓存）：
+
+- `GET /ai/i18n` → `{ enabled: boolean, languages: string[] }`。关着时 `languages` 是 `[]`。
+- `GET /ai/i18n/:lang` → `{ lang, messages: { [界面文字条目名]: 译文 }, site: { [中文原文]: 译文 }, projects: { [作品 id]: { name?: string, description?: string } } }`。只含已经翻好、通过校验的。`lang` 不在开着的语言里返回 404。
+
+要登录（给后台和本机脚本，后台令牌 `x-api-key` 也行）：
+
+- `PUT /ai/i18n/source`，body `{ messages: { [条目名]: 中文 } }`：整张替换原文表。返回 `{ added, changed, removed }`（条目名列表）。删掉的条目连同它的 `ui.text` 译文一起删。开着 `enableI18n` 时，在后台异步翻新增的和改过的（不等它翻完就返回）。
+- `GET /ai/i18n/status` → `{ running: boolean, lastRun?: { at, created, failed, skipped } , languages: string[], enabled: boolean }`。
+- `POST /ai/i18n/generate`，body `{ langs?: string[], group?: string, onlyMissing?: boolean }`：异步开始一次生成（已经在跑就返回 409），立刻返回 `{ started: true }`。不传 `onlyMissing` 时，缺的和中文改过的都翻。
+- `GET /ai/i18n/groups` → `[{ group, total, languages: { [lang]: { done, missing, review } } }]`。`group` 规则：`ui.text` 取条目名第一段（`header`、`home`……），`site.text` 是 `site`，`project.*` 是 `projects`。
+- `GET /ai/i18n/entries?group=xxx` → `[{ keyPath, lookupKey, key, source, translations: { [lang]: { text, manual, needsReview } | null } }]`。`key` 对 `ui.text` 是条目名，对 `site.text` 是中文原文本身，对 `project.*` 是“作品名 / 介绍”加作品 id。
+- `PUT /ai/i18n/entries`，body `{ keyPath, lookupKey, lang, text }`：手改（不存在就新建），先过校验（不通过返回 422 和原因），保存后 `manual = true`、`needsReview = false`，发 `I18N_UPDATE`。
+- `DELETE /ai/i18n/entries`，body `{ keyPath, lookupKey, lang }`：删掉一条译文（回到缺译文）。
+
+### 自动生成的时机（都要求 `enableI18n` 开着且配了 AI 服务商）
+
+- 上传原文后：翻新增和改过的界面文字。
+- 片段 `theme/yozora` 新建或保存、SEO 设置保存、作品新建或修改：重新收集站点文案和作品，翻新的和改过的，删掉用不到的旧 `site.text` 条目；作品删除时删它的两条。
+- `i18nLanguages` 新加了语言：把这种语言的界面文字、站点文案、作品全部翻一遍。
+
+### 事件
+
+- 新增 `I18N_UPDATE`（登记进 `BusinessEvents` 和 Webhook 可选事件），载荷 `{ langs: string[] }`（不含文字内容）。生成写入了条目、手改、删除、上传原文删掉条目时发。
+- `i18nLanguages`、`enableI18n` 变化走已有的 `OPTION_UPDATE`。
+
+### 前台
+
+- 词典：`zh.ts` 是中文原文；带参数的条目写成 `msg("已切换到{name}")`（返回函数，组件调用不变），带判断的拆成几条。条目名 = 对象路径用点连起来（`locale.switched`）。
+- 推送：`scripts/push-i18n-source.mjs [--prod]` 用 `.local/publish.json` 的令牌 `PUT /ai/i18n/source`；`pnpm dev` 启动时自动推一次本地。
+- 取译文：`getT()` 读 `GET /ai/i18n/:lang`（`"use cache"`，标签 `i18n`），逐条过同样的校验，缺的和不合格的用中文；语言列表读 `GET /ai/i18n`（标签 `i18n`）。Webhook 收到 `I18N_UPDATE`、`OPTION_UPDATE` 时让 `i18n` 失效。
