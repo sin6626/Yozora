@@ -186,6 +186,32 @@ cd /root/mx-space/core && docker compose up -d --no-deps app
 
 回滚 Core 后旧 Core 不认识新事件名，Webhook 订阅里的新事件会被忽略，不影响别的事件。配置片段改回原名用后台“配置与云函数”改名即可，但新前台读的是 `yozora`。
 
+## 2026-11-05 已做：第二轮复查的修复上线（cf9d6bf）
+
+站长同意后执行，Core、前台、后台三样都换（改动见 AGENTS.md 2026-11-04“第二轮复查修复”）。
+
+- 备份：服务器 `/root/backups/2026-11-05/`（`mongo-before-deploy-20261105.archive.gz` 整库，文章 13、手记 10、评论 35；`docker-compose-before-20261105.yml`）。
+- 构建：本机 `/tmp/yozora-build` 工作目录（cf9d6bf），Core、SDK、前台、后台都从这里构建，用完已删。
+- **Core**：`/root/mx-space/core-image-20261105/`（先把 1104 的 `out/` 拷过来再 `rsync --delete`，只传差异，几秒），镜像 `yozora/mx-server:20261105`，compose 改标签后 `docker compose up -d --no-deps app`，约 22 秒 healthy，无新迁移。公网 API、旧 Shiro 首页与文章列表、beta 都是 200。**SSH 在执行切换命令前断过一次**（什么都没执行）；之后切换都写成服务器上的脚本用 `nohup` 跑（`switch-core.sh`、`switch-web.sh` 和日志都在备份目录），断线也不会停在半路。
+- **配置片段**：构建前台之前，线上 `theme/yozora` 补上 `i18n.en.techStack`、`i18n.ja.techStack`（标题、说明，与本地相同），图标行不变；改前备份本机 `.local/backups/prod-snippet-yozora-before-tech-i18n-20261105.json`。本机直连线上第一次 TLS 被重置，脚本给每个请求加了重试后成功（设同一个值，重试无害）。
+- **前台**：`releases/cf9d6bf`（包 65MB），启动参数与上一版一致（`docker inspect` 核对过），停机约 2 秒。服务器本机 15 个页面 200，英文/日文首页技术栈标题是 Tech stack / 技術スタック，页脚星带有力扣的星，robots 整站禁止、页面 noindex，公网 beta 200；无头浏览器打开首页、英文首页、文章、手记、一言、时间线、一篇文章详情无脚本报错。容器约 239MB / 400MB，服务器可用内存约 170MB。
+- **后台**：本仓库 cf9d6bf 构建（带“附加功能 → Yozora 主题”），数据目录 `admin/` 换成新版，原来的 a781a05 构建改名 `admin-yozora-a781a05-20261105`；`/proxy/qaqdmin` 200，入口脚本与本机构建一致。
+- **力扣日历**：`NODE_USE_ENV_PROXY=1 node scripts/sync-leetcode.mjs --prod`，线上 `theme/leetcode-calendar` 现在记着账号 `sin-mt`（460 天）。
+
+回滚：
+
+```bash
+# Core（约 20 秒）
+sed -i 's#image: yozora/mx-server:20261105#image: yozora/mx-server:20261104#' /root/mx-space/core/docker-compose.yml
+cd /root/mx-space/core && docker compose up -d --no-deps app
+# 前台：current 指回 81383e8，再按“新前台”一节的命令重建容器
+ln -sfn /root/mx-space/yozora-web/releases/81383e8 /root/mx-space/yozora-web/current
+# 后台
+D=/root/mx-space/core/data/mx-space; mv $D/admin $D/admin-yozora-cf9d6bf && mv $D/admin-yozora-a781a05-20261105 $D/admin
+```
+
+磁盘留给站长自己清：`/root/mx-space/core-image-20261104`（60M）、前台旧版本 `releases/7dd878b`、`releases/1b5a6d4`、上传用的 `yozora-web.tgz`、`yozora-admin.tgz`。
+
 ## 第 1 步：备份
 
 - MongoDB：`mongodump` 整库导出（Docker 跑的就在容器里执行再拷出来），放到服务器以外的地方再留一份。
