@@ -62,6 +62,19 @@ try {
   const buttons = await b.evaluate(`[...document.querySelectorAll('button')].map((el) => el.textContent.trim())`)
   assert.ok(buttons.includes('恢复默认'), '写了的项能改回默认')
 
+  // English 标签里有站点描述和每个作品的译文栏
+  await b.evaluate(`[...document.querySelectorAll('.n-tabs-tab')].find((el) => el.textContent.trim() === 'English').click()`)
+  await sleep(500)
+  const english = await b.evaluate(`({
+    labels: [...document.querySelectorAll('.n-form-item-label')].map((el) => el.textContent.trim()),
+    values: [...document.querySelectorAll('input, textarea')].map((el) => el.value),
+  })`)
+  assert.ok(english.labels.some((label) => label.startsWith('站点描述')), `English 标签有站点描述：${english.labels}`)
+  assert.ok(english.labels.some((label) => label.startsWith('作品：')), 'English 标签有作品译文')
+  if (before.i18n?.en?.siteDescription) assert.ok(english.values.includes(before.i18n.en.siteDescription), '显示片段里的英文站点描述')
+  await b.evaluate(`[...document.querySelectorAll('.n-tabs-tab')].find((el) => el.textContent.trim() === '中文').click()`)
+  await sleep(500)
+
   // 改中文“页脚那句话”，点保存
   const motto = 'e2e 改过的那句话'
   await b.evaluate(`(() => {

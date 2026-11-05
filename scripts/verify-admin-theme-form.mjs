@@ -14,21 +14,21 @@ const load = (path) => {
   return module.exports
 }
 const { readThemeForm, themeChanges, applyThemeChanges } = load('../apps/admin/src/views/extra-features/yozora-theme/theme-form.ts')
-const { parseSiteContent } = load('../apps/web/lib/theme-config.ts')
+const { parseSiteContent, parseContentTranslations } = load('../apps/web/lib/theme-config.ts')
 const plain = (value) => JSON.parse(JSON.stringify(value))
 const clone = (value) => JSON.parse(JSON.stringify(value))
 const front = (raw, lang = 'zh') => plain(parseSiteContent(JSON.parse(raw), lang))
 
 // 后台保存的完整链路：打开时读 base → 改表单 → 算出改了哪几项 → 套到保存前刚读到的 latest 上
-const save = (base, edit, latest = base) => {
-  const initial = readThemeForm(base)
+const save = (base, edit, latest = base, projectIds = []) => {
+  const initial = readThemeForm(base, projectIds)
   const next = clone(initial)
   edit(next)
   const result = applyThemeChanges(base, latest, themeChanges(initial, next))
   return result
 }
-const saved = (base, edit, latest) => {
-  const result = save(base, edit, latest)
+const saved = (base, edit, latest, projectIds) => {
+  const result = save(base, edit, latest, projectIds)
   assert.deepEqual(plain(result.conflicts), [], '不该有冲突')
   return result.raw
 }
@@ -116,4 +116,22 @@ assert.equal(conflict.raw, undefined, '有冲突时不给出要保存的内容')
 const groupClearedElsewhere = JSON.parse(raw)
 groupClearedElsewhere.footer = null
 assert.deepEqual(plain(save(raw, (form) => { form.zh.motto = '表单改的' }, JSON.stringify(groupClearedElsewhere)).conflicts), [['footer', 'motto']], '别处把整组清空也算冲突')
+// 复查 #7：站点描述和作品名、介绍的外文版也在表单里改（中文在 SEO 设置和作品页里），留空 = 没有译文、显示中文
+const translatedRaw = JSON.stringify({ i18n: { en: { siteDescription: 'Old line', projects: { p1: { name: 'Old name' }, gone: { name: 'kept' } } } } })
+const translatedForm = readThemeForm(translatedRaw, ['p1', 'p2'])
+assert.deepEqual(plain(translatedForm.translations.en), { siteDescription: 'Old line', projects: { p1: { name: 'Old name', description: null }, p2: { name: null, description: null } } }, '每个作品都有一栏，没译文的是 null')
+assert.equal(translatedForm.translations.ja.siteDescription, null)
+const translated = saved(translatedRaw, (form) => {
+  form.translations.en.siteDescription = 'New line'
+  form.translations.en.projects.p1.name = ''
+  form.translations.en.projects.p2.description = 'A tool'
+  form.translations.ja.siteDescription = '新しい一言'
+}, undefined, ['p1', 'p2'])
+const enTranslations = plain(parseContentTranslations(JSON.parse(translated), 'en'))
+assert.equal(enTranslations.siteDescription, 'New line')
+assert.equal(enTranslations.projects.p1.name, undefined, '作品名留空 = 删掉译文，英文页面显示中文名')
+assert.equal(enTranslations.projects.p2.description, 'A tool')
+assert.equal(enTranslations.projects.gone.name, 'kept', '已删除作品的旧译文不动')
+assert.equal(parseContentTranslations(JSON.parse(translated), 'ja').siteDescription, '新しい一言')
+
 console.log('PASS admin Yozora theme form: three states per field, cleared groups stay cleared, saves merge onto the latest snippet and refuse field conflicts, and the blog shows what was saved')

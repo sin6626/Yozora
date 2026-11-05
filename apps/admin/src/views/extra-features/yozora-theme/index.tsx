@@ -3,14 +3,16 @@ import { NAlert, NButton, NForm, NFormItem, NInput, NSkeleton, NTabPane, NTabs, 
 import { computed, defineComponent, ref, watchEffect } from 'vue'
 import { toast } from 'vue-sonner'
 
+import { projectsApi } from '~/api/projects'
 import { snippetsApi } from '~/api/snippets'
 import { HeaderActionButton } from '~/components/button/header-action-button'
 import { useLayout } from '~/layouts/content'
+import type { ProjectModel } from '~/models/project'
 import type { SnippetModel } from '~/models/snippet'
 import { BusinessError } from '~/utils/request'
 
 import { applyThemeChanges, readThemeForm, themeChanges } from './theme-form'
-import type { FieldValue, Language, TextField, ThemeForm } from './theme-form'
+import type { FieldValue, ForeignLanguage, Language, TextField, ThemeForm } from './theme-form'
 
 // Yozora（前台）的站点文案：编辑的就是“配置与云函数”里的 theme/yozora 片段，不另存一份。
 // 保存后 Core 发 SNIPPET_UPDATE，前台经 Webhook 立即更新。
@@ -36,10 +38,12 @@ const fieldLabels: Record<string, string> = {
   'footer.icp': '萌备',
   'accounts.github': 'GitHub 用户名',
   'accounts.leetcode': '力扣用户名',
+  siteDescription: '站点描述',
+  projects: '作品',
 }
 const changeLabel = (path: string[]) => {
   const [first, language, ...rest] = path
-  if (first === 'i18n') return `${language === 'en' ? 'English' : '日本語'}：${fieldLabels[rest.join('.')] ?? rest.join('.')}`
+  if (first === 'i18n') return `${language === 'en' ? 'English' : '日本語'}：${fieldLabels[rest.join('.')] ?? fieldLabels[rest[0]] ?? rest.join('.')}`
   return fieldLabels[path.join('.')] ?? path.join('.')
 }
 
@@ -56,6 +60,7 @@ export default defineComponent({
   name: 'YozoraThemeView',
   setup() {
     const snippet = ref<SnippetModel | null>(null)
+    const projects = ref<ProjectModel[]>([])
     const initial = ref<ThemeForm | null>(null)
     const form = ref<ThemeForm | null>(null)
     const loading = ref(true)
@@ -66,14 +71,18 @@ export default defineComponent({
       loading.value = true
       error.value = ''
       try {
-        const found = (await snippetsApi.getGroupSnippets('theme')).find((item) => item.name === 'yozora') ?? null
+        // ponytail: 作品超过 50 个时这里要翻页
+        const [group, projectList] = await Promise.all([snippetsApi.getGroupSnippets('theme'), projectsApi.getList({ size: 50 })])
+        const found = group.find((item) => item.name === 'yozora') ?? null
         snippet.value = found
+        projects.value = projectList.data
         if (!found) {
           error.value = '还没有 theme/yozora 配置片段，请先在“配置与云函数”里新建（引用 theme、名称 yozora、类型 JSON）。'
           return
         }
-        initial.value = readThemeForm(found.raw)
-        form.value = readThemeForm(found.raw)
+        const projectIds = projects.value.map((project) => project.id)
+        initial.value = readThemeForm(found.raw, projectIds)
+        form.value = readThemeForm(found.raw, projectIds)
       } catch (cause) {
         error.value = `读取失败：${(cause as Error).message}`
       } finally {
@@ -154,6 +163,29 @@ export default defineComponent({
       )
     }
 
+    // 站点描述（中文在 设置 → SEO）和作品名、介绍（中文在作品页）的外文版：留空 = 没有译文，显示中文
+    const translation = (current: FieldValue, update: (next: string) => void, original: string) => (
+      <NInput value={current ?? ''} onUpdateValue={update} placeholder={original ? `留空显示中文：${original}` : '留空显示中文'} />
+    )
+    const translationFields = (value: ThemeForm, language: ForeignLanguage) => {
+      const target = value.translations[language]
+      return (
+        <>
+          <NFormItem label="站点描述（中文在 设置 → SEO → 网站描述）">
+            {translation(target.siteDescription, (next) => (target.siteDescription = next), '')}
+          </NFormItem>
+          {projects.value.map((project) => (
+            <NFormItem label={`作品：${project.name}`} key={project.id}>
+              <div class="flex w-full flex-col gap-2">
+                {translation(target.projects[project.id].name, (next) => (target.projects[project.id].name = next), project.name)}
+                {translation(target.projects[project.id].description, (next) => (target.projects[project.id].description = next), project.description)}
+              </div>
+            </NFormItem>
+          ))}
+        </>
+      )
+    }
+
     return () => {
       if (loading.value) return <NSkeleton text repeat={6} />
       if (error.value || !form.value) return <NAlert type="warning">{error.value}</NAlert>
@@ -161,7 +193,7 @@ export default defineComponent({
       return (
         <div class="mx-auto flex max-w-3xl flex-col gap-6">
           <p class="text-sm text-neutral-500">
-            这里改的是“配置与云函数”里的 theme/yozora 片段；技术栈的图标行仍在那里的 techStack.rows 改。保存后前台马上更新。
+            这里改的是“配置与云函数”里的 theme/yozora 片段；技术栈的图标行仍在那里的 techStack.rows 改（JSON）。保存后前台马上更新。
           </p>
           <NTabs type="segment" animated>
             {tabs.map((tab) => (
@@ -173,6 +205,7 @@ export default defineComponent({
                       {input(value[tab.language][field.key], (next) => (value[tab.language][field.key] = next), field.placeholder, field.rows, tab.language === 'zh' ? 'zh' : 'foreign')}
                     </NFormItem>
                   ))}
+                  {tab.language !== 'zh' && translationFields(value, tab.language)}
                 </NForm>
               </NTabPane>
             ))}
