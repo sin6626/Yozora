@@ -9,6 +9,7 @@ import {
   BusinessEvents,
   SERVERLESS_EVENT_PREFIX,
 } from '~/constants/business-event.constant'
+import { CollectionRefTypes } from '~/constants/db.constant'
 import { buildArticleRoomName } from '~/modules/activity/activity.util'
 import { NoteModel } from '~/modules/note/note.model'
 import { PageModel } from '~/modules/page/page.model'
@@ -19,6 +20,27 @@ import { TranslationService } from '~/processors/helper/helper.translation.servi
 
 import { GatewayService } from '../gateway.service'
 import { WebEventsGateway } from './events.gateway'
+
+const articleVisibility: Record<
+  string,
+  { event: BusinessEvents; isPublic: (doc: any) => boolean }
+> = {
+  [CollectionRefTypes.Post]: {
+    event: BusinessEvents.POST_UPDATE,
+    isPublic: (doc) => doc.isPublished !== false,
+  },
+  [CollectionRefTypes.Note]: {
+    event: BusinessEvents.NOTE_UPDATE,
+    isPublic: (doc) =>
+      doc.isPublished !== false &&
+      !doc.password &&
+      !(doc.publicAt && new Date(doc.publicAt) > new Date()),
+  },
+  [CollectionRefTypes.Page]: {
+    event: BusinessEvents.PAGE_UPDATE,
+    isPublic: () => true,
+  },
+}
 
 @Injectable()
 export class VisitorEventDispatchService implements OnModuleInit {
@@ -274,18 +296,26 @@ export class VisitorEventDispatchService implements OnModuleInit {
 
   // --- Translation events ---
 
+  // Translations carry the full title and body, and anyone can join an article room by id,
+  // so only push them while the original article is something a visitor may read.
   @OnVisitorEvent(BusinessEvents.TRANSLATION_CREATE)
   onTranslationCreate(data: any) {
-    if (!data.refId) return
-    this.webGateway.broadcast(BusinessEvents.TRANSLATION_CREATE, data, {
-      rooms: [buildArticleRoomName(data.refId)],
-    })
+    return this.broadcastTranslation(BusinessEvents.TRANSLATION_CREATE, data)
   }
 
   @OnVisitorEvent(BusinessEvents.TRANSLATION_UPDATE)
   onTranslationUpdate(data: any) {
-    if (!data.refId) return
-    this.webGateway.broadcast(BusinessEvents.TRANSLATION_UPDATE, data, {
+    return this.broadcastTranslation(BusinessEvents.TRANSLATION_UPDATE, data)
+  }
+
+  private async broadcastTranslation(event: BusinessEvents, data: any) {
+    if (!data?.refId) return
+    const visible = articleVisibility[data.refType as string]
+    if (!visible) return
+    const lookup = { id: data.refId }
+    const doc = await this.enricher.enrichPayload(visible.event, lookup)
+    if (!doc || doc === lookup || !visible.isPublic(doc)) return
+    this.webGateway.broadcast(event, data, {
       rooms: [buildArticleRoomName(data.refId)],
     })
   }
