@@ -424,6 +424,8 @@ describe('AI i18n', () => {
   it('translates everything into a newly added language and nothing else', async () => {
     await service.uploadSource({ a: '甲', b: '乙' })
     await idle()
+    await service.generateNow({})
+    await idle()
     calls.length = 0
 
     config.ai.i18nLanguages = ['en', 'ja', 'ko']
@@ -431,6 +433,57 @@ describe('AI i18n', () => {
     await idle()
     expect(calls.map((call) => call.language)).toEqual(['Korean'])
     expect(await entries.countDocuments({ lang: 'ko' })).toBe(3)
+  })
+
+  it('catches a language up when it is added back after a while', async () => {
+    await service.uploadSource({ a: '甲' })
+    await idle()
+    config.ai.i18nLanguages = ['en']
+    await service.onOptionUpdate({ key: 'ai' })
+    await idle()
+    // While Japanese was off: a new entry and a changed one
+    await service.uploadSource({ a: '甲甲', b: '乙' })
+    await idle()
+    calls.length = 0
+
+    config.ai.i18nLanguages = ['en', 'ja']
+    await service.onOptionUpdate({ key: 'ai' })
+    await idle()
+    expect(calls.map((call) => call.language)).toEqual(['Japanese'])
+    expect((await entry('ui.text', 'a', 'ja'))?.translatedText).toBe('[Japanese] 甲甲')
+    expect((await entry('ui.text', 'b', 'ja'))?.translatedText).toBe('[Japanese] 乙')
+  })
+
+  it('stops serving outdated translations as soon as the Chinese changes, even without an AI provider', async () => {
+    await service.uploadSource({ a: '甲' })
+    await idle()
+    const project = await projects.create({ name: '星图', description: '一言星图' })
+    await service.onProjectChange()
+    await idle()
+    hasProvider = false
+    events.length = 0
+
+    await service.uploadSource({ a: '甲甲' })
+    expect(events.map(({ event }) => event)).toEqual([BusinessEvents.I18N_UPDATE])
+    expect((await service.getPublicTranslations('en')).messages).toEqual({})
+
+    events.length = 0
+    await projects.updateOne({ _id: project._id }, { $set: { name: '新星图' } })
+    await service.onProjectChange()
+    expect(events.map(({ event }) => event)).toEqual([BusinessEvents.I18N_UPDATE])
+    expect((await service.getPublicTranslations('en')).projects).toEqual({
+      [project.id]: { description: '[English] 一言星图' },
+    })
+  })
+
+  it('lists outdated translations only on request, marked stale', async () => {
+    await service.uploadSource({ a: '甲' })
+    await idle()
+    await service.saveEntry({ keyPath: 'ui.text', lookupKey: 'a', lang: 'en', text: 'A' })
+    hasProvider = false
+    await service.uploadSource({ a: '甲甲' })
+    expect((await service.getEntries('a'))[0].translations.en).toBeNull()
+    expect((await service.getEntries('a', true))[0].translations.en).toEqual({ text: 'A', manual: true, needsReview: false, stale: true })
   })
 
   it('keeps a translation the owner saves while the AI is still working on it', async () => {

@@ -19,6 +19,8 @@ export class GenerateI18nDto extends createZodDto(GenerateI18nSchema) {}
 
 export const QueryI18nEntriesSchema = z.object({
   group: z.string().optional(),
+  /** `1`: also return translations whose Chinese changed since (the migration script must not overwrite them) */
+  withStale: z.literal('1').optional(),
 })
 export class QueryI18nEntriesDto extends createZodDto(QueryI18nEntriesSchema) {}
 

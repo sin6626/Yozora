@@ -10,6 +10,7 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { coreUrl } from './lib/core-url.mjs'
 import { loadI18n } from './lib/i18n-source.mjs'
+import { legacyProjectTranslations, legacySiteTranslations, planImport } from './lib/legacy-i18n.mjs'
 
 const target = process.argv.includes('--prod') ? 'prod' : 'local'
 const dryRun = process.argv.includes('--dry-run')
@@ -57,67 +58,28 @@ const status = ok(await call('GET', '/ai/i18n/status'), '读 AI i18n 状态')
 const missingLanguages = ['en', 'ja'].filter((lang) => !status.languages?.includes(lang))
 if (missingLanguages.length) throw new Error(`后台“i18n 语言”里还没有 ${missingLanguages.join('、')}，先填上（开关可以先关着）再导入`)
 
-// 片段里的手写译文：中文原文 → 每种语言的译文（按同一路径配对），作品按 id
+// 片段里的手写译文：按位置配对（scripts/lib/legacy-i18n.mjs），作品按 id
 const snippets = ok(await call('GET', '/snippets/group/theme'), '读配置片段')
 const snippet = (Array.isArray(snippets) ? snippets : []).find((item) => item.name === 'yozora')
 const saved = snippetFile ? JSON.parse(readFileSync(snippetFile, 'utf8')) : snippet
 const root = saved ? JSON.parse(saved.raw) : {}
 const seo = ok(await call('GET', '/options/seo'), '读 SEO 设置')
-const at = (value, path) => path.reduce((current, key) => (current == null ? undefined : current[key]), value)
-const sitePaths = [['hero', 'title'], ['footer', 'motto'], ['copyright'], ['techStack', 'title'], ['techStack', 'description']]
-const description = at(root, ['hero', 'description'])
-if (Array.isArray(description)) description.forEach((_, index) => sitePaths.push(['hero', 'description', index]))
-const siteTranslations = {}
-const projectTranslations = {}
-for (const lang of ['en', 'ja']) {
-  const i18n = at(root, ['i18n', lang]) ?? {}
-  const pairs = sitePaths.map((path) => [at(root, path), at(i18n, path)])
-  pairs.push([seo?.description, i18n.siteDescription])
-  siteTranslations[lang] = Object.fromEntries(pairs.filter(([from, to]) => typeof from === 'string' && from.trim() && typeof to === 'string' && to.trim()).map(([from, to]) => [from.trim(), to.trim()]))
-  projectTranslations[lang] = i18n.projects ?? {}
-}
 
-const entries = ok(await call('GET', '/ai/i18n/entries'), '读翻译条目')
+// withStale：原文改过、前台已不再显示的手改译文也要看到，否则会被当成“没有译文”盖掉
+const entries = ok(await call('GET', '/ai/i18n/entries?withStale=1'), '读翻译条目')
 if (!Array.isArray(entries)) throw new Error(`读不到条目：${JSON.stringify(entries)}`)
-const counts = { written: 0, kept: 0, missing: 0, failed: [] }
-// 片段里每一条手写译文都要找到对应的条目，否则不能删片段里的 i18n（删了就只剩备份）
-const unmatched = new Set(['en', 'ja'].flatMap((lang) => [
-  ...Object.keys(siteTranslations[lang]).map((zh) => `${lang} 站点文案「${zh}」`),
-  ...Object.entries(projectTranslations[lang]).flatMap(([id, item]) => ['name', 'description'].filter((field) => typeof item?.[field] === 'string' && item[field].trim()).map((field) => `${lang} 作品 ${id} ${field}`)),
-]))
-for (const entry of entries) {
-  const keyPath = entry.key_path ?? entry.keyPath
-  const lookupKey = entry.lookup_key ?? entry.lookupKey
-  for (const lang of ['en', 'ja']) {
-    const text = keyPath === 'ui.text' ? legacy[lang][lookupKey]
-      : keyPath === 'site.text' ? siteTranslations[lang][entry.source]
-      : keyPath === 'project.name' ? projectTranslations[lang][lookupKey]?.name
-      : projectTranslations[lang][lookupKey]?.description
-    if (typeof text !== 'string' || !text.trim()) {
-      counts.missing++
-      continue
-    }
-    if (keyPath === 'site.text') unmatched.delete(`${lang} 站点文案「${entry.source}」`)
-    if (keyPath.startsWith('project.')) unmatched.delete(`${lang} 作品 ${lookupKey} ${keyPath === 'project.name' ? 'name' : 'description'}`)
-    // 手改过的（包括上次导入的）不动：站长在后台改好的译文不能被旧数据盖掉
-    if (entry.translations?.[lang]?.manual) {
-      counts.kept++
-      continue
-    }
-    if (dryRun) {
-      counts.written++
-      continue
-    }
-    const saved = await call('PUT', '/ai/i18n/entries', { keyPath, lookupKey, lang, text })
-    if (saved.status === 200) counts.written++
-    else counts.failed.push(`${lang} ${keyPath} ${lookupKey}：${saved.status} ${JSON.stringify(saved.data)}`)
-  }
+const plan = planImport(entries, { ui: legacy, site: legacySiteTranslations(root, seo?.description), projects: legacyProjectTranslations(root) })
+const failed = []
+for (const write of dryRun ? [] : plan.writes) {
+  const result = await call('PUT', '/ai/i18n/entries', write)
+  if (result.status !== 200) failed.push(`${write.lang} ${write.keyPath} ${write.lookupKey}：${result.status} ${JSON.stringify(result.data)}`)
 }
-console.log(`${target}${dryRun ? '（试运行）' : ''}：写入 ${counts.written}，已手改过不动 ${counts.kept}，没有手写译文 ${counts.missing}，失败 ${counts.failed.length}`)
-if (counts.failed.length) {
-  console.log(counts.failed.join('\n'))
+console.log(`${target}${dryRun ? '（试运行）' : ''}：写入 ${plan.writes.length - failed.length}，已手改过不动 ${plan.kept}，没有手写译文 ${plan.missing}，失败 ${failed.length}`)
+if (failed.length) {
+  console.log(failed.join('\n'))
   process.exit(1)
 }
+const unmatched = new Set(plan.unmatched)
 
 if (dropSnippetI18n && snippet && 'i18n' in root && unmatched.size) {
   console.log(`片段里还有 ${unmatched.size} 条手写译文没对上条目，不删片段里的 i18n：\n${[...unmatched].join('\n')}`)

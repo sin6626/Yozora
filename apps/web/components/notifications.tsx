@@ -42,9 +42,13 @@ async function localTitle(apiUrl: string, id: unknown, locale: string, title: st
 function Connection({ url, apiUrl, children }: { url: string; apiUrl: string; children: React.ReactNode }) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [online, setOnline] = useState<number | null>(null);
-  // 播报文案按当前语言取；放进 ref，连接不用因为文案对象变化而重建
-  const copy = useRef(useT().notifications);
+  // 播报文案按当前语言取；放进 ref，连接不用因为文案对象变化而重建。router.refresh 后译文可能更新了，每次渲染后跟上
+  const t = useT().notifications;
+  const copy = useRef(t);
   const locale = useRef(useLocale());
+  useEffect(() => {
+    copy.current = t;
+  }, [t]);
   useEffect(() => {
     const connection = io(url, { transports: ["websocket"], autoConnect: false });
     // 文章发布、修改、删除改由页头夜航岛播报（原来是右下角 Toast）；新文章带上标题

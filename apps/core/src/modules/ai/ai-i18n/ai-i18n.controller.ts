@@ -52,7 +52,7 @@ export class AiI18nController {
   @Get('/entries')
   @Auth()
   getEntries(@Query() query: QueryI18nEntriesDto) {
-    return this.service.getEntries(query.group)
+    return this.service.getEntries(query.group, query.withStale === '1')
   }
 
   @Put('/entries')

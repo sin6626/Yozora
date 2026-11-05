@@ -52,7 +52,13 @@ interface I18nRunResult {
   skipped: number
 }
 
-type EntryCell = { text: string; manual: boolean; needsReview: boolean }
+type EntryCell = {
+  text: string
+  manual: boolean
+  needsReview: boolean
+  /** Only with `withStale`: the Chinese changed after this translation, so the blog no longer shows it */
+  stale?: boolean
+}
 
 const BATCH_SIZE = 60
 const YOZORA_SNIPPET = { reference: 'theme', name: 'yozora' }
@@ -184,6 +190,12 @@ export class AiI18nService {
       })
     }
 
+    // Translations of changed entries are no longer served (their Chinese moved on): refresh the public
+    // bundle now, so the blog falls back to the new Chinese even if the AI never gets to retranslate
+    if (changed.length) {
+      await this.notify(configuredI18nLanguages(await this.configService.get('ai')))
+    }
+
     const toTranslate = [...added, ...changed]
     if (toTranslate.length && (await this.canAutoGenerate())) {
       this.start(
@@ -267,11 +279,12 @@ export class AiI18nService {
     return [...groups.values()]
   }
 
-  async getEntries(group?: string) {
+  /** `withStale`: also return translations whose Chinese changed since (marked stale), for tools that must not overwrite hand-written ones */
+  async getEntries(group?: string, withStale = false) {
     const languages = configuredI18nLanguages(await this.configService.get('ai'))
     const { sources } = await this.collectSources()
     const items = group ? sources.filter((item) => item.group === group) : sources
-    const translated = await this.freshTranslations(items, languages)
+    const translated = await this.freshTranslations(items, languages, withStale)
 
     return items.map((item) => ({
       keyPath: item.keyPath,
@@ -371,22 +384,15 @@ export class AiI18nService {
   @OnEvent(BusinessEvents.OPTION_UPDATE)
   async onOptionUpdate(payload: { key?: string }) {
     if (payload?.key === 'seo') return this.syncSiteText()
-    if (payload?.key !== 'ai' || !(await this.canAutoGenerate())) return
-
-    // A language with no i18n entry at all was just added: translate everything into it
-    const languages = enabledI18nLanguages(await this.configService.get('ai'))
-    const added: string[] = []
-    for (const lang of languages) {
-      const exists = await this.entryModel.exists({
-        lang,
-        keyPath: { $in: I18N_KEY_PATHS },
-      })
-      if (!exists) added.push(lang)
-    }
-    if (added.length) this.start({ langs: added }, true)
+    // AI settings saved (a language added, or added back after a while, or i18n switched on): catch every
+    // enabled language up. Only missing and outdated entries go to the AI, so an up-to-date one costs nothing
+    if (payload?.key === 'ai' && (await this.canAutoGenerate())) this.start({}, true)
   }
 
   private async syncSiteText() {
+    // Project translations are served by id: an outdated one must leave the public bundle right away,
+    // not only once the AI has retranslated it
+    await this.notify(configuredI18nLanguages(await this.configService.get('ai')))
     if (await this.canAutoGenerate()) {
       this.start({ keyPaths: SITE_KEY_PATHS }, true)
     }
@@ -606,7 +612,11 @@ export class AiI18nService {
   }
 
   /** Translations whose stored source still matches today's Chinese, keyed `${keyPath}:${lookupKey}:${lang}`. */
-  private async freshTranslations(sources: I18nSource[], langs: string[]) {
+  private async freshTranslations(
+    sources: I18nSource[],
+    langs: string[],
+    withStale = false,
+  ) {
     const current = new Map(sources.map((item) => [idOf(item), item.source]))
     const entries = await this.entryModel
       .find({ keyPath: { $in: I18N_KEY_PATHS }, lang: { $in: langs } })
@@ -615,11 +625,13 @@ export class AiI18nService {
 
     const cells = new Map<string, EntryCell>()
     for (const entry of entries) {
-      if (current.get(idOf(entry)) !== entry.sourceText) continue
+      const stale = current.get(idOf(entry)) !== entry.sourceText
+      if (stale && (!withStale || !current.has(idOf(entry)))) continue
       cells.set(`${idOf(entry)}:${entry.lang}`, {
         text: entry.translatedText,
         manual: !!entry.manual,
         needsReview: !!entry.needsReview,
+        ...(stale && { stale: true }),
       })
     }
     return cells
