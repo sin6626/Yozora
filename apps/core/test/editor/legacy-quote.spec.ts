@@ -55,7 +55,7 @@ describe('legacy Quote read and save boundaries', () => {
           set: async (key: string, value: unknown) => cache.set(key, JSON.parse(JSON.stringify(value))),
         },
       }, {
-        provide: RedisService, useValue: { getApiCacheGeneration: async () => '0', cleanKey: async (key: string) => cache.delete(key) },
+        provide: RedisService, useValue: { getApiCacheGeneration: async () => '0' },
       }],
     }).compile()
     app = module.createNestApplication(new FastifyAdapter())

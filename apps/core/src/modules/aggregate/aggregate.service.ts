@@ -519,19 +519,21 @@ export class AggregateService {
   @OnEvent(EventBusEvents.CleanAggregateCache, { async: true })
   public clearAggregateCache() {
     const redis = this.redisService.getClient()
-    return Promise.all([
-      redis.del(CacheKeys.RSS),
-      redis.del(CacheKeys.RSSXml),
-      redis.del(CacheKeys.SiteMap),
-      redis.del(CacheKeys.SiteMapXml),
-      redis.del(CacheKeys.Aggregate),
-      redis.keys(`${API_CACHE_PREFIX}/aggregate*`).then((keys) => {
-        return keys.map((key) => redis.del(key))
-      }),
-      redis.keys(`${CacheKeys.Aggregate}*`).then((keys) => {
-        return keys.map((key) => redis.del(key))
-      }),
-    ])
+    // HTTP cache keys end in @<generation>, so match by prefix rather than by exact key
+    return Promise.all(
+      [
+        CacheKeys.RSS,
+        CacheKeys.RSSXml,
+        CacheKeys.SiteMap,
+        CacheKeys.SiteMapXml,
+        CacheKeys.Aggregate,
+        `${API_CACHE_PREFIX}/aggregate`,
+      ].map((prefix) =>
+        redis
+          .keys(`${prefix}*`)
+          .then((keys) => Promise.all(keys.map((key) => redis.del(key)))),
+      ),
+    )
   }
 
   async getAllReadAndLikeCount(type: ReadAndLikeCountDocumentType) {

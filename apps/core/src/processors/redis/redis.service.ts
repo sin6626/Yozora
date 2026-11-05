@@ -116,7 +116,8 @@ export class RedisService {
 
   public async cleanCatch() {
     const redis = this.getClient()
-    // Bump first: a request that started before this point sees the change after it stores its response and drops it
+    // Bump first: cached GETs key their entries by generation, so anything a request that started earlier
+    // stores from now on lands under the old generation and is never read
     await redis.incr(getRedisKey(RedisKeys.ApiCacheGeneration))
     const keys: string[] = await redis.keys(`${API_CACHE_PREFIX}*`)
     await Promise.all(keys.map((key) => redis.del(key)))

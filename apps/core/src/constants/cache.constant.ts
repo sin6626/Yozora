@@ -1,5 +1,5 @@
 export enum RedisKeys {
-  /** Bumped by cleanCatch so a GET that started earlier cannot put its old response back */
+  /** Part of every HTTP cache key; cleanCatch bumps it so responses from requests that started earlier are never read */
   ApiCacheGeneration = 'api_cache_generation',
   AccessIp = 'access_ip',
   Like = 'like',

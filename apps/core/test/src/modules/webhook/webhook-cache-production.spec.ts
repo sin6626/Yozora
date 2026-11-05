@@ -26,8 +26,13 @@ describe('webhook + production HTTP cache', async () => {
   }
   const handler = AggregateLike.prototype.aggregate
   const redisService = Object.assign(Object.create(RedisService.prototype), { getClient: () => redis.CacheService.getClient() })
+  // Runs right after a response lands in Redis, before the interceptor does anything else with it
+  let afterStore: ((value: any) => Promise<void>) | undefined
   const interceptor = new HttpCacheInterceptor(
-    { get: (key: string) => redis.CacheService.get(key).then((v: string | null) => (v ? JSON.parse(v) : undefined)), set: (key: string, value: unknown) => redis.CacheService.set(key, JSON.stringify(value)) } as any,
+    {
+      get: (key: string) => redis.CacheService.get(key).then((v: string | null) => (v ? JSON.parse(v) : undefined)),
+      set: async (key: string, value: unknown) => { await redis.CacheService.set(key, JSON.stringify(value)); await afterStore?.(value) },
+    } as any,
     new Reflector(),
     { httpAdapter: { getRequestMethod: (req: any) => req.method } } as any,
     redisService,
@@ -59,8 +64,14 @@ describe('webhook + production HTTP cache', async () => {
     title = 'After save'
     await webhook().sendWebhook('OPTION_UPDATE', { id: '000000000000000000000001', key: 'seo' }, EventScope.TO_SYSTEM)
 
+    // The moment the slow request's old response is stored, someone (the blog re-reading after the webhook) reads
+    const readsWhileStoring: string[] = []
+    afterStore = async (value) => { if (value.seo.title === 'Before save') readsWhileStoring.push(await read('race')) }
     finishSlowRead()
     expect(await slowRead).toBe('Before save') // that visitor still gets what was true when they asked
+    await vi.waitFor(() => expect(readsWhileStoring).toHaveLength(1))
+    afterStore = undefined
+    expect(readsWhileStoring).toEqual(['After save'])
     await new Promise((resolve) => setTimeout(resolve, 50))
     expect(await read('race')).toBe('After save')
   })

@@ -73,27 +73,37 @@ export class HttpCacheInterceptor implements NestInterceptor {
     const ttl = metaTTL || HTTP_CACHE.ttl
 
     try {
-      const [value, generation] = await Promise.race([
-        Promise.all([
-          this.cacheManager.get(key),
-          this.redisService.getApiCacheGeneration(),
-        ]),
-        new Promise<[undefined, undefined]>((resolve) =>
-          setTimeout(() => resolve([undefined, undefined]), 3000),
+      // Keys carry the cache generation. cleanCatch bumps it, so a request that started before the
+      // clear stores its (possibly stale) response under the old generation, where nobody reads any more.
+      const value = await Promise.race([
+        this.redisService
+          .getApiCacheGeneration()
+          .then(async (generation) => {
+            const generationKey = `${key}@${generation}`
+            return { generationKey, cached: await this.cacheManager.get(generationKey) }
+          }),
+        new Promise<undefined>((resolve) =>
+          setTimeout(() => resolve(undefined), 3000),
         ),
       ])
+      if (!value) return call$
+      const { generationKey, cached } = value
 
-      if (value) {
+      if (cached) {
         this.logger.debug(`hit cache:${key}`)
         this.setCacheHeader(res, ttl)
       }
 
-      return value
-        ? of(value)
+      return cached
+        ? of(cached)
         : call$.pipe(
             tap((response) => {
-              if (response && generation !== undefined) {
-                void this.storeUnlessCleaned(key, response, ttl, generation)
+              if (response) {
+                this.cacheManager
+                  .set(generationKey, response, ttl * 1000)
+                  .catch((error: unknown) =>
+                    this.logger.warn(`Cache set failed for key=${key}: ${error}`),
+                  )
               }
               this.setCacheHeader(res, ttl)
             }),
@@ -101,24 +111,6 @@ export class HttpCacheInterceptor implements NestInterceptor {
     } catch (error) {
       this.logger.warn(`Cache get failed for key=${key}: ${error}`)
       return call$
-    }
-  }
-
-  // Store first, then check: if cleanCatch ran since the request started, its data may predate the
-  // change, so drop what we just stored. Checking before storing would leave a gap between the two.
-  private async storeUnlessCleaned(
-    key: string,
-    response: unknown,
-    ttl: number,
-    generation: string,
-  ) {
-    try {
-      await this.cacheManager.set(key, response, ttl * 1000)
-      if ((await this.redisService.getApiCacheGeneration()) !== generation) {
-        await this.redisService.cleanKey(key)
-      }
-    } catch (error) {
-      this.logger.warn(`Cache set failed for key=${key}: ${error}`)
     }
   }
 
