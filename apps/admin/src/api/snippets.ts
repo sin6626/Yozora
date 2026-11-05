@@ -25,7 +25,10 @@ export interface CreateSnippetData {
   customPath?: string
 }
 
-export interface UpdateSnippetData extends Partial<CreateSnippetData> {}
+export interface UpdateSnippetData extends Partial<CreateSnippetData> {
+  /** 只在 Core 里存的 raw 仍等于它时才更新，否则 409（防止旧快照覆盖别处的修改） */
+  baseRaw?: string
+}
 
 export interface SnippetGroup {
   reference: string

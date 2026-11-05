@@ -1,5 +1,5 @@
 import { RefreshCw as RefreshIcon, Save as SaveIcon } from 'lucide-vue-next'
-import { NAlert, NForm, NFormItem, NInput, NSkeleton, NTabPane, NTabs } from 'naive-ui'
+import { NAlert, NButton, NForm, NFormItem, NInput, NSkeleton, NTabPane, NTabs, NTag } from 'naive-ui'
 import { computed, defineComponent, ref, watchEffect } from 'vue'
 import { toast } from 'vue-sonner'
 
@@ -7,17 +7,41 @@ import { snippetsApi } from '~/api/snippets'
 import { HeaderActionButton } from '~/components/button/header-action-button'
 import { useLayout } from '~/layouts/content'
 import type { SnippetModel } from '~/models/snippet'
+import { BusinessError } from '~/utils/request'
 
-import { readThemeForm, writeThemeForm } from './theme-form'
-import type { Language, TextField, ThemeForm } from './theme-form'
+import { applyThemeChanges, readThemeForm, themeChanges } from './theme-form'
+import type { FieldValue, Language, TextField, ThemeForm } from './theme-form'
 
 // Yozora（前台）的站点文案：编辑的就是“配置与云函数”里的 theme/yozora 片段，不另存一份。
 // 保存后 Core 发 SNIPPET_UPDATE，前台经 Webhook 立即更新。
 const tabs: { language: Language; label: string; hint: string }[] = [
-  { language: 'zh', label: '中文', hint: '写成空就是前台不显示这一项。' },
-  { language: 'en', label: 'English', hint: '留空表示没有英文译文，英文页面显示中文。' },
-  { language: 'ja', label: '日本語', hint: '留空表示没有日文译文，日文页面显示中文。' },
+  { language: 'zh', label: '中文', hint: '每项三种状态：默认（没写，前台用自带的文案）、自定义、不显示。把文字删光也是不显示。' },
+  { language: 'en', label: 'English', hint: '没有译文时英文页面显示中文；也可以设成英文页面不显示这一项。' },
+  { language: 'ja', label: '日本語', hint: '没有译文时日文页面显示中文；也可以设成日文页面不显示这一项。' },
 ]
+
+// 每种状态在中文和外文里的说法
+const states = {
+  zh: { unset: '默认', unsetHint: '没写：前台显示自带的默认文案', hide: '不显示', reset: '恢复默认', custom: '自定义' },
+  foreign: { unset: '显示中文', unsetHint: '没有译文：这种语言的页面显示中文', hide: '这种语言不显示', reset: '删掉译文', custom: '译文' },
+}
+
+const fieldLabels: Record<string, string> = {
+  'hero.title': '首屏标题',
+  'hero.description': '首屏说明',
+  'footer.motto': '页脚那句话',
+  copyright: '文章版权说明',
+  'techStack.title': '技术栈标题',
+  'techStack.description': '技术栈说明',
+  'footer.icp': '萌备',
+  'accounts.github': 'GitHub 用户名',
+  'accounts.leetcode': '力扣用户名',
+}
+const changeLabel = (path: string[]) => {
+  const [first, language, ...rest] = path
+  if (first === 'i18n') return `${language === 'en' ? 'English' : '日本語'}：${fieldLabels[rest.join('.')] ?? rest.join('.')}`
+  return fieldLabels[path.join('.')] ?? path.join('.')
+}
 
 const fields: { key: TextField; label: string; placeholder: string; rows?: number }[] = [
   { key: 'heroTitle', label: '首屏标题', placeholder: '一个在深夜写代码的**大三学生**（**…** 是强调的字）' },
@@ -60,15 +84,32 @@ export default defineComponent({
 
     const dirty = computed(() => Boolean(form.value && initial.value && JSON.stringify(form.value) !== JSON.stringify(initial.value)))
 
+    // 只把改过的几项套到“保存那一刻”的最新片段上，并要求 Core 确认片段在这之后没再被改（baseRaw）。
+    // 同一项在打开表单后被别处改过：报冲突、不保存；只是别的项被改过：合并后保存；读和写之间又被改了：重读再试。
     const save = async () => {
       if (!snippet.value || !form.value || !initial.value) return
       saving.value = true
       try {
-        const { id, created, modified, ...rest } = snippet.value as SnippetModel & { created?: string; modified?: string }
-        const raw = writeThemeForm(snippet.value.raw, initial.value, form.value)
-        await snippetsApi.update(id, { ...rest, raw })
-        toast.success('已保存，前台马上更新')
-        await load()
+        const changes = themeChanges(initial.value, form.value)
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const latest = await snippetsApi.getById(snippet.value.id)
+          const result = applyThemeChanges(snippet.value.raw, latest.raw, changes)
+          if (result.raw === undefined) {
+            toast.error(`这几项在你打开页面后已在别处被改过：${result.conflicts.map(changeLabel).join('、')}。点“重新读取”看最新内容（这里没保存的修改会丢掉）。`)
+            return
+          }
+          const { id, created, modified, updated, ...rest } = latest as SnippetModel & { created?: string; modified?: string; updated?: string }
+          try {
+            await snippetsApi.update(id, { ...rest, raw: result.raw, baseRaw: latest.raw })
+          } catch (cause) {
+            if (cause instanceof BusinessError && cause.statusCode === 409) continue
+            throw cause
+          }
+          toast.success('已保存，前台马上更新')
+          await load()
+          return
+        }
+        toast.error('保存失败：片段一直在被别处修改，请稍后再试')
       } catch (cause) {
         toast.error(`保存失败：${(cause as Error).message}`)
       } finally {
@@ -86,15 +127,32 @@ export default defineComponent({
       )
     })
 
-    const input = (value: string, update: (next: string) => void, placeholder: string, rows?: number) => (
-      <NInput
-        value={value}
-        onUpdateValue={update}
-        placeholder={placeholder}
-        type={rows ? 'textarea' : 'text'}
-        autosize={rows ? { minRows: rows } : undefined}
-      />
-    )
+    // 输入框 + 当前状态 + 切换按钮：没写时可以直接设成不显示，写了的可以改回默认
+    const input = (value: FieldValue, update: (next: FieldValue) => void, placeholder: string, rows?: number, kind: keyof typeof states = 'zh') => {
+      const words = states[kind]
+      const state = value === null ? 'unset' : value.trim() === '' ? 'hide' : 'custom'
+      return (
+        <div class="flex w-full flex-col gap-1.5">
+          <NInput
+            value={value ?? ''}
+            onUpdateValue={update}
+            placeholder={value === null ? `${words.unsetHint}（例：${placeholder}）` : state === 'hide' ? '不显示这一项' : placeholder}
+            type={rows ? 'textarea' : 'text'}
+            autosize={rows ? { minRows: rows } : undefined}
+          />
+          <div class="flex items-center gap-2 text-xs">
+            <NTag size="small" bordered={false} type={state === 'custom' ? 'success' : state === 'hide' ? 'warning' : 'default'}>
+              {state === 'unset' ? words.unset : state === 'hide' ? words.hide : words.custom}
+            </NTag>
+            {state === 'unset' ? (
+              <NButton size="tiny" quaternary onClick={() => update('')}>设为{words.hide}</NButton>
+            ) : (
+              <NButton size="tiny" quaternary onClick={() => update(null)}>{words.reset}</NButton>
+            )}
+          </div>
+        </div>
+      )
+    }
 
     return () => {
       if (loading.value) return <NSkeleton text repeat={6} />
@@ -112,7 +170,7 @@ export default defineComponent({
                 <NForm labelPlacement="top">
                   {fields.map((field) => (
                     <NFormItem label={field.label} key={field.key}>
-                      {input(value[tab.language][field.key], (next) => (value[tab.language][field.key] = next), field.placeholder, field.rows)}
+                      {input(value[tab.language][field.key], (next) => (value[tab.language][field.key] = next), field.placeholder, field.rows, tab.language === 'zh' ? 'zh' : 'foreign')}
                     </NFormItem>
                   ))}
                 </NForm>
@@ -121,10 +179,10 @@ export default defineComponent({
           </NTabs>
           <NForm labelPlacement="top">
             <h3 class="mb-2 text-sm font-medium">各语言共用</h3>
-            <NFormItem label="萌备号文字">{input(value.icpLabel, (next) => (value.icpLabel = next), '萌ICP备20265334号')}</NFormItem>
+            <NFormItem label="萌备号文字（文字和链接都填才显示）">{input(value.icpLabel, (next) => (value.icpLabel = next), '萌ICP备20265334号')}</NFormItem>
             <NFormItem label="萌备链接">{input(value.icpHref, (next) => (value.icpHref = next), 'https://icp.gov.moe/?keyword=20265334')}</NFormItem>
-            <NFormItem label="页脚星带：GitHub 用户名">{input(value.github, (next) => (value.github = next), '留空就不显示写代码的星')}</NFormItem>
-            <NFormItem label="页脚星带：力扣（中国站）用户名">{input(value.leetcode, (next) => (value.leetcode = next), '留空就不显示刷题的星')}</NFormItem>
+            <NFormItem label="页脚星带：GitHub 用户名">{input(value.github, (next) => (value.github = next), 'sin6626')}</NFormItem>
+            <NFormItem label="页脚星带：力扣（中国站）用户名">{input(value.leetcode, (next) => (value.leetcode = next), 'sin-mt')}</NFormItem>
           </NForm>
         </div>
       )
