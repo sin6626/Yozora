@@ -83,13 +83,12 @@ try {
     assert.deepEqual(await tagsFor(`COMMENT_${action}`, JSON.stringify({ id })), ['blog:comments'])
     assert.deepEqual(await tagsFor(`AI_SUMMARY_${action}`, JSON.stringify({ id, refId: id, lang: 'zh' })), ['blog:ai'])
     assert.deepEqual(await tagsFor(`SNIPPET_${action}`, JSON.stringify({ id, reference: 'theme', name: 'yozora' })), ['blog:theme', 'activity-sky'])
-    if (action === 'DELETE') continue
     assert.deepEqual(await tagsFor(`TRANSLATION_${action}`, JSON.stringify({ id, refId: id, lang: 'en' })), ['blog:ai', 'blog:posts', 'blog:notes', 'blog:pages'])
   }
   assert.deepEqual(await tagsFor('OPTION_UPDATE', JSON.stringify({ id, key: 'seo' })), ['blog:navigation', 'blog:links'])
   assert.deepEqual(await tagsFor('OWNER_UPDATE', JSON.stringify({ id })), ['blog:navigation'])
   assert.deepEqual((await tagsFor('CONTENT_REFRESH', '"restore_done"')).sort(), ['activity-sky', 'blog:ai', 'blog:categories', 'blog:comments', 'blog:links', 'blog:murmurs', 'blog:navigation', 'blog:notes', 'blog:pages', 'blog:posts', 'blog:projects', 'blog:recently', 'blog:says', 'blog:theme'])
-  for (const event of ['READER_CREATE', 'LINK_APPLY', 'VISITOR_ONLINE', 'TRANSLATION_DELETE', 'OPTION_CREATE']) await expectStatus(event, JSON.stringify({ id }), 400)
+  for (const event of ['READER_CREATE', 'LINK_APPLY', 'VISITOR_ONLINE', 'OPTION_CREATE']) await expectStatus(event, JSON.stringify({ id }), 400)
   await expectStatus('NOTE_UPDATE', JSON.stringify({ id: 'bad' }), 400)
   failInvalidation = true
   await expectStatus('POST_UPDATE', JSON.stringify({ id }), 500)

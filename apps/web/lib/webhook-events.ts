@@ -16,8 +16,8 @@ const kinds: Record<string, { tags: readonly string[]; actions?: readonly string
   COMMENT: { tags: ["blog:comments"] },
   PROJECT: { tags: ["blog:projects"] },
   LINK: { tags: ["blog:links"] },
-  // AI 翻译（或手动写入的译文）新增、更新：外文页面的正文、标题、摘要都来自它；文章、手记列表和导航的译名也跟着变
-  TRANSLATION: { tags: ["blog:ai", "blog:posts", "blog:notes", "blog:pages"], actions: ["CREATE", "UPDATE"] },
+  // AI 翻译新增、在后台修改或删除：外文页面的正文、标题、摘要都来自它；文章、手记列表和导航的译名也跟着变
+  TRANSLATION: { tags: ["blog:ai", "blog:posts", "blog:notes", "blog:pages"] },
   // AI 摘要生成、在后台修改或删除：详情页摘要和列表摘要（getPosts/getNotes 也挂着 blog:ai）
   AI_SUMMARY: { tags: ["blog:ai"] },
   // 配置片段：theme/yozora（技术栈、外文描述与作品译文）和 theme/leetcode-calendar（页脚力扣星带）

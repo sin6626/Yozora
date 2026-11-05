@@ -1079,14 +1079,21 @@ export class AiTranslationService
     }
 
     await doc.save()
+    this.emitTranslationEvent(BusinessEvents.TRANSLATION_UPDATE, doc)
     return doc
   }
 
   async deleteTranslation(id: string) {
+    const doc = await this.aiTranslationModel.findById(id).lean()
     const result = await this.aiTranslationModel.deleteOne({ _id: id })
-    if (result.deletedCount === 0) {
+    if (!doc || result.deletedCount === 0) {
       throw new BizException(ErrorCodeEnum.AITranslationNotFound)
     }
+    this.eventManager.emit(
+      BusinessEvents.TRANSLATION_DELETE,
+      { id, refId: doc.refId, refType: doc.refType, lang: doc.lang },
+      { scope: EventScope.TO_SYSTEM },
+    )
   }
 
   async deleteTranslationsByRefId(refId: string) {

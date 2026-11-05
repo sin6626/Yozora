@@ -1265,4 +1265,41 @@ describe('AiTranslationService', () => {
       ).toBe(false)
     })
   })
+
+  describe('manual edits', () => {
+    it('emits TRANSLATION_UPDATE after an edit is saved', async () => {
+      const doc = { ...mockTranslation, save: vi.fn() }
+      mockTranslationModel.findById.mockResolvedValue(doc)
+
+      await service.updateTranslation('trans-1', { title: 'Edited' })
+
+      expect(doc.save).toHaveBeenCalled()
+      expect(mockEventManager.emit).toHaveBeenCalledWith(
+        BusinessEvents.TRANSLATION_UPDATE,
+        expect.objectContaining({ id: 'trans-1', refId: 'article-1', title: 'Edited' }),
+        { scope: EventScope.TO_SYSTEM_VISITOR },
+      )
+    })
+
+    it('emits TRANSLATION_DELETE with identifiers only after a delete', async () => {
+      mockTranslationModel.findById.mockReturnValue({ lean: () => Promise.resolve({ ...mockTranslation, _id: 'trans-1' }) })
+      mockTranslationModel.deleteOne.mockResolvedValue({ deletedCount: 1 })
+
+      await service.deleteTranslation('trans-1')
+
+      expect(mockEventManager.emit).toHaveBeenCalledTimes(1)
+      const [event, payload, options] = mockEventManager.emit.mock.calls[0]
+      expect(event).toBe(BusinessEvents.TRANSLATION_DELETE)
+      expect(payload).toEqual({ id: 'trans-1', refId: 'article-1', refType: CollectionRefTypes.Post, lang: 'en' })
+      expect(options).toEqual({ scope: EventScope.TO_SYSTEM })
+    })
+
+    it('emits nothing when the translation does not exist', async () => {
+      mockTranslationModel.findById.mockReturnValue({ lean: () => Promise.resolve(null) })
+      mockTranslationModel.deleteOne.mockResolvedValue({ deletedCount: 0 })
+
+      await expect(service.deleteTranslation('missing')).rejects.toThrow()
+      expect(mockEventManager.emit).not.toHaveBeenCalled()
+    })
+  })
 })
