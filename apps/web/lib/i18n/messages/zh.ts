@@ -102,6 +102,7 @@ const zh = {
   },
   hero: {
     avatarAlt: msg<[name: string]>("{name} 的头像"),
+    shadowLabel: "久遠 真的设定",
     greeting: "你好，我是",
     nameSuffix: "。",
   },

@@ -12,6 +12,7 @@ import ScrollHint from "./scroll-hint";
 import SocialTooltip, { SocialTooltipGroup } from "./social-tooltip";
 import SiteActions from "./site-actions";
 import MoonTip from "./moon-tip";
+import HeroShadow from "./hero-shadow";
 // 首屏标题与说明用霞鹜文楷（简体版，npm 包已按字符切成小块，浏览器只下载页面上用到的字）；细体、常规，强调词“大三学生”用粗体
 import "lxgw-wenkai-webfont/lxgwwenkai-light.css";
 import "lxgw-wenkai-webfont/lxgwwenkai-regular.css";
@@ -139,9 +140,11 @@ export default async function HomeHero() {
           </div>
         </div>
         <div className="home-hero-half">
-          <Suspense fallback={<span className="home-hero-avatar is-empty" aria-hidden="true" />}>
-            <Portrait />
-          </Suspense>
+          <HeroShadow label={t.shadowLabel}>
+            <Suspense fallback={<span className="home-hero-avatar is-empty" aria-hidden="true" />}>
+              <Portrait />
+            </Suspense>
+          </HeroShadow>
         </div>
       </div>
       <div className="home-hero-bottom">

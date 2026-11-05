@@ -17,7 +17,7 @@ const hero = () => browser.evaluate(`(() => {
   return {
     title: [...page.querySelectorAll(".home-hero-title > span, .home-hero-title > strong")].map(names),
     description: names(page.querySelector(".home-hero-description")),
-    avatar: names(page.querySelector(".home-hero-avatar")),
+    avatar: names(page.querySelector(".home-portrait")),
     bottom: names(page.querySelector(".home-hero-bottom")),
     name: names(page.querySelector(".home-hero-name")),
     emphasis: names(emphasis),
