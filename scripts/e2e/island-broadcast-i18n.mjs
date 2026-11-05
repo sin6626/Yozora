@@ -1,7 +1,8 @@
 // 浏览器回归测试：外文页面的夜航岛文章播报（2026-11-05 AI i18n）。
 // ① 新文章、修改文章的通知只带中文标题：英文页面向 Core 要这篇的英文译名，有就播译名，没有就播中文原题并标 lang="zh-CN"；书名号用词典里的写法（英文是引号）。
 // ② 后台改了播报文案的译文后，页面 router.refresh 拿到新译文，之后的播报用新文案（原来文案存在 ref 里，停在页面第一次打开时的那份）。
-// Core 的实时连接换成页面里的假 WebSocket（按 socket.io 协议回握手、推消息），不写库；②会临时改一条英文译文，结束时改回。
+// Core 的实时连接换成页面里的假 WebSocket（按 socket.io 协议回握手、推消息）。②要临时改一条英文译文：只在它是“手改过、不待看”时才改
+// （保存接口会把条目标成手改过，这样改回文字后状态和原来完全一样），否则跳过②，不动日常库。
 // 需先开 pnpm dev。用法：node scripts/e2e/island-broadcast-i18n.mjs
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -10,7 +11,7 @@ import { openBrowser, sleep } from "../headless-browser.mjs";
 const base = process.env.WEB_URL ?? "http://127.0.0.1:2323";
 const core = process.env.CORE_URL ?? "http://127.0.0.1:2333";
 const token = JSON.parse(readFileSync(new URL("../../.local/publish.json", import.meta.url), "utf8")).local.token;
-const json = async (path, init) => (await fetch(core + path, init)).json();
+const json = async (path, init) => (await fetch(core + path, { ...init, signal: AbortSignal.timeout(10000) })).json();
 
 // 一篇有英文译文的文章
 const posts = (await json("/posts?page=1&size=20")).data;
@@ -50,13 +51,15 @@ const fakeSocket = `{
   window.__emit = (message) => window.__sockets.forEach((socket) => socket.deliver("42/web," + JSON.stringify(["message", message])));
 }`;
 
-const browser = await openBrowser({ port: 9368 });
 const original = messages["notifications.POST_UPDATE.title"];
-const put = (text) => fetch(`${core}/ai/i18n/entries`, {
-  method: "PUT",
-  headers: { "x-api-key": token, "content-type": "application/json" },
-  body: JSON.stringify({ keyPath: "ui.text", lookupKey: "notifications.POST_UPDATE.title", lang: "en", text }),
-});
+const lookupKey = "notifications.POST_UPDATE.title";
+const auth = { "x-api-key": token, "content-type": "application/json" };
+const cell = (await json("/ai/i18n/entries?group=notifications", { headers: auth })).data.find((entry) => entry.lookup_key === lookupKey)?.translations?.en;
+const restorable = cell?.text === original && cell.manual === true && cell.needs_review === false;
+const put = (text) => fetch(`${core}/ai/i18n/entries`, { method: "PUT", headers: auth, body: JSON.stringify({ keyPath: "ui.text", lookupKey, lang: "en", text }), signal: AbortSignal.timeout(10000) });
+let changed = false;
+
+const browser = await openBrowser({ port: 9368 });
 try {
   await browser.send("Page.addScriptToEvaluateOnNewDocument", { source: fakeSocket });
   await browser.setViewport(1920, 991);
@@ -81,15 +84,23 @@ try {
   assert.deepEqual(await broadcast(original), { title: original, detail: quoted("还没有译文的文章"), lang: "zh-CN" }, "没有译名时播中文原题并标 zh-CN");
   await sleep(5500);
 
-  assert.equal((await put("Post updated just now")).status, 200);
-  await sleep(1500);
-  await browser.evaluate("window.next.router.refresh()");
-  await sleep(2500);
-  await browser.evaluate(`window.__emit(${JSON.stringify({ type: "POST_UPDATE", data: { id: "000000000000000000000000", title: "还没有译文的文章" } })})`);
-  assert.equal((await broadcast("Post updated just now")).title, "Post updated just now", "刷新后用新的播报文案");
+  if (restorable) {
+    changed = true;
+    assert.equal((await put("Post updated just now")).status, 200);
+    await sleep(1500);
+    await browser.evaluate("window.next.router.refresh()");
+    await sleep(2500);
+    await browser.evaluate(`window.__emit(${JSON.stringify({ type: "POST_UPDATE", data: { id: "000000000000000000000000", title: "还没有译文的文章" } })})`);
+    assert.equal((await broadcast("Post updated just now")).title, "Post updated just now", "刷新后用新的播报文案");
+  } else {
+    console.log(`跳过“刷新后用新文案”：${lookupKey} 的英文不是“手改过、不待看”（${JSON.stringify(cell)}），改了就恢复不回原来的状态`);
+  }
   assert.deepEqual(browser.errors, [], "页面不应当有报错");
-  console.log(`PASS 夜航岛外文播报：有译名播“${translated.en}”、没有时中文原题标 zh-CN、书名号随语言、后台改了文案刷新后就用新的`);
+  console.log(`PASS 夜航岛外文播报：有译名播“${translated.en}”、没有时中文原题标 zh-CN、书名号随语言${restorable ? "、后台改了文案刷新后就用新的" : ""}`);
 } finally {
-  await put(original);
   await browser.close();
+  if (changed) {
+    const restored = await put(original).catch((error) => error);
+    if (restored?.status !== 200) console.error(`没能改回 ${lookupKey} 的英文，请到后台 AI → i18n 改回“${original}”：${restored?.status ?? restored}`);
+  }
 }

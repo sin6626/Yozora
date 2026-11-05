@@ -91,7 +91,7 @@ Core 的“翻译条目”已经有一套完整的机制：
    - `proxy.ts`：每分钟最多读一次语言列表。按浏览器语言跳转时，只在开着的语言里挑。没开的语言（比如 `/ko/...` 关掉以后），去掉前缀回到同一页不带前缀的地址（实际跳到哪种语言见文末实现记录）。
    - 语言菜单、手机菜单、文章页的语言分段、sitemap，都只列开着的语言。
 4. **站点文案**：
-   - 不再读片段里的 `i18n`。外文页面按中文原文在 `GET /ai/i18n/:lang` 的 `site` 里找译文、作品按 id 在 `projects` 里找，没翻出来的显示中文并标 `lang="zh-CN"`。
+   - 不再读片段里的 `i18n`。外文页面按位置在 `GET /ai/i18n/:lang` 的 `site` 里找译文（中文要和现在显示的一致）、作品按 id 在 `projects` 里找，没翻出来的显示中文并标 `lang="zh-CN"`。
    - 片段读不到时只保留中文占位，外文页面也显示中文占位。
 5. **中文原文推送给 Core**：
    - 新增 `scripts/push-i18n-source.mjs`，把 `zh.ts` 拍平后用后台令牌上传。
@@ -202,14 +202,14 @@ Core 的“翻译条目”已经有一套完整的机制：
 公开（不要登录，走 Core 的接口缓存，`I18N_UPDATE` 时清缓存）：
 
 - `GET /ai/i18n` → `{ enabled: boolean, languages: string[] }`。关着时 `languages` 是 `[]`。
-- `GET /ai/i18n/:lang` → `{ lang, messages: { [界面文字条目名]: 译文 }, site: { [中文原文]: 译文 }, projects: { [作品 id]: { name?: string, description?: string } } }`。只含已经翻好、通过校验的。`lang` 不在开着的语言里返回 404。
+- `GET /ai/i18n/:lang` → `{ lang, messages: { [界面文字条目名]: 译文 }, site: { [位置，如 hero.title]: { source: 中文原文, text: 译文 } }, projects: { [作品 id]: { name?: string, description?: string } } }`。只含已经翻好、通过校验的。`lang` 不在开着的语言里返回 404。
 
 要登录（给后台和本机脚本，后台令牌 `x-api-key` 也行）：
 
 - `PUT /ai/i18n/source`，body `{ messages: { [条目名]: 中文 } }`：整张替换原文表。返回 `{ added, changed, removed }`（条目名列表）。删掉的条目连同它的 `ui.text` 译文一起删。开着 `enableI18n` 时，在后台异步翻新增的和改过的（不等它翻完就返回）。
 - `GET /ai/i18n/status` → `{ running: boolean, lastRun?: { at, created, failed, skipped } , languages: string[], enabled: boolean }`。
 - `POST /ai/i18n/generate`，body `{ langs?: string[], group?: string, onlyMissing?: boolean }`：异步开始一次生成（已经在跑就返回 409），立刻返回 `{ started: true }`。不传 `onlyMissing` 时，缺的和中文改过的都翻。
-- `GET /ai/i18n/groups` → `[{ group, total, languages: { [lang]: { done, missing, review } } }]`。`group` 规则：`ui.text` 取条目名第一段（`header`、`home`……），`site.text` 是 `site`，`project.*` 是 `projects`。
+- `GET /ai/i18n/groups` → `[{ group, total, languages: { [lang]: { done, missing, review } } }]`。`group` 规则：`ui.text` 取条目名第一段（`header`、`home`……），`site.text` 是 `site`，`project.*` 是 `works`（实现时从 `projects` 改名，见文末）。
 - `GET /ai/i18n/entries?group=xxx` → `[{ keyPath, lookupKey, key, source, translations: { [lang]: { text, manual, needsReview } | null } }]`。`key` 对 `ui.text` 是条目名，对 `site.text` 是位置（如 `hero.title`），对 `project.*` 是“作品名 / 介绍”加作品 id。
 - `PUT /ai/i18n/entries`，body `{ keyPath, lookupKey, lang, text }`：手改（不存在就新建），先过校验（不通过返回 422 和原因），保存后 `manual = true`、`needsReview = false`，发 `I18N_UPDATE`。
 - `DELETE /ai/i18n/entries`，body `{ keyPath, lookupKey, lang }`：删掉一条译文（回到缺译文）。
@@ -237,6 +237,7 @@ Core 的“翻译条目”已经有一套完整的机制：
 - **Webhook**：`I18N_UPDATE` 的载荷只有 `{ langs }`，前台 Webhook 接收端原来要求每个事件带 24 位内容 ID，现在对这类事件放行（`apps/web/lib/webhook-events.ts` 的 `idless`）。`OPTION_UPDATE` 也让 `i18n` 标签失效（开关、语言列表变了）。本地 Webhook 已加勾 `I18N_UPDATE`（共 46 个事件，原列表备份 `.local/backups/webhook-events-20261105-i18n.json`）。
 - **关掉的语言**：`/ko/posts` 去掉前缀、跳到 `/posts`，之后和别的不带前缀的地址一样：读者手动选过开着的语言、或浏览器首选的语言开着，就去那种语言，否则是中文。这样韩语关掉后，首选“韩语、英语”的读者会落在英文页，而不是硬塞中文；没有偏好的读者落在中文。只有一段的地址（`/ko`、`/cv`、`/it`）不跳：页面只有一级，slug 可能正好是语言代码（简历页 `/cv`），按页面处理，没有这个页面就是站内 404。判断“是不是一种语言”用 `Intl.DisplayNames`（叫得出名字才算）。
 - **站点文案按位置存**：原定 `site.text` 用中文原文的哈希当身份，改了中文就成了另一条，手改过的译文不会被标“待看”。改成按位置（`hero.title`、`seo.description`……），中文改了还是同一条，按“原文改过”重翻、手改过的标待看。后台条目列表直接显示位置。片段设成私密时不收它的文字（公开接口不会漏出私密片段的内容），已有译文保留。
+- **公开接口里的站点文案也按位置给**：`site` 是“位置 → { 中文, 译文 }”，前台按位置找、核对中文和现在显示的一致才用。按中文原文当键时，同一句中文在两处会串成同一个译文。
 - **AI 和手改同时发生**：AI 生成要等模型返回，这期间站长在后台改了同一条，AI 的结果不覆盖（只在条目还是生成开始时读到的样子时才写）。
 - **文章翻译补语言**：文章更新时，除了重翻过期的语言，也补上目标语言里还没有译文的（比如后来加进 i18n 语言的韩语）。
 - **补译**：保存 AI 设置（加了语言、过一阵又加回某种语言、打开开关）时，把每种开着的语言里缺的和原文改过的都补上；已经是最新的不会发给 AI。

@@ -1,3 +1,4 @@
+import type { SiteTranslation } from "./i18n/data";
 import { usable } from "./i18n/msg";
 
 // 站点主题配置：后台“配置与云函数”里引用 theme、名称 yozora 的 JSON 片段（getThemeConfig 读取）。
@@ -20,8 +21,8 @@ function text(value: unknown) {
 // }
 // 规则：片段读不到、或某一项根本没写，用下面的占位（和站长 2026-10 定的文案相同）；
 // 写成空字符串、空数组或 null（包括整组写成 null）就是故意不显示，旧值不会冒回来。
-// 片段里只写中文：外文页面的译文由后台“AI i18n”翻好（Core GET /ai/i18n/:lang 的 site，中文原文 → 译文，传进来的 site），
-// 每一项单独找，没有就显示中文那一项并单独标 zh-CN。
+// 片段里只写中文：外文页面的译文由后台“AI i18n”翻好（Core GET /ai/i18n/:lang 的 site：位置 → 中文和译文，传进来的 site），
+// 每一项按位置找、核对中文一致才用，没有就显示中文那一项并单独标 zh-CN。
 export type Tech = { name: string; icon: string };
 export type HeroTitle = { text: string; strong: boolean }[];
 type Localized = { text: string; lang?: "zh-CN" };
@@ -53,10 +54,6 @@ function heroTitle(value: string): HeroTitle {
   return parts;
 }
 
-function lines(value: unknown) {
-  return Array.isArray(value) ? value.flatMap((line) => (typeof line === "string" && line.trim() ? [line.trim()] : [])) : [];
-}
-
 function techRows(value: unknown): Tech[][] {
   return (Array.isArray(value) ? value : [])
     .map((row) => (Array.isArray(row) ? row : []).flatMap((item) => {
@@ -78,11 +75,16 @@ function field(source: unknown, path: string[]): { value: unknown } | undefined 
   return { value };
 }
 
-export function parseSiteContent(config: unknown, lang: string, site: Record<string, string> = {}): SiteContent {
+// 一处站点文案的译文：按位置找，中文要和现在显示的一致（Core 存的是去掉首尾空白的原文），占位符和 ** 对不上的不用
+export function siteTranslation(site: Record<string, SiteTranslation>, slot: string, source: string) {
+  const found = site[slot];
+  return found?.source === source && usable(source, found.text) ? found.text : undefined;
+}
+
+export function parseSiteContent(config: unknown, lang: string, site: Record<string, SiteTranslation> = {}): SiteContent {
   const root = isObject(config) ? config : undefined;
   const foreign = lang !== "zh";
-  // 一段中文换成译文（Core 存的是去掉首尾空白的原文）；占位符和 ** 对不上的译文不用
-  const translate = (source: string) => (foreign && usable(source, site[source]) ? site[source] : undefined);
+  const translate = (slot: string, source: string) => (foreign ? siteTranslation(site, slot, source) : undefined);
   // 片段读不到、或这一项根本没写，用占位；写了就用片段里的（包括清空）
   const pick = (path: string[], fallback: unknown) => {
     if (!root) return fallback;
@@ -92,14 +94,16 @@ export function parseSiteContent(config: unknown, lang: string, site: Record<str
   const localized = (path: string[], fallback: string | null): Localized | null => {
     const found = text(pick(path, fallback));
     if (!found) return null;
-    const translated = translate(found);
+    const translated = translate(path.join("."), found);
     return translated ? { text: translated } : { text: found, ...(foreign && { lang: "zh-CN" as const }) };
   };
   const title = text(pick(["hero", "title"], placeholder.title)) ?? "";
-  const titleTranslated = title ? translate(title) : undefined;
-  // 说明一行一段，每行单独翻；有一行没有译文就整段显示中文，不中外混排
-  const description = lines(pick(["hero", "description"], placeholder.description));
-  const descriptionTranslated = description.map(translate);
+  const titleTranslated = title ? translate("hero.title", title) : undefined;
+  // 说明一行一段，每行单独翻（位置用片段数组里原来的下标，空行也占一个号，和 Core 一致）；有一行没有译文就整段显示中文，不中外混排
+  const rawDescription = pick(["hero", "description"], placeholder.description);
+  const indexed = Array.isArray(rawDescription) ? rawDescription.flatMap((line, index) => (text(line) ? [{ index, line: text(line)! }] : [])) : [];
+  const description = indexed.map(({ line }) => line);
+  const descriptionTranslated = indexed.map(({ index, line }) => translate(`hero.description.${index}`, line));
   const descriptionDone = descriptionTranslated.every((line) => line !== undefined);
   const icpValue = pick(["footer", "icp"], placeholderIcp);
   const icpLabel = isObject(icpValue) ? text(icpValue.label) : undefined;

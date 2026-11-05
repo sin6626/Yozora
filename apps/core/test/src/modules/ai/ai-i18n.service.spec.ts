@@ -330,8 +330,8 @@ describe('AI i18n', () => {
         lang: 'ja',
         messages: { 'locale.switched': '[Japanese] 已切换到{name}' },
         site: {
-          '头顶的星空，是心里的星空。': '[Japanese] 头顶的星空，是心里的星空。',
-          夜深里也有月亮和星星陪我作伴: '[Japanese] 夜深里也有月亮和星星陪我作伴',
+          'footer.motto': { source: '头顶的星空，是心里的星空。', text: '[Japanese] 头顶的星空，是心里的星空。' },
+          'seo.description': { source: '夜深里也有月亮和星星陪我作伴', text: '[Japanese] 夜深里也有月亮和星星陪我作伴' },
         },
         projects: {
           [project.id]: { name: '[Japanese] 星图', description: '[Japanese] 一言星图' },
@@ -366,8 +366,8 @@ describe('AI i18n', () => {
       await service.onOptionUpdate({ key: 'seo' })
       await idle()
       expect((await service.getPublicTranslations('en')).site).toEqual({
-        新标题: '[English] 新标题',
-        新的描述: '[English] 新的描述',
+        'hero.title': { source: '新标题', text: '[English] 新标题' },
+        'seo.description': { source: '新的描述', text: '[English] 新的描述' },
       })
 
       const project = await projects.create({ name: '作品', description: '介绍' })
@@ -405,9 +405,22 @@ describe('AI i18n', () => {
       await idle()
 
       const { site } = await service.getPublicTranslations('en')
-      expect(Object.keys(site)).toEqual(['夜深里也有月亮和星星陪我作伴'])
+      expect(Object.keys(site)).toEqual(['seo.description'])
       expect((await service.getEntries('site')).map((row) => row.key)).toEqual(['seo.description'])
       expect(await entries.countDocuments({ keyPath: 'site.text', lookupKey: 'hero.title' })).toBe(2)
+    })
+
+    it('serves the same Chinese in two slots with each slot’s own translation', async () => {
+      await yozora({ hero: { title: '你好' }, footer: { motto: '你好' } })
+      await service.onSnippetChange({ reference: 'theme', name: 'yozora' })
+      await idle()
+      await service.saveEntry({ keyPath: 'site.text', lookupKey: 'hero.title', lang: 'en', text: 'Hello!' })
+      await service.saveEntry({ keyPath: 'site.text', lookupKey: 'footer.motto', lang: 'en', text: 'Greetings.' })
+      const { site } = await service.getPublicTranslations('en')
+      expect([site['hero.title'], site['footer.motto']]).toEqual([
+        { source: '你好', text: 'Hello!' },
+        { source: '你好', text: 'Greetings.' },
+      ])
     })
 
     it('keeps site translations when the snippet cannot be parsed', async () => {

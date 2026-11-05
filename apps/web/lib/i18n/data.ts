@@ -31,9 +31,12 @@ export async function getSiteLocales(): Promise<string[]> {
   return loadLanguages().catch(() => [defaultLocale]);
 }
 
+// site：站点文案按位置（hero.title、hero.description.0、footer.motto、seo.description……），带着它翻译的那句中文；
+// 用的地方核对中文一致才用（片段刚改、两边缓存还没一起刷新时不会对错句子）
+export type SiteTranslation = { source: string; text: string };
 export type I18nBundle = {
   messages: Record<string, string>;
-  site: Record<string, string>;
+  site: Record<string, SiteTranslation>;
   projects: Record<string, { name?: string; description?: string }>;
 };
 const empty: I18nBundle = { messages: {}, site: {}, projects: {} };
@@ -45,14 +48,15 @@ async function loadBundle(lang: string): Promise<I18nBundle> {
   const data = await fetchCore(`/ai/i18n/${lang}`);
   if (!isObject(data)) return empty;
   const projects = isObject(data.projects) ? data.projects : {};
+  const site = isObject(data.site) ? data.site : {};
   return {
     messages: strings(data.messages),
-    site: strings(data.site),
+    site: Object.fromEntries(Object.entries(site).flatMap(([slot, value]) => (isObject(value) && typeof value.source === "string" && typeof value.text === "string" ? [[slot, { source: value.source, text: value.text }]] : []))),
     projects: Object.fromEntries(Object.entries(projects).flatMap(([id, value]) => (isObject(value) ? [[id, { name: typeof value.name === "string" ? value.name : undefined, description: typeof value.description === "string" ? value.description : undefined }]] : []))),
   };
 }
 
-// 一种语言的全部译文：界面文字（条目名 → 译文）、站点文案（中文原文 → 译文）、作品（id → 名字和介绍）。
+// 一种语言的全部译文：界面文字（条目名 → 译文）、站点文案（位置 → 中文和译文）、作品（id → 名字和介绍）。
 // 只有 Core 已经翻好、通过校验的；中文、读不到时是空的（页面显示中文）
 export async function getI18nBundle(lang: string): Promise<I18nBundle> {
   if (lang === defaultLocale || !isLanguageCode(lang)) return empty;

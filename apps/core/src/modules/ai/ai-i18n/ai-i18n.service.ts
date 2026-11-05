@@ -141,14 +141,18 @@ export class AiI18nService {
     const translated = await this.freshTranslations(sources, [code])
 
     const messages: Record<string, string> = {}
-    const site: Record<string, string> = {}
+    // Site text by slot, with the Chinese it translates: the same Chinese can sit in two slots with
+    // different translations, and the blog only uses one whose Chinese matches what it shows
+    const site: Record<string, { source: string; text: string }> = {}
     const projects: Record<string, { name?: string; description?: string }> =
       {}
     for (const item of sources) {
       const text = translated.get(`${idOf(item)}:${code}`)?.text
       if (text === undefined) continue
       if (item.keyPath === 'ui.text') messages[item.lookupKey] = text
-      else if (item.keyPath === 'site.text') site[item.source] = text
+      else if (item.keyPath === 'site.text') {
+        site[item.lookupKey] = { source: item.source, text }
+      }
       else {
         const field = item.keyPath === 'project.name' ? 'name' : 'description'
         projects[item.lookupKey] = {

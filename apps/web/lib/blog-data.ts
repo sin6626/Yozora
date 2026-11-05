@@ -4,7 +4,7 @@ import { getApiClient } from "./api";
 import { safeUrl } from "./safe-url";
 import { excerpt, readingMinutes } from "./excerpt";
 import { socialCards, socialLinks } from "./social";
-import { parseSiteContent } from "./theme-config";
+import { parseSiteContent, siteTranslation } from "./theme-config";
 import { isLanguageCode, type Locale } from "./i18n/config";
 import { getI18nBundle } from "./i18n/data";
 
@@ -377,11 +377,11 @@ export async function getProjects(lang: ContentLang = "zh") {
   }));
 }
 
-// 站点那句话（后台 SEO 描述）：外文页面用后台“AI i18n”翻好的译文（按去掉首尾空白的中文原文查），没有时用中文。
+// 站点那句话（后台 SEO 描述）：外文页面用后台“AI i18n”翻好的译文（位置 seo.description，中文要一致），没有时用中文。
 export async function getSiteDescription(lang: ContentLang = "zh") {
   const [settings, { site }] = await Promise.all([getSiteSettings().catch(() => null), getI18nBundle(lang)]);
   const source = (settings?.description ?? siteDescription).trim();
-  const translated = lang === "zh" ? undefined : site[source];
+  const translated = lang === "zh" ? undefined : siteTranslation(site, "seo.description", source);
   return { text: translated ?? source, original: lang !== "zh" && !translated };
 }
 
