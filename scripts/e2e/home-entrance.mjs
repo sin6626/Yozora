@@ -70,7 +70,8 @@ try {
   await browser.evaluate(`document.querySelector('.navigation-List a[href="/posts"]').click()`);
   await sleep(2500);
   await browser.evaluate(`document.querySelector('.navigation-List a[href="/"]').click()`);
-  await sleep(300);
+  // 开发模式不预取，回首页要等整份响应（实测约 1 秒，生产约 0.2 秒），等首屏真的显示出来再量
+  await browser.evaluate(`new Promise((resolve, reject) => { const t0 = performance.now(); (function poll() { if ([...document.querySelectorAll(".home-hero")].some((el) => el.offsetParent !== null)) return resolve(); if (performance.now() - t0 > 8000) return reject(new Error("8 秒内没有回到首页")); requestAnimationFrame(poll); })(); })`);
   const back = await hero();
   assert.ok(back.riseTime !== null && back.riseTime < 1500, `回到首页后首屏动画应重新开始：${back.riseTime}`);
   await sleep(1500);
