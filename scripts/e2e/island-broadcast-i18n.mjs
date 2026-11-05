@@ -80,23 +80,32 @@ try {
   // ② 刷新时把页面数据里这句的译文换掉（RSC 里 LocaleProvider 的 translations），相当于后台改了它
   const field = (text) => `"notifications.POST_UPDATE.title":${JSON.stringify(text)}`;
   let swapped = 0;
+  // 回调里出的错（比如刷新时服务停了、取不到响应体）记下来交回主流程，让测试失败并照常关浏览器
+  let interceptError;
   browser.listeners.push(async (message) => {
     if (message.method !== "Fetch.requestPaused") return;
     const { requestId, responseStatusCode, responseHeaders } = message.params;
-    const { result } = await browser.send("Fetch.getResponseBody", { requestId });
-    const body = Buffer.from(result.body, result.base64Encoded ? "base64" : "utf8").toString("utf8");
-    if (body.includes(field(original))) swapped++;
-    await browser.send("Fetch.fulfillRequest", {
-      requestId,
-      responseCode: responseStatusCode,
-      responseHeaders: responseHeaders.filter(({ name }) => !/^(content-length|content-encoding)$/i.test(name)),
-      body: Buffer.from(body.replaceAll(field(original), field(renamed))).toString("base64"),
-    });
+    try {
+      const { result, error } = await browser.send("Fetch.getResponseBody", { requestId });
+      if (error) throw new Error(`取不到刷新的响应：${error.message}`);
+      const body = Buffer.from(result.body, result.base64Encoded ? "base64" : "utf8").toString("utf8");
+      if (body.includes(field(original))) swapped++;
+      await browser.send("Fetch.fulfillRequest", {
+        requestId,
+        responseCode: responseStatusCode,
+        responseHeaders: responseHeaders.filter(({ name }) => !/^(content-length|content-encoding)$/i.test(name)),
+        body: Buffer.from(body.replaceAll(field(original), field(renamed))).toString("base64"),
+      });
+    } catch (error) {
+      interceptError ??= error;
+      await browser.send("Fetch.continueRequest", { requestId });
+    }
   });
   await browser.send("Fetch.enable", { patterns: [{ urlPattern: "*_rsc=*", requestStage: "Response" }] });
   await browser.evaluate("window.next.router.refresh()");
   await sleep(3000);
   await browser.send("Fetch.disable");
+  if (interceptError) throw interceptError;
   assert.ok(swapped > 0, "刷新拿到的页面数据里有这句译文");
   await browser.evaluate(`window.__emit(${JSON.stringify({ type: "POST_UPDATE", data: { id: "000000000000000000000000", title: "还没有译文的文章" } })})`);
   assert.equal((await broadcast(renamed)).title, renamed, "刷新后用新的播报文案");

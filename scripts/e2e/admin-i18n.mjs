@@ -81,6 +81,8 @@ try {
       if (request.method === 'OPTIONS') return b.send('Fetch.fulfillRequest', { requestId, responseCode: 204, responseHeaders: [...cors, { name: 'Access-Control-Allow-Methods', value: 'GET,PUT,POST,DELETE' }, { name: 'Access-Control-Allow-Headers', value: 'content-type,x-uuid' }] })
       if (pathname === '/ai/i18n/status') {
         seen.status.push(Date.now())
+        // 慢的那次：1.5 秒后才回来，说还在生成
+        if (fake.slowRunning) return void setTimeout(() => fulfill({ ...fake.status, running: true }), 1500)
         if (seen.generates.length && generateRuns++ === 0) return fulfill({ ...fake.status, running: true })
         return fulfill(seen.generates.length ? { ...fake.status, lastRun: { at: new Date().toISOString(), created: 5, failed: 0, skipped: 1 } } : fake.status)
       }
@@ -240,6 +242,17 @@ try {
   assert.match(notice.href, /setting\?group=ai/, '提示链到设置 → AI')
   assert.equal(await b.evaluate(`document.querySelector('button[aria-label="生成翻译"]').disabled`), true, '没开时不能生成')
   await shoot('i18n-disabled.png')
+
+  // 离开页面时还有一次状态请求在路上：它回来说“还在生成”，也不能在已经离开的页面上接着每 3 秒查
+  await visit('#/setting?group=ai', 1500)
+  fake.status = { running: false, enabled: true, languages: ['en'] }
+  fake.slowRunning = true
+  const statusOnEnter = seen.status.length
+  await visit('#/ai/i18n', 400)
+  await visit('#/setting?group=ai', 0)
+  await sleep(5500)
+  fake.slowRunning = false
+  assert.equal(seen.status.length - statusOnEnter, 1, `离开 i18n 页以后不再查状态（查了 ${seen.status.length - statusOnEnter} 次）`)
 
   assert.deepEqual(leaked, [], '没有别的写请求')
   const pageErrors = b.errors.filter(Boolean)

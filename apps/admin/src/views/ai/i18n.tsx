@@ -306,19 +306,24 @@ export default defineComponent({
       { immediate: true },
     )
 
-    // 生成是异步的：每 3 秒查一次状态，直到不再 running，再刷新分组和条目
+    // 生成是异步的：每 3 秒查一次状态，直到不再 running，再刷新分组和条目。
+    // 离开页面后在路上的请求回来也不再接着查（disposed）
     let timer: ReturnType<typeof setTimeout> | undefined
+    let disposed = false
     const poll = () => {
       clearTimeout(timer)
-      timer = setTimeout(checkStatus, 3000)
+      if (!disposed) timer = setTimeout(checkStatus, 3000)
     }
     const checkStatus = async () => {
+      let next: I18nStatus
       try {
-        status.value = await aiApi.getI18nStatus()
+        next = await aiApi.getI18nStatus()
       } catch {
         generating.value = false
         return
       }
+      if (disposed) return
+      status.value = next
       if (status.value.running) {
         generating.value = true
         poll()
@@ -437,7 +442,10 @@ export default defineComponent({
         )
       })
     })
-    onBeforeUnmount(() => clearTimeout(timer))
+    onBeforeUnmount(() => {
+      disposed = true
+      clearTimeout(timer)
+    })
 
     // 分组里每种语言的统计；Core 还没算到的语言当作全缺
     const statsOf = (group: I18nGroup) => {
