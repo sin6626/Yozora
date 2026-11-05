@@ -6,6 +6,7 @@ import { toast } from 'vue-sonner'
 import type { Ref } from 'vue'
 
 import { snippetsApi } from '~/api'
+import { BusinessError } from '~/utils/request'
 
 import {
   defaultServerlessFunction,
@@ -25,6 +26,9 @@ export function useSnippetEditor(selectedId: Ref<string | null>) {
   })
 
   let jsonFormatBeforeType: SnippetType = SnippetType.JSON
+  // 打开时 Core 里存的原文（JSON 在编辑器里会被重新排版，所以单独记）。保存时作为 baseRaw 交给 Core：
+  // 这期间片段被别处（比如“Yozora 主题”页）改过，Core 就拒绝，不会拿旧内容盖掉新修改。
+  let baseRaw: string | undefined
 
   const isNew = computed(() => !selectedId.value)
   const isFunctionType = computed(
@@ -87,6 +91,7 @@ export function useSnippetEditor(selectedId: Ref<string | null>) {
 
   const fetchSnippet = async (id: string) => {
     const data = await snippetsApi.getById(id)
+    baseRaw = data.raw
 
     if (data.type === SnippetType.JSON) {
       data.raw = JSON.stringify(JSON5.parse(data.raw), null, 2)
@@ -98,6 +103,7 @@ export function useSnippetEditor(selectedId: Ref<string | null>) {
   }
 
   const reset = (reference?: string) => {
+    baseRaw = undefined
     editData.value = new SnippetModel()
     if (reference) {
       editData.value.reference = reference
@@ -163,7 +169,8 @@ export function useSnippetEditor(selectedId: Ref<string | null>) {
     try {
       let result: SnippetModel
       if (selectedId.value) {
-        result = await snippetsApi.update(selectedId.value, finalData)
+        result = await snippetsApi.update(selectedId.value, { ...finalData, baseRaw })
+        baseRaw = result.raw
         toast.success('更新成功')
       } else {
         result = await snippetsApi.create(finalData as any)
@@ -171,6 +178,10 @@ export function useSnippetEditor(selectedId: Ref<string | null>) {
       }
       return result
     } catch (error) {
+      if (error instanceof BusinessError && error.statusCode === 409) {
+        toast.error('这个片段在你打开之后已在别处被修改（比如“Yozora 主题”页），这次没有保存。编辑器里的内容还在：先复制出来，重新打开这个片段，再把要改的地方改上去。', { duration: 10000 })
+        return null
+      }
       toast.error('保存失败')
       return null
     }
