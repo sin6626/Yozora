@@ -264,30 +264,32 @@ GSAP 的 issue 被官方采纳，她从早上激动到下午。她想要一个 S
 
 ## 十六、出图提示词（草稿）
 
-先用来出草图、挑方向。一张图里同时有紫和月光，不要把底色和向往拆成两张。下装定为短裙；眼镜分不戴（平时）和戴（写代码、工作时）两版，每版都是完整的一段，直接复制就能用。
+第二轮（2026-11-05）。第一轮两张草图方向对了（`.local/persona/draft-1-*.webp`），这一轮专门修它跑偏的地方：发梢画成了金色而且占了半截头发，发根不够暗，两张的发长不一样，学生证上画了头像和条形码，本子封面上没有星星，线稿里袜子变成了白色，戴眼镜那版是夜里看月亮时还戴着眼镜，镜框是金棕色的圆框。
+
+正式形象用第 1 版（不戴眼镜）。第 2 版是“写代码时”的差分，场景换成夜里的书桌。每版都是完整的一段，直接复制就能用。
 
 ### 中文
 
-**1. 短裙 · 不戴眼镜**
-> 原创动漫少女角色设定图，二十岁大学生，身高 158 cm。半长直发到肩胛，发色是近乎黑色的夜紫、发梢渐变为温暖的月光奶白色，发尾微微外翘，头顶一根呆毛，左侧刘海别着月牙和星星发夹；柔粉紫色眼睛，高光是小小的四角星，眼神好奇直接、略带倔强；不戴眼镜。白衬衫外套夜紫色宽松针织开衫，袖口盖住半个手背，深藏青百褶短裙，黑色及膝袜，旧帆布鞋，脖子上挂着头戴式耳机，胸前挂绳挂着学生证。主姿势：双手把写满字的小本子抱在胸前，站得很直，微微侧身看向右上方。夜晚，月光从右上方照来，左下方拖出影子；正面、侧面、背面三视图，表情差分，色卡；干净线稿，柔和赛璐璐上色。
+**1. 平时 · 不戴眼镜（正式形象）**
+> 原创动漫少女角色设定图，二十岁大学生，身高 158 cm。直发，长度刚好到肩胛骨上方，所有视图里的发长保持一致，发尾微微外翘，头顶一根呆毛，左侧刘海别着月牙和星星发夹。发色：发根和暗处几乎是黑色，只有被月光照到的地方透出深紫色；只有最末端约十厘米的发梢渐变成很淡的月光奶白色（偏白的象牙色，不是金色、不是黄色，不像染发）。柔粉紫色眼睛，高光是小小的四角星，眼神好奇直接、略带倔强；不戴眼镜。白衬衫外套夜紫色宽松针织开衫，袖口盖住半个手背，深藏青百褶短裙，黑色及膝袜，旧帆布鞋，脖子上挂着头戴式耳机，胸前挂绳挂着一张卡片，卡片上只印着一颗小星星，没有照片、没有文字、没有条形码。主姿势：双手把小本子抱在胸前，本子是深色封面，正中贴着一颗月光色的星星贴纸，站得很直，微微侧身看向右上方。夜晚，月光从右上方照来，左下方拖出影子，整体偏暗。正面、侧面、背面三视图，表情差分，色卡，线稿参考（线稿里同样是及膝袜）；干净线稿，柔和赛璐璐上色。
 
-**2. 短裙 · 戴眼镜**
-> 原创动漫少女角色设定图，二十岁大学生，身高 158 cm。半长直发到肩胛，发色是近乎黑色的夜紫、发梢渐变为温暖的月光奶白色，发尾微微外翘，头顶一根呆毛，左侧刘海别着月牙和星星发夹；戴着夜紫色细金属框椭圆眼镜，镜片很薄；柔粉紫色眼睛，高光是小小的四角星，眼神好奇直接、略带倔强。白衬衫外套夜紫色宽松针织开衫，袖口盖住半个手背，深藏青百褶短裙，黑色及膝袜，旧帆布鞋，脖子上挂着头戴式耳机，胸前挂绳挂着学生证。主姿势：双手把写满字的小本子抱在胸前，站得很直，微微侧身看向右上方。夜晚，月光从右上方照来，左下方拖出影子；正面、侧面、背面三视图，表情差分，色卡；干净线稿，柔和赛璐璐上色。
+**2. 写代码时 · 戴眼镜（差分）**
+> 原创动漫少女角色插画加设定，二十岁大学生，身高 158 cm。直发，长度刚好到肩胛骨上方，发尾微微外翘，头顶一根呆毛，左侧刘海别着月牙和星星发夹。发色：发根和暗处几乎是黑色，只有被光照到的地方透出深紫色；只有最末端约十厘米的发梢渐变成很淡的月光奶白色（偏白的象牙色，不是金色、不是黄色）。戴着细细的深紫色金属框椭圆眼镜，镜片很薄，不遮住眼睛；柔粉紫色眼睛，高光是小小的四角星，神情专注。白衬衫外套夜紫色宽松针织开衫，袖子撸到小臂，深藏青百褶短裙，黑色及膝袜，头戴式耳机戴在头上。主图：深夜坐在宿舍书桌前敲笔记本电脑，屏幕的冷光照在脸上，右上方窗外是月亮，桌上摊着封面贴着星星的小本子。旁边附戴眼镜的正面半身像和三个表情（专注、皱眉想问题、弄懂了的笑）。干净线稿，柔和赛璐璐上色。
 
 ### English
 
-**1. Skirt, no glasses**
-> Original anime girl character design sheet, 20-year-old university student, 158 cm tall. Shoulder-blade-length straight hair, very dark violet almost black, with tips fading into warm moonlight cream, ends flicking outward, one ahoge, a crescent-moon-and-star hair clip on the left fringe. Soft pink-violet eyes with a tiny four-pointed star highlight, curious and direct gaze, a little stubborn, no glasses. White shirt under an oversized night-purple knit cardigan with sleeves covering half the hands, dark navy pleated skirt, black knee socks, worn canvas sneakers, headphones around the neck, lanyard with a student card. Main pose: standing upright, hugging a small notebook full of handwritten words to her chest, body turned slightly toward the upper right. Night, moonlight from the upper right casting a shadow to the lower left. Front, side and back views, expression sheet, color swatches, clean lineart, soft cel shading.
+**1. Everyday, no glasses (main design)**
+> Original anime girl character design sheet, 20-year-old university student, 158 cm tall. Straight hair that ends just above the shoulder blades, same length in every view, ends flicking outward, one ahoge, a crescent-moon-and-star hair clip on the left fringe. Hair color: roots and shadows almost black, deep violet only where moonlight hits; only the last 10 cm of the tips fade into a very pale moonlight cream (whitish ivory, not gold, not yellow, not dyed-blonde). Soft pink-violet eyes with a tiny four-pointed star highlight, curious and direct gaze, a little stubborn, no glasses. White shirt under an oversized night-purple knit cardigan with sleeves covering half the hands, dark navy pleated skirt, black knee socks, worn canvas sneakers, headphones around the neck, a lanyard card printed with only a small star (no photo, no text, no barcode). Main pose: standing upright, hugging a small dark notebook with a moonlight-colored star sticker in the center of the cover, body turned slightly toward the upper right. Night, moonlight from the upper right casting a shadow to the lower left, overall dark mood. Front, side and back views, expression sheet, color swatches, lineart reference (also with knee socks), clean lineart, soft cel shading.
 
-**2. Skirt, glasses**
-> Original anime girl character design sheet, 20-year-old university student, 158 cm tall. Shoulder-blade-length straight hair, very dark violet almost black, with tips fading into warm moonlight cream, ends flicking outward, one ahoge, a crescent-moon-and-star hair clip on the left fringe. Thin dark-violet metal oval glasses with very thin lenses. Soft pink-violet eyes with a tiny four-pointed star highlight, curious and direct gaze, a little stubborn. White shirt under an oversized night-purple knit cardigan with sleeves covering half the hands, dark navy pleated skirt, black knee socks, worn canvas sneakers, headphones around the neck, lanyard with a student card. Main pose: standing upright, hugging a small notebook full of handwritten words to her chest, body turned slightly toward the upper right. Night, moonlight from the upper right casting a shadow to the lower left. Front, side and back views, expression sheet, color swatches, clean lineart, soft cel shading.
+**2. Coding, glasses (variant)**
+> Original anime girl illustration with design notes, 20-year-old university student, 158 cm tall. Straight hair that ends just above the shoulder blades, ends flicking outward, one ahoge, a crescent-moon-and-star hair clip on the left fringe. Hair color: roots and shadows almost black, deep violet only where light hits; only the last 10 cm of the tips fade into a very pale moonlight cream (whitish ivory, not gold, not yellow). Thin dark-violet metal oval glasses with very thin lenses that do not hide the eyes. Soft pink-violet eyes with a tiny four-pointed star highlight, focused expression. White shirt under an oversized night-purple knit cardigan with sleeves pushed up to the forearms, dark navy pleated skirt, black knee socks, headphones on her head. Main image: late at night at a dorm desk typing on a laptop, cool screen light on her face, the moon outside the window at the upper right, a small notebook with a star sticker open on the desk. Beside it, a bust shot with glasses and three expressions (focused, frowning at a problem, smiling when she finally gets it). Clean lineart, soft cel shading.
 
 ### 负面提示
 
 两版共用：
-> silver hair, white hair, pastel pink, light blue, cherry blossoms, green hair, kimono, overly sexualized, chibi, pants, wings, flying, text, watermark
+> blonde hair, golden hair, yellow hair, half-dyed hair, silver hair, white hair, pastel pink, light blue, cherry blossoms, green hair, kimono, overly sexualized, chibi, pants, white socks, photo on ID card, barcode, wings, flying, text, watermark
 
-不戴眼镜那版再加上 `glasses`。
+第 1 版再加 `glasses`；第 2 版再加 `gold glasses frame, round glasses, thick frame`。
 
 ---
 
