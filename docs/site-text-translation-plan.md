@@ -248,5 +248,6 @@ Core 的“翻译条目”已经有一套完整的机制：
 - **数字和日期**：字数的“万 / K”、时间线的月份、页脚星带的“从某年某月”都交给 `Intl`，词典里只留单位。
 - **新文章播报**：外文页面收到 `POST_CREATE`/`POST_UPDATE` 时，浏览器向 Core 要这种语言的标题（`GET /ai/translations/article/:id?lang=`），没有就播中文原题并标 `zh-CN`；书名号在词典 `notifications.quoted` 里。
 - **迁移**：`scripts/import-i18n-legacy.mjs` 把旧的 `en.ts`、`ja.ts`（导出在 `scripts/data/i18n-legacy.json`）和片段 `i18n` 里的译文逐条写进翻译条目（标成手改过）；已经手改过的条目一律不动，所以可以重复跑。要先在后台“i18n 语言”里填好 en、ja（开关可以先关着）。`--drop-snippet-i18n` 只在片段里每条手写译文都对上了条目时，先备份再删片段里的 `i18n`；删了以后要补导入用 `--snippet-file=<备份>`。本地已跑：880 条，片段原文备份 `.local/backups/snippet-yozora-before-i18n-drop-local-2026-11-05.json`，本地已开 AI i18n（en、ja）。
+- **审查**：Codex（gpt-6-astra，高推理）只读审查了八轮，前七轮的问题都已修复（每条都先补了在旧代码上失败的测试），第八轮结论“通过”。审查记录在 `.local/codex-review/`（不进 git）。
 - **上线时要做**（需要站长同意）：部署 Core、后台、前台；`node scripts/push-i18n-source.mjs --prod`；后台“i18n 语言”先填 en、ja（开关先关着）；`node scripts/import-i18n-legacy.mjs --prod --drop-snippet-i18n`；再打开 AI i18n；线上 Webhook 加勾 `I18N_UPDATE`。
 
