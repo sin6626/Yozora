@@ -68,7 +68,7 @@ const until = async (check, ms = 4000) => {
 }
 
 try {
-  await b.setViewport(1440, 900)
+  await b.setViewport(1920, 991)
   await b.send('Fetch.enable', { patterns: [{ urlPattern: `${core}/*` }] })
   b.listeners.push((m) => {
     if (m.method !== 'Fetch.requestPaused') return

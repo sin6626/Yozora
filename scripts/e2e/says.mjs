@@ -52,7 +52,7 @@ const sky = (scope = "") => browser.evaluate(`(() => {
 try {
   assert.ok(all.length >= 2, "本地库至少要有两条一言才能测（悬停换句）");
   const textOf = new Map(all.map((say) => [say.id, say.text]));
-  await browser.setViewport(1440, 900);
+  await browser.setViewport(1920, 991);
   await browser.goto(`${base}/says`, 3500);
 
   // 整页星空：铺满屏幕宽，横屏那份；每句一颗星；没有圆盘、说明、抽一句、按人看胶囊、下面的列表
@@ -198,7 +198,7 @@ try {
   assert.equal((await sky()).reading, undefined, "手机上点空白处卡片收起");
 
   // 调试页：5 / 60 / 240 句（横屏）都在画面里，可悬停的范围互不盖住，240 句能悬停到指定星（2026-11-02 用户：句子多了根本装不下）
-  await browser.setViewport(1440, 900);
+  await browser.setViewport(1920, 991);
   await browser.goto(`${base}/debug`, 5000);
   const samples = await browser.evaluate(`[...document.querySelectorAll(".debug-say-sky")].map((box) => {
     const sky = box.querySelector('.say-sky[data-shape="wide"]');

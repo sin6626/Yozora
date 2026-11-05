@@ -21,7 +21,7 @@ const b = await openBrowser({ port: 9342 })
 const posted = []
 const leaked = []
 try {
-  await b.setViewport(1440, 900)
+  await b.setViewport(1920, 991)
   await b.send('Fetch.enable', { patterns: [{ urlPattern: `${core}/*` }] })
   b.listeners.push((m) => {
     if (m.method !== 'Fetch.requestPaused') return
