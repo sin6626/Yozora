@@ -42,6 +42,14 @@ try {
   assert.ok(desktop.image.left >= desktop.hello.right - 1, `图盖住了“是”：图左 ${desktop.image.left}，文字右 ${desktop.hello.right}`);
   assert.ok(desktop.image.right <= desktop.period.left + 1, `图盖住了“。”：图右 ${desktop.image.right}，句号左 ${desktop.period.left}`);
 
+  // 问候和名字是两个 inline-block，间距靠名字的外边距撑开；英文要有真正的空格，读屏和复制才是 “I'm Sin”，不是 “I'mSin”
+  const firstLine = `(() => { const h1 = document.querySelector(".home-hero-title"); let text = ""; for (const node of h1.childNodes) { if (node.nodeName === "BR") break; text += node.textContent; } return text.replace(/\\s+/g, " ").trim(); })()`;
+  assert.equal(await browser.evaluate(firstLine), "你好，我是Sin。", "中文问候和名字之间不该有空格");
+  await browser.goto(`${base}/en`);
+  assert.equal(await browser.evaluate(firstLine), "Hi, I'm Sin.", "英文问候和名字之间少了空格");
+  const english = await browser.evaluate(measure);
+  assert.ok(english.image.left >= english.hello.right - 1, `英文页图盖住了问候：图左 ${english.image.left}，文字右 ${english.hello.right}`);
+
   await browser.setViewport(390, 844);
   await browser.goto(`${base}/`);
   const mobile = await browser.evaluate(measure);

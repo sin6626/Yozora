@@ -102,7 +102,9 @@ export default async function HomeHero() {
         <div className="home-hero-half is-text">
           <div className="home-hero-content">
             <h1 id="home-hero-title" className="home-hero-title">
-              <span>{t.greeting}</span>
+              {/* 结尾的空格（英文 “Hi, I'm ”）放在 inline-block 外面，否则会被吃掉，读出来成了 “I'mSin” */}
+              <span>{t.greeting.trimEnd()}</span>
+              {/\s$/.test(t.greeting) && " "}
               {/* “Sin。”包成一块：窄屏放不下一行时一起换行，句号不会单独掉到下一行 */}
               <span>
                 <strong className="home-hero-name">

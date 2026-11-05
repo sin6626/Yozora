@@ -90,7 +90,7 @@ const en: Messages = {
   },
   hero: {
     avatarAlt: (name: string) => `${name}'s avatar`,
-    greeting: "Hi, I'm",
+    greeting: "Hi, I'm ",
     nameSuffix: ".",
   },
   home: {
