@@ -3,7 +3,8 @@ import { defaultLocale, isKnownLanguage, isLocale, localeCookie, pickLocale, sit
 
 // 站点语言的入口（2026-10-30 参照 Shiro；2026-11-05 起开哪些语言由后台“设置 → AI → i18n 语言”决定）：页面都在 app/[locale] 下。
 // - 开着的语言 /en/… 原样放行；/zh/… 跳到不带前缀的地址（中文只有一个地址）。
-// - 关掉的语言的旧链接（/ko/posts、/ko）送回中文地址（之后照常按 Cookie、浏览器语言挑）。
+// - 关掉的语言的旧链接（/ko/posts）去掉前缀，回到不带前缀的地址，之后照常按 Cookie、浏览器语言挑（都没开就是中文）。
+//   只看两段以上的地址：只有一段的（/ko、/cv、/it）可能是后台页面，按页面处理，没有这个页面就是 404。
 // - 不带前缀的地址：读者手动选过语言（Cookie NEXT_LOCALE）就听他的，没选过看浏览器首选语言（Accept-Language）；
 //   是开着的外文就跳到带前缀的地址，否则在内部改写成 /zh/…，地址栏不变。
 // 规则检查：scripts/verify-i18n.mjs（纯函数）、scripts/e2e/i18n.mjs（真实请求）。
@@ -43,10 +44,10 @@ export async function proxy(request: NextRequest) {
     return request.headers.get(rewriteMark) ? NextResponse.next() : NextResponse.redirect(new URL(`${path}${search}`, request.url), 308);
   }
   if (locale) return NextResponse.next();
-  // 关掉的语言的旧链接：去掉前缀回到中文地址（临时跳转，语言可能再开）
-  const first = pathname.split("/")[1];
-  if (isKnownLanguage(first)) {
-    return NextResponse.redirect(new URL(`${pathname.slice(first.length + 1) || "/"}${search}`, request.url), 307);
+  // 关掉的语言的旧链接：去掉前缀（临时跳转，语言可能再开）。页面只有一级，所以两段以上的地址不会是页面
+  const [, first, ...rest] = pathname.split("/");
+  if (rest.length && isKnownLanguage(first)) {
+    return NextResponse.redirect(new URL(`/${rest.join("/")}${search}`, request.url), 307);
   }
   // 旧的文章翻译链接 ?lang=en / ?lang=ja（站点语言出来之前用的）跳到对应语言的地址
   const legacy = request.nextUrl.searchParams.get("lang");

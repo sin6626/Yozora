@@ -1,6 +1,7 @@
 import type { I18nKeyPath } from '../ai-translation/translation-entry.model'
 
-const PLACEHOLDER = /\{([A-Z_]\w*)\}/gi
+// Same rule as the blog (apps/web/lib/i18n/msg.ts): a letter, then letters and digits
+const PLACEHOLDER = /\{([A-Za-z][A-Za-z0-9]*)\}/g
 
 const placeholdersOf = (text: string) =>
   [...new Set(Array.from(text.matchAll(PLACEHOLDER), (match) => match[1]))]

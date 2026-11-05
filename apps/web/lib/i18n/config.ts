@@ -14,7 +14,7 @@ export function siteLocales(languages: readonly unknown[] | null | undefined): L
   return [defaultLocale, ...new Set((languages ?? []).filter(isLanguageCode).filter((code) => code !== defaultLocale))];
 }
 
-// 真的是一种语言（Intl 叫得出名字）：/ko 是语言，/me、/api 不是。proxy 据此把关掉的语言的旧链接送回中文，又不误伤两三个字母的页面
+// 真的是一种语言（Intl 叫得出名字）：ko、cv（楚瓦什语）是语言，me、api 不是。proxy 据此把关掉的语言的旧链接（/ko/posts）送回不带前缀的地址
 export function isKnownLanguage(value: unknown): value is string {
   if (!isLanguageCode(value)) return false;
   try {

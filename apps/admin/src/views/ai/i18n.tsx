@@ -45,7 +45,7 @@ import { useLayout } from '~/hooks/use-layout'
 import { RouteName } from '~/router/name'
 import { BusinessError } from '~/utils/request'
 
-// 分组名是界面文字条目名的第一段（前台 zh.ts 的顶层键）；site 是站点文案，projects 是作品
+// 分组名是界面文字条目名的第一段（前台 zh.ts 的顶层键）；site 是站点文案，works 是作品名与介绍（projects 是作品页的界面文字）
 const GROUP_LABELS: Record<string, string> = {
   common: '通用',
   locale: '语言',
@@ -89,9 +89,8 @@ const GROUP_LABELS: Record<string, string> = {
 }
 const groupLabel = (group: string) => GROUP_LABELS[group] ?? group
 
-// site.text 的 key 就是中文原文本身，和“中文”一列重复，改显示字段名
-const entryLabel = (entry: I18nEntry) =>
-  entry.keyPath === 'site.text' ? '站点文案' : entry.key
+// 站点文案的 key 是它在哪（hero.title、footer.motto、seo.description……），界面文字是条目名，作品是“作品名 <id>”
+const entryLabel = (entry: I18nEntry) => entry.key
 
 const LanguageTag = defineComponent({
   props: {

@@ -138,18 +138,22 @@ export class AiTranslationEventHandlerService {
     const outdatedLanguages = existingTranslations
       .filter((t) => t.hash !== newHash)
       .map((t) => t.lang)
+    // Target languages with no translation yet (a language added to the i18n list later, or a failed run)
+    const translated = new Set(existingTranslations.map((t) => t.lang))
+    const missingLanguages = targetLanguages.filter((lang) => !translated.has(lang))
+    const languages = [...new Set([...outdatedLanguages, ...missingLanguages])]
 
-    if (!outdatedLanguages.length) {
+    if (!languages.length) {
       return
     }
 
     await this.aiTranslationService.cancelActiveTranslationTasks(id)
     this.logger.log(
-      `AI auto translation task created (update): article=${id} targets=${outdatedLanguages.join(',')}`,
+      `AI auto translation task created (update): article=${id} targets=${languages.join(',')}`,
     )
     await this.aiTaskService.createTranslationTask({
       refId: id,
-      targetLanguages: outdatedLanguages,
+      targetLanguages: languages,
     })
   }
 

@@ -10,6 +10,7 @@ import {
   configuredI18nLanguages,
   enabledI18nLanguages,
 } from '~/modules/ai/ai-language.util'
+import { AiTranslationEventHandlerService } from '~/modules/ai/ai-translation/ai-translation-event-handler.service'
 import { TranslationEntryModel } from '~/modules/ai/ai-translation/translation-entry.model'
 import { TranslationEntryService } from '~/modules/ai/ai-translation/translation-entry.service'
 import { CategoryModel } from '~/modules/category/category.model'
@@ -171,6 +172,12 @@ describe('AI i18n', () => {
       expect(checkI18nTranslation('  ', '')).toBeUndefined()
     })
 
+    it('uses the same placeholder rule as the blog', () => {
+      // {user_name} is not a placeholder on either side, so it is plain text the AI may translate
+      expect(checkI18nTranslation('你好，{user_name}', 'Hello, user')).toBeUndefined()
+      expect(checkI18nTranslation('你好，{name2}', 'Hello')).toMatch(/占位符/)
+    })
+
     it('accepts reordered placeholders and moved emphasis', () => {
       expect(checkI18nTranslation('{a}比{b}多', '{b} is less than {a}')).toBeUndefined()
       expect(checkI18nTranslation('一个**大三学生**', 'a **third-year student**')).toBeUndefined()
@@ -281,11 +288,12 @@ describe('AI i18n', () => {
         },
       },
     ])
-    expect((await service.getEntries('site')).map((row) => row.key)).toEqual([
-      '一个**大三学生**',
-      '第一行',
-      '第二行',
-      '夜深里也有月亮和星星陪我作伴',
+    // Site text is keyed by slot, so the admin page shows where each text lives
+    expect((await service.getEntries('site')).map((row) => [row.key, row.source])).toEqual([
+      ['hero.title', '一个**大三学生**'],
+      ['hero.description.0', '第一行'],
+      ['hero.description.1', '第二行'],
+      ['seo.description', '夜深里也有月亮和星星陪我作伴'],
     ])
     expect((await service.getEntries('works')).map((row) => row.key)).toEqual([
       `作品名 ${project.id}`,
@@ -371,6 +379,37 @@ describe('AI i18n', () => {
       expect(await entries.countDocuments({ lookupKey: project.id })).toBe(0)
     })
 
+    it('flags a hand-written site translation for review when its Chinese changes', async () => {
+      await yozora({ footer: { motto: '头顶的星空' } })
+      await service.onSnippetChange({ reference: 'theme', name: 'yozora' })
+      await idle()
+      await service.saveEntry({ keyPath: 'site.text', lookupKey: 'footer.motto', lang: 'en', text: 'Stars overhead' })
+
+      await yozora({ footer: { motto: '头顶的星空，是心里的星空。' } })
+      await service.onSnippetChange({ reference: 'theme', name: 'yozora' })
+      await idle()
+      expect(await entry('site.text', 'footer.motto', 'en')).toMatchObject({
+        sourceText: '头顶的星空，是心里的星空。',
+        translatedText: '[English] 头顶的星空，是心里的星空。',
+        manual: false,
+        needsReview: true,
+      })
+    })
+
+    it('never exposes a private snippet, and keeps its translations', async () => {
+      await yozora({ hero: { title: '私下的标题' } })
+      await service.onSnippetChange({ reference: 'theme', name: 'yozora' })
+      await idle()
+      await snippets.updateOne({ name: 'yozora' }, { $set: { private: true } })
+      await service.generateNow({})
+      await idle()
+
+      const { site } = await service.getPublicTranslations('en')
+      expect(Object.keys(site)).toEqual(['夜深里也有月亮和星星陪我作伴'])
+      expect((await service.getEntries('site')).map((row) => row.key)).toEqual(['seo.description'])
+      expect(await entries.countDocuments({ keyPath: 'site.text', lookupKey: 'hero.title' })).toBe(2)
+    })
+
     it('keeps site translations when the snippet cannot be parsed', async () => {
       await yozora({ hero: { title: '标题' } })
       await service.onSnippetChange({ reference: 'theme', name: 'yozora' })
@@ -392,6 +431,31 @@ describe('AI i18n', () => {
     await idle()
     expect(calls.map((call) => call.language)).toEqual(['Korean'])
     expect(await entries.countDocuments({ lang: 'ko' })).toBe(3)
+  })
+
+  it('keeps a translation the owner saves while the AI is still working on it', async () => {
+    await service.uploadSource({ 'a.x': '你好' })
+    await idle()
+    await service.saveEntry({ keyPath: 'ui.text', lookupKey: 'a.x', lang: 'en', text: 'Hi' })
+    await service.uploadSource({ 'a.x': '你好呀', 'a.y': '再见' })
+    await idle()
+    calls.length = 0
+
+    // The AI answers only after the owner saved both entries by hand
+    runtime.generateStructured.mockImplementationOnce(async ({ prompt }: { prompt: string }) => {
+      const fields = JSON.parse(prompt.split('## Fields to translate\n')[1])
+      await service.saveEntry({ keyPath: 'ui.text', lookupKey: 'a.x', lang: 'en', text: 'Hello there' })
+      await entries.deleteOne({ keyPath: 'ui.text', lookupKey: 'a.y', lang: 'en' })
+      await service.saveEntry({ keyPath: 'ui.text', lookupKey: 'a.y', lang: 'en', text: 'Bye' })
+      return { output: { translations: translate('English', fields) } }
+    })
+    await sources.updateOne({ key: 'a.x' }, { $set: { text: '你好啊' } })
+    await sources.updateOne({ key: 'a.y' }, { $set: { text: '再见啦' } })
+    await service.generateNow({ langs: ['en'] })
+    await idle()
+
+    expect((await entry('ui.text', 'a.x', 'en'))?.translatedText).toBe('Hello there')
+    expect((await entry('ui.text', 'a.y', 'en'))?.translatedText).toBe('Bye')
   })
 
   it('runs one generation at a time', async () => {
@@ -439,6 +503,36 @@ describe('article translation languages', () => {
     translationTargetLanguages: ['zh', 'en'],
     i18nLanguages: ['ja', 'EN', 'ko-KR', 'ar', 'zh-CN', 'ja'],
   }
+
+  it('fills in target languages an article has no translation for yet when it is updated', async () => {
+    const createTranslationTask = vi.fn()
+    const handler = new AiTranslationEventHandlerService(
+      {
+        extractIdFromEvent: (event: { id: string }) => event.id,
+        isArticleVisible: () => true,
+        getMetaLang: () => 'zh',
+        toArticleContent: () => ({}),
+        computeContentHash: () => 'current',
+        cancelActiveTranslationTasks: async () => {},
+      } as any,
+      {
+        get: async () => ({
+          enableTranslation: true,
+          enableAutoGenerateTranslation: true,
+          translationTargetLanguages: ['en'],
+          enableI18n: true,
+          i18nLanguages: ['en', 'ko'],
+        }),
+      } as any,
+      { findGlobalById: async () => ({ document: {} }) } as any,
+      { createTranslationTask } as any,
+      { find: () => ({ select: async () => [{ hash: 'current', lang: 'en', sourceLang: 'zh' }] }) } as any,
+      {} as any,
+    )
+    // English is up to date; Korean was added to the i18n languages after the article was first translated
+    await handler.handleUpdateArticle({ id: 'post-id' } as any)
+    expect(createTranslationTask).toHaveBeenCalledWith({ refId: 'post-id', targetLanguages: ['ko'] })
+  })
 
   it('adds the i18n languages only while AI i18n is on', () => {
     expect(configuredI18nLanguages(ai)).toEqual(['ja', 'en', 'ko'])

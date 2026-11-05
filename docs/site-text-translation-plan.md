@@ -88,7 +88,7 @@ Core 的“翻译条目”已经有一套完整的机制：
    - 支持哪些语言不再写死，改读 Core 的 `GET /ai/i18n`，中文一直有。
    - 语言名用浏览器自带的 `Intl.DisplayNames` 显示各自的写法（English、日本語、한국어、Français）。
    - `<html lang>`、分享卡片的 `og:locale` 由语言代码直接算出来。
-   - `proxy.ts`：每分钟最多读一次语言列表。按浏览器语言跳转时，只在开着的语言里挑。没开的语言（比如 `/ko/...` 关掉以后），跳回同一页的中文。
+   - `proxy.ts`：每分钟最多读一次语言列表。按浏览器语言跳转时，只在开着的语言里挑。没开的语言（比如 `/ko/...` 关掉以后），去掉前缀回到同一页不带前缀的地址（实际跳到哪种语言见文末实现记录）。
    - 语言菜单、手机菜单、文章页的语言分段、sitemap，都只列开着的语言。
 4. **站点文案**：
    - 不再读片段里的 `i18n`。外文页面按中文原文在 `GET /ai/i18n/:lang` 的 `site` 里找译文、作品按 id 在 `projects` 里找，没翻出来的显示中文并标 `lang="zh-CN"`。
@@ -173,7 +173,7 @@ Core 的“翻译条目”已经有一套完整的机制：
 | keyPath | keyType | lookupKey | 原文来源 |
 | --- | --- | --- | --- |
 | `ui.text` | entity | 界面文字条目名，如 `locale.switched`、`header.presence.label` | 前台上传的原文表 |
-| `site.text` | dict | 中文原文的哈希（同心情、天气） | 片段 `theme/yozora` 的 `hero.title`、`hero.description[]` 每一行、`footer.motto`、`copyright`、`techStack.title`、`techStack.description`，以及 SEO 的“网站描述” |
+| `site.text` | entity | 位置（实现时由“中文原文的哈希”改成位置，见文末实现记录）：`hero.title`、`hero.description.0`…、`footer.motto`、`copyright`、`techStack.title`、`techStack.description`、`seo.description` | 片段 `theme/yozora` 的这几项（片段设为私密时不收），以及 SEO 的“网站描述” |
 | `project.name` | entity | 作品 id | 作品名 |
 | `project.description` | entity | 作品 id | 作品介绍 |
 
@@ -210,7 +210,7 @@ Core 的“翻译条目”已经有一套完整的机制：
 - `GET /ai/i18n/status` → `{ running: boolean, lastRun?: { at, created, failed, skipped } , languages: string[], enabled: boolean }`。
 - `POST /ai/i18n/generate`，body `{ langs?: string[], group?: string, onlyMissing?: boolean }`：异步开始一次生成（已经在跑就返回 409），立刻返回 `{ started: true }`。不传 `onlyMissing` 时，缺的和中文改过的都翻。
 - `GET /ai/i18n/groups` → `[{ group, total, languages: { [lang]: { done, missing, review } } }]`。`group` 规则：`ui.text` 取条目名第一段（`header`、`home`……），`site.text` 是 `site`，`project.*` 是 `projects`。
-- `GET /ai/i18n/entries?group=xxx` → `[{ keyPath, lookupKey, key, source, translations: { [lang]: { text, manual, needsReview } | null } }]`。`key` 对 `ui.text` 是条目名，对 `site.text` 是中文原文本身，对 `project.*` 是“作品名 / 介绍”加作品 id。
+- `GET /ai/i18n/entries?group=xxx` → `[{ keyPath, lookupKey, key, source, translations: { [lang]: { text, manual, needsReview } | null } }]`。`key` 对 `ui.text` 是条目名，对 `site.text` 是位置（如 `hero.title`），对 `project.*` 是“作品名 / 介绍”加作品 id。
 - `PUT /ai/i18n/entries`，body `{ keyPath, lookupKey, lang, text }`：手改（不存在就新建），先过校验（不通过返回 422 和原因），保存后 `manual = true`、`needsReview = false`，发 `I18N_UPDATE`。
 - `DELETE /ai/i18n/entries`，body `{ keyPath, lookupKey, lang }`：删掉一条译文（回到缺译文）。
 
@@ -235,9 +235,13 @@ Core 的“翻译条目”已经有一套完整的机制：
 
 - **分组名**：界面文字按条目名第一段分组（`header`、`projects`……），作品名与介绍原定也叫 `projects`，和作品页的界面文字撞名，改成 `works`（后台显示“作品名与介绍”）。
 - **Webhook**：`I18N_UPDATE` 的载荷只有 `{ langs }`，前台 Webhook 接收端原来要求每个事件带 24 位内容 ID，现在对这类事件放行（`apps/web/lib/webhook-events.ts` 的 `idless`）。`OPTION_UPDATE` 也让 `i18n` 标签失效（开关、语言列表变了）。本地 Webhook 已加勾 `I18N_UPDATE`（共 46 个事件，原列表备份 `.local/backups/webhook-events-20261105-i18n.json`）。
-- **关掉的语言**：`/ko/posts` 送回 `/posts`、`/ko` 送回 `/`。判断“是不是一种语言”用 `Intl.DisplayNames`（叫得出名字才算），所以 `/me`、`/api` 这类两三个字母的地址不受影响。
+- **关掉的语言**：`/ko/posts` 去掉前缀、跳到 `/posts`，之后和别的不带前缀的地址一样：读者手动选过开着的语言、或浏览器首选的语言开着，就去那种语言，否则是中文。这样韩语关掉后，首选“韩语、英语”的读者会落在英文页，而不是硬塞中文；没有偏好的读者落在中文。只有一段的地址（`/ko`、`/cv`、`/it`）不跳：页面只有一级，slug 可能正好是语言代码（简历页 `/cv`），按页面处理，没有这个页面就是站内 404。判断“是不是一种语言”用 `Intl.DisplayNames`（叫得出名字才算）。
+- **站点文案按位置存**：原定 `site.text` 用中文原文的哈希当身份，改了中文就成了另一条，手改过的译文不会被标“待看”。改成按位置（`hero.title`、`seo.description`……），中文改了还是同一条，按“原文改过”重翻、手改过的标待看。后台条目列表直接显示位置。片段设成私密时不收它的文字（公开接口不会漏出私密片段的内容），已有译文保留。
+- **AI 和手改同时发生**：AI 生成要等模型返回，这期间站长在后台改了同一条，AI 的结果不覆盖（只在条目还是生成开始时读到的样子时才写）。
+- **文章翻译补语言**：文章更新时，除了重翻过期的语言，也补上目标语言里还没有译文的（比如后来加进 i18n 语言的韩语）。
+- **占位符规则**：Core 和前台统一为“字母开头、后面是字母或数字”的 `{名字}`。
 - **数字和日期**：字数的“万 / K”、时间线的月份、页脚星带的“从某年某月”都交给 `Intl`，词典里只留单位。
 - **新文章播报**：外文页面收到 `POST_CREATE`/`POST_UPDATE` 时，浏览器向 Core 要这种语言的标题（`GET /ai/translations/article/:id?lang=`），没有就播中文原题并标 `zh-CN`；书名号在词典 `notifications.quoted` 里。
-- **迁移**：`scripts/import-i18n-legacy.mjs` 把旧的 `en.ts`、`ja.ts`（导出在 `scripts/data/i18n-legacy.json`）和片段 `i18n` 里的译文逐条写进翻译条目（标成手改过），`--drop-snippet-i18n` 先备份再删片段里的 `i18n`。本地已跑：880 条，片段原文备份 `.local/backups/snippet-yozora-before-i18n-drop-local-2026-11-05.json`，本地已开 AI i18n（en、ja）。
-- **上线时要做**（需要站长同意）：部署 Core、后台、前台；`node scripts/push-i18n-source.mjs --prod`；`node scripts/import-i18n-legacy.mjs --prod --drop-snippet-i18n`；后台开 AI i18n、填 en、ja；线上 Webhook 加勾 `I18N_UPDATE`。
+- **迁移**：`scripts/import-i18n-legacy.mjs` 把旧的 `en.ts`、`ja.ts`（导出在 `scripts/data/i18n-legacy.json`）和片段 `i18n` 里的译文逐条写进翻译条目（标成手改过）；已经手改过的条目一律不动，所以可以重复跑。要先在后台“i18n 语言”里填好 en、ja（开关可以先关着）。`--drop-snippet-i18n` 只在片段里每条手写译文都对上了条目时，先备份再删片段里的 `i18n`；删了以后要补导入用 `--snippet-file=<备份>`。本地已跑：880 条，片段原文备份 `.local/backups/snippet-yozora-before-i18n-drop-local-2026-11-05.json`，本地已开 AI i18n（en、ja）。
+- **上线时要做**（需要站长同意）：部署 Core、后台、前台；`node scripts/push-i18n-source.mjs --prod`；后台“i18n 语言”先填 en、ja（开关先关着）；`node scripts/import-i18n-legacy.mjs --prod --drop-snippet-i18n`；再打开 AI i18n；线上 Webhook 加勾 `I18N_UPDATE`。
 

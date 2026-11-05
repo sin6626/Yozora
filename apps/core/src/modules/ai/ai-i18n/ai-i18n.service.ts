@@ -23,7 +23,6 @@ import {
   type I18nKeyPath,
   TranslationEntryModel,
 } from '../ai-translation/translation-entry.model'
-import { TranslationEntryService } from '../ai-translation/translation-entry.service'
 import { checkI18nTranslation, i18nGroupOf } from './ai-i18n.util'
 import { I18nSourceModel } from './i18n-source.model'
 
@@ -63,8 +62,9 @@ const SITE_KEY_PATHS: I18nKeyPath[] = [
   'project.description',
 ]
 
-const keyTypeOf = (keyPath: I18nKeyPath) =>
-  keyPath === 'site.text' ? 'dict' : 'entity'
+// Every i18n entry is keyed by a stable identity (entry name, site text slot, project id), so a changed
+// Chinese text keeps its entry and a hand-written translation of it gets flagged for review
+const KEY_TYPE = 'entity'
 const idOf = (item: { keyPath: string; lookupKey: string }) =>
   `${item.keyPath}:${item.lookupKey}`
 
@@ -77,16 +77,18 @@ const textAt = (root: unknown, path: string[]): unknown =>
     root,
   )
 
-/** The Chinese site copy in snippet theme/yozora that the blog shows translated. */
-function yozoraSiteTexts(root: unknown): unknown[] {
+/** The Chinese site copy in snippet theme/yozora that the blog shows translated, by slot (`hero.title`, `hero.description.0`…). */
+function yozoraSiteTexts(root: unknown): [string, unknown][] {
   const description = textAt(root, ['hero', 'description'])
   return [
-    textAt(root, ['hero', 'title']),
-    ...(Array.isArray(description) ? description : []),
-    textAt(root, ['footer', 'motto']),
-    textAt(root, ['copyright']),
-    textAt(root, ['techStack', 'title']),
-    textAt(root, ['techStack', 'description']),
+    ['hero.title', textAt(root, ['hero', 'title'])],
+    ...(Array.isArray(description)
+      ? description.map((line, index): [string, unknown] => [`hero.description.${index}`, line])
+      : []),
+    ['footer.motto', textAt(root, ['footer', 'motto'])],
+    ['copyright', textAt(root, ['copyright'])],
+    ['techStack.title', textAt(root, ['techStack', 'title'])],
+    ['techStack.description', textAt(root, ['techStack', 'description'])],
   ]
 }
 
@@ -308,7 +310,7 @@ export class AiI18nService {
       {
         keyPath: item.keyPath,
         lang,
-        keyType: keyTypeOf(item.keyPath),
+        keyType: KEY_TYPE,
         lookupKey: item.lookupKey,
       },
       {
@@ -474,7 +476,7 @@ export class AiI18nService {
         (
           await this.entryModel
             .find({ lang, keyPath: { $in: I18N_KEY_PATHS } })
-            .select('keyPath lookupKey sourceText manual needsReview')
+            .select('keyPath lookupKey sourceText translatedText manual needsReview')
             .lean()
         ).map((entry) => [idOf(entry), entry]),
       )
@@ -519,24 +521,43 @@ export class AiI18nService {
             continue
           }
           const previous = existing.get(idOf(item))
-          await this.entryModel.updateOne(
-            {
-              keyPath: item.keyPath,
-              lang,
-              keyType: keyTypeOf(item.keyPath),
-              lookupKey: item.lookupKey,
-            },
-            {
-              $set: {
-                sourceText: item.source,
-                translatedText: text,
-                manual: false,
-                // The owner's own wording was replaced because the Chinese changed: let them check the new one
-                needsReview: !!(previous?.manual || previous?.needsReview),
-              },
-            },
-            { upsert: true },
-          )
+          const key = {
+            keyPath: item.keyPath,
+            lang,
+            keyType: KEY_TYPE,
+            lookupKey: item.lookupKey,
+          }
+          const fields = {
+            sourceText: item.source,
+            translatedText: text,
+            manual: false,
+            // The owner's own wording was replaced because the Chinese changed: let them check the new one
+            needsReview: !!(previous?.manual || previous?.needsReview),
+          }
+          // Only replace what this run read before asking the AI: a translation the owner saved meanwhile wins
+          const written = previous
+            ? (
+                await this.entryModel.updateOne(
+                  {
+                    ...key,
+                    sourceText: previous.sourceText,
+                    translatedText: previous.translatedText,
+                    manual: previous.manual ? true : { $ne: true },
+                  },
+                  { $set: fields },
+                )
+              ).matchedCount
+            : (
+                await this.entryModel.updateOne(
+                  key,
+                  { $setOnInsert: fields },
+                  { upsert: true },
+                )
+              ).upsertedCount
+          if (!written) {
+            skipped++
+            continue
+          }
           created++
           touched.add(lang)
         }
@@ -611,7 +632,7 @@ export class AiI18nService {
   }> {
     const [uiSources, snippet, seo, projects] = await Promise.all([
       this.sourceModel.find().sort({ key: 1 }).lean(),
-      this.snippetModel.findOne(YOZORA_SNIPPET).select('raw').lean(),
+      this.snippetModel.findOne(YOZORA_SNIPPET).select('raw private').lean(),
       this.configService.get('seo'),
       this.projectModel.find().select('name description').lean(),
     ])
@@ -626,28 +647,30 @@ export class AiI18nService {
         group: i18nGroupOf('ui.text', doc.key),
       }))
 
+    // A private snippet is not public: its text must not reach the public i18n endpoint. Its translations
+    // are kept (siteKnown false), like when it can't be parsed, so making it public again needs no retranslation
     let siteKnown = true
-    let siteTexts: unknown[] = []
-    if (snippet) {
+    let siteTexts: [string, unknown][] = []
+    if (snippet?.private) siteKnown = false
+    else if (snippet) {
       try {
         siteTexts = yozoraSiteTexts(JSON.parse(snippet.raw))
       } catch {
         siteKnown = false
       }
     }
-    const seen = new Set<string>()
-    for (const value of [...siteTexts, seo?.description]) {
+    for (const [slot, value] of [
+      ...siteTexts,
+      ['seo.description', seo?.description] as [string, unknown],
+    ]) {
       if (typeof value !== 'string' || !value.trim()) continue
       const text = value.trim()
-      const lookupKey = TranslationEntryService.hashSourceText(text)
-      if (seen.has(lookupKey)) continue
-      seen.add(lookupKey)
       sources.push({
         keyPath: 'site.text',
-        lookupKey,
-        key: text,
+        lookupKey: slot,
+        key: slot,
         source: text,
-        group: i18nGroupOf('site.text', lookupKey),
+        group: i18nGroupOf('site.text', slot),
       })
     }
 

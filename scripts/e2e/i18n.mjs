@@ -31,9 +31,8 @@ const { enabled, languages } = await (await fetch(`${process.env.CORE_URL ?? "ht
 const off = ["ko", "fr", "de"].find((code) => !languages.includes(code));
 response = await request(`/${off}/posts?page=1`);
 assert.deepEqual([response.status, target(response)], [307, "/posts?page=1"], "没开的语言的旧链接送回中文");
-response = await request(`/${off}`);
-assert.deepEqual([response.status, target(response)], [307, "/"], "没开的语言的首页送回中文首页");
-assert.notEqual((await request("/me")).status, 307, "/me 不是语言，按页面处理");
+// 只有一段的地址可能是后台页面（slug 正好是语言代码，如简历页 /cv、/it），不跳转，按页面处理（没有就 404）
+for (const path of [`/${off}`, "/cv", "/me"]) assert.ok(![307, 308].includes((await request(path)).status), `${path} 按页面处理，不跳转`);
 assert.ok(enabled && languages.includes("en") && languages.includes("ja"), "本地测试需要后台开着 en、ja");
 
 const browser = await openBrowser({ port: 9362 });

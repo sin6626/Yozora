@@ -88,6 +88,9 @@ const cases = [
   ['一个**大三学生**', 'a third-year student', false],
   ['评论', ' ', false],
   ['', '', true],
+  // 下划线不算占位符名（两边一致）：{user_name} 是普通文字
+  ['你好，{user_name}', 'Hello, user', true],
+  ['你好，{name2}', 'Hello', false],
 ]
 for (const [from, to, ok] of cases) {
   assert.equal(usable(from, to), ok, `前台：${from} → ${to}`)
