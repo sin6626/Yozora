@@ -249,7 +249,7 @@ describe('AI i18n', () => {
       reference: 'theme',
       name: 'yozora',
       raw: JSON.stringify({
-        hero: { title: '一个**大三学生**', description: ['第一行', ' 第二行 '] },
+        hero: { greeting: '你好，我是{name}。', title: '一个**大三学生**', description: ['第一行', ' 第二行 '] },
         footer: { motto: '' },
         techStack: { rows: [] },
       }),
@@ -265,7 +265,7 @@ describe('AI i18n', () => {
     expect(await service.getGroups()).toEqual([
       { group: 'header', total: 2, languages: { en: { done: 1, missing: 0, review: 1 }, ja: { done: 0, missing: 2, review: 0 } } },
       { group: 'home', total: 1, languages: { en: { done: 0, missing: 1, review: 0 }, ja: { done: 0, missing: 1, review: 0 } } },
-      { group: 'site', total: 4, languages: { en: { done: 0, missing: 4, review: 0 }, ja: { done: 0, missing: 4, review: 0 } } },
+      { group: 'site', total: 5, languages: { en: { done: 0, missing: 5, review: 0 }, ja: { done: 0, missing: 5, review: 0 } } },
       { group: 'works', total: 2, languages: { en: { done: 0, missing: 2, review: 0 }, ja: { done: 0, missing: 2, review: 0 } } },
     ])
 
@@ -290,6 +290,7 @@ describe('AI i18n', () => {
     ])
     // Site text is keyed by slot, so the admin page shows where each text lives
     expect((await service.getEntries('site')).map((row) => [row.key, row.source])).toEqual([
+      ['hero.greeting', '你好，我是{name}。'],
       ['hero.title', '一个**大三学生**'],
       ['hero.description.0', '第一行'],
       ['hero.description.1', '第二行'],

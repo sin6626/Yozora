@@ -83,10 +83,11 @@ const textAt = (root: unknown, path: string[]): unknown =>
     root,
   )
 
-/** The Chinese site copy in snippet theme/yozora that the blog shows translated, by slot (`hero.title`, `hero.description.0`…). */
+/** The Chinese site copy in snippet theme/yozora that the blog shows translated, by slot (`hero.greeting`, `hero.title`, `hero.description.0`…). */
 function yozoraSiteTexts(root: unknown): [string, unknown][] {
   const description = textAt(root, ['hero', 'description'])
   return [
+    ['hero.greeting', textAt(root, ['hero', 'greeting'])],
     ['hero.title', textAt(root, ['hero', 'title'])],
     ...(Array.isArray(description)
       ? description.map((line, index): [string, unknown] => [`hero.description.${index}`, line])
