@@ -209,6 +209,16 @@ const zh = {
     POST_UPDATE: { title: "文章有更新", description: "你正在阅读的文章已修改，稍后刷新可查看最新内容。" },
     POST_DELETE: { title: "这篇文章已移除", description: "当前文章已删除，可以返回文章列表继续阅读。" },
   },
+  // 文章末尾的版权说明（components/post-copyright.tsx）
+  copyright: {
+    label: "版权说明",
+    title: "文章标题：",
+    author: "文章作者：",
+    link: "文章链接：",
+    copy: "复制",
+    modified: "最后修改时间：",
+    neverModified: "暂没有修改过",
+  },
   articleActions: {
     group: "文章操作",
     subscribe: "订阅更新",

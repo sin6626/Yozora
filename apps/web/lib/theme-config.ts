@@ -21,7 +21,7 @@ function text(value: unknown) {
 //   },
 //   "footer": { "motto": "…", "icp": { "label": "萌ICP备…号", "href": "https://icp.gov.moe/?keyword=…" } },
 //   "accounts": { "github": "…", "leetcode": "…" },   页脚星带读谁的 GitHub 贡献和力扣（中国站）提交
-//   "copyright": "…",                                 开了“版权注明”的文章末尾显示的说明
+//   "copyright": "…",                                 开了“版权注明”的文章末尾显示的说明；一行一段，[文字](https://…) 是链接（许可协议）
 //   "techStack": { "title": "…", "description": "…", "rows": [[{ "name": "Vue", "icon": "skill-icons:vuejs-dark" }, …], …] },
 // }
 // 规则：片段读不到、或某一项根本没写，用下面的占位（和站长 2026-10 定的文案相同）；

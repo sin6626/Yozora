@@ -384,3 +384,45 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* 文章末尾的版权说明（post-copyright.tsx，照 Shiro）：小一号的淡色字，中间一条细分隔线，许可协议是带下划线的链接 */
+.post-copyright {
+  margin-top: var(--space-8);
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+  line-height: 2;
+}
+
+.post-copyright p {
+  margin: 0;
+}
+
+.post-copyright-url {
+  overflow-wrap: anywhere;
+}
+
+.post-copyright-copy {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.post-copyright-copy:hover,
+.post-copyright a:hover {
+  color: var(--primary);
+}
+
+.post-copyright hr {
+  margin: var(--space-3) 0;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
+}
+
+.post-copyright a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

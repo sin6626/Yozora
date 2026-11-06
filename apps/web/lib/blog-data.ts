@@ -252,6 +252,7 @@ export async function getPost(category: string, slug: string, lang: ContentLang 
   return {
     related,
     copyright: post.copyright !== false,
+    modified: (post as { modified?: string | null }).modified ?? null,
     id: post.id,
     title: post.title,
     summary: post.summary,

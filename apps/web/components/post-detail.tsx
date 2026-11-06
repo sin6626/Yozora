@@ -3,7 +3,8 @@ import IslandReading from "./island-reading";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import Link from "./locale-provider";
 import { notFound, unstable_rethrow } from "next/navigation";
-import { getPost, getSiteContent, getTimeline } from "../lib/blog-data";
+import { getPost, getSiteContent, getSiteSettings, getTimeline } from "../lib/blog-data";
+import PostCopyright from "./post-copyright";
 import { formatDate } from "../lib/date";
 import { getApiUrl } from "../lib/config";
 import ArticleBody from "./article-body";
@@ -36,7 +37,7 @@ export default async function PostDetail({ params }: { params: Promise<{ categor
     return <LoadError what={t.posts.title} href={href} />;
   }
   if (!post) notFound();
-  const [ai, { copyright }] = await Promise.all([loadArticleAi(post.id), getLocale().then(getSiteContent)]);
+  const [ai, { copyright }, settings] = await Promise.all([loadArticleAi(post.id), getLocale().then(getSiteContent), getSiteSettings().catch(() => null)]);
   const body = ai.translation ?? post;
 
   return (
@@ -59,8 +60,16 @@ export default async function PostDetail({ params }: { params: Promise<{ categor
       <div className="post-list-content">
         <ArticleAiNotes ai={ai} />
         <div lang={ai.original}><ArticleBody text={body.text} contentFormat={body.contentFormat} content={body.content} emptyText={t.posts.noBody} /></div>
-        {/* 文章开了后台的“版权注明”时，显示后台配置片段 theme/yozora 里写的版权说明 */}
-        {post.copyright && copyright && <p className="post-meta" lang={copyright.lang}>{copyright.text}</p>}
+        {/* 文章开了后台的“版权注明”、配置片段 theme/yozora 写了 copyright 时，照 Shiro 显示标题、作者、链接、修改时间和版权说明（post-copyright.tsx） */}
+        {post.copyright && copyright && settings && (
+          <PostCopyright
+            title={body.title}
+            author={settings.ownerName}
+            link={`${settings.siteUrl}${href}`}
+            modified={post.modified}
+            license={copyright}
+          />
+        )}
         <div className="article-end"><ArticleStats apiUrl={getApiUrl()} id={post.id} type="post" like={post.count.like} /></div>
         {post.related.length > 0 && (
           <nav className="neighbor-nav" aria-label={t.posts.related}>
