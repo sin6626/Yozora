@@ -302,3 +302,7 @@ MIX_SPACE_API_URL=https://Core的公网地址 SITE_NOINDEX=1 pnpm build
 主域名指向新前台、去掉 `SITE_NOINDEX`、后台“网站地址”改成主域名、Webhook 地址改到主域名、停掉旧 Shiro。
 
 后台“设置 → 网站”的 API 地址（serverUrl）、Gateway 地址（wsUrl）是 Core 自己用的，前台不读（前台连 Core 用部署时的 `MIX_SPACE_API_URL`）：GitHub、Google 登录的回调地址是 `serverUrl/auth/callback/<平台>`，退订链接、本地上传文件的地址也用 `serverUrl`，后台的实时连接用 `wsUrl`。线上现在是 `https://sin6626.me/api/v2` 和 `https://sin6626.me`，靠旧站那边把 `/api/v2` 转给 Core 才能用（2026-11-06 实测 200）。新前台没有这条转发，所以切换时二选一：在 1Panel 的主域名站点里保留 `/api/v2`（和 Socket.IO 路径）转发到 Core；或者把这两项改成 `https://api.sin6626.me/api/v2`、`https://api.sin6626.me`，同时把 GitHub、Google 的 OAuth 应用里的回调地址改成新地址。
+
+2026-11-06 只读查过线上库：正文、草稿、评论、碎碎念里没有 `sin6626.me/api/v2` 的地址；但有 5 个存死的旧图片地址走的是 `https://sin6626.me/api/v2/objects/...`——友链头像 2 个（Guo xk 的博客、LZWcc's Blog）、话题图标 2 个（近况、占位符）、读者头像 1 个。同一个文件换成 `https://api.sin6626.me/api/v2/objects/...` 一样能打开。如果选“统一到 api 子域名”，切换时要把这 5 个地址一起改掉，再在主域名站点加一条 `/api/v2/*` → `https://api.sin6626.me/api/v2/*` 的 301 跳转，兜住已经发出去的退订邮件链接和别处存的旧图片地址。
+
+注意：不要在线上用 mongosh 对整个库逐条 `JSON.stringify` 扫描（这次扫到 serverless_logs 等大集合时服务器可用内存掉到 21MB、SSH 断开，及时 kill 后恢复，服务没受影响）。只对内容集合的具体字段用正则 `countDocuments`。
