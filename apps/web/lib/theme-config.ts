@@ -13,7 +13,12 @@ function text(value: unknown) {
 
 // 站长维护的站点内容，都在 Core 的配置片段 theme/yozora 里（Shiro 也是把主题文案放在后台的配置片段里），后台“配置与云函数”里改：
 // {
-//   "hero": { "title": "一个在深夜写代码的**大三学生**", "description": ["第一行", "第二行"] },   首屏标题（**…** 是强调的字）和说明（一行一段）
+//   "hero": {
+//     "greeting": "你好，我是{name}。",                     首屏第一行，{name} 换成站长名字（个人资料昵称）；没有 {name} 就只显示文字
+//     "title": "一个在深夜写代码的**大三学生**", "description": ["第一行", "第二行"],   首屏标题（**…** 是强调的字）和说明（一行一段）
+//     "mascot": { "back": "https://…", "blink": "https://…", "front": "https://…" },   抱着名字的角色三层图（后层、闭眼帧、压在字上的手），对位是按名字“Sin”调的，不写就没有
+//     "shadow": { "image": "https://…", "page": "shin" }   头像后面藏着的圆形头像，点了进这个 slug 的后台页面，读屏念那个页面的标题；不写就没有
+//   },
 //   "footer": { "motto": "…", "icp": { "label": "萌ICP备…号", "href": "https://icp.gov.moe/?keyword=…" } },
 //   "accounts": { "github": "…", "leetcode": "…" },   页脚星带读谁的 GitHub 贡献和力扣（中国站）提交
 //   "copyright": "…",                                 开了“版权注明”的文章末尾显示的说明
@@ -27,14 +32,18 @@ export type Tech = { name: string; icon: string };
 export type HeroTitle = { text: string; strong: boolean }[];
 type Localized = { text: string; lang?: "zh-CN" };
 export type SiteContent = {
-  hero: { title: HeroTitle; titleLang?: "zh-CN"; description: string[]; descriptionLang?: "zh-CN" };
+  hero: {
+    greeting: { before: string; after: string | null; lang?: "zh-CN" } | null;
+    mascot: { back: string; blink: string; front: string } | null;
+    shadow: { image: string; page: string } | null;
+    title: HeroTitle; titleLang?: "zh-CN"; description: string[]; descriptionLang?: "zh-CN" };
   footer: { motto: Localized | null; icp: { label: string; href: string } | null };
   accounts: { github: string | null; leetcode: string | null };
   copyright: Localized | null;
   techStack: { title: Localized | null; description: Localized | null; rows: Tech[][] };
 };
 
-const placeholder = { title: "一个在深夜写代码的**大三学生**", description: ["白天上课，晚上折腾前端、写博客、做点小东西。", "探索全栈与设计的普通开发者。"], motto: "头顶的星空，是心里的星空。", techTitle: "技术栈", techNote: "平时在用、正在学的东西" };
+const placeholder = { greeting: "你好，我是{name}。", title: "一个在深夜写代码的**大三学生**", description: ["白天上课，晚上折腾前端、写博客、做点小东西。", "探索全栈与设计的普通开发者。"], motto: "头顶的星空，是心里的星空。", techTitle: "技术栈", techNote: "平时在用、正在学的东西" };
 const placeholderIcp = { label: "萌ICP备20265334号", href: "https://icp.gov.moe/?keyword=20265334" };
 const placeholderAccounts = { github: "sin6626", leetcode: "sin-mt" };
 const s = (name: string, icon: string) => ({ name, icon: `skill-icons:${icon}` });
@@ -113,8 +122,19 @@ export function parseSiteContent(config: unknown, lang: string, site: Record<str
     return found ? text(found.value) ?? null : placeholderAccounts[key];
   };
   const rows = root ? field(root, ["techStack", "rows"]) : undefined;
+  const greeting = localized(["hero", "greeting"], placeholder.greeting);
+  const [before, ...rest] = greeting ? greeting.text.split("{name}") : [];
+  const url = (value: unknown) => (typeof value === "string" && /^https?:\/\//i.test(value.trim()) ? value.trim() : undefined);
+  const mascotValue = pick(["hero", "mascot"], null);
+  const mascot = isObject(mascotValue) ? { back: url(mascotValue.back), blink: url(mascotValue.blink), front: url(mascotValue.front) } : undefined;
+  const shadowValue = pick(["hero", "shadow"], null);
+  const shadowImage = isObject(shadowValue) ? url(shadowValue.image) : undefined;
+  const shadowPage = isObject(shadowValue) ? text(shadowValue.page) : undefined;
   return {
     hero: {
+      greeting: greeting ? { before, after: rest.length ? rest.join("{name}") : null, ...(greeting.lang && { lang: greeting.lang }) } : null,
+      mascot: mascot?.back && mascot.blink && mascot.front ? (mascot as { back: string; blink: string; front: string }) : null,
+      shadow: shadowImage && shadowPage && /^[\w-]+$/.test(shadowPage) ? { image: shadowImage, page: shadowPage } : null,
       title: heroTitle(titleTranslated ?? title),
       ...(foreign && title && !titleTranslated && { titleLang: "zh-CN" as const }),
       description: descriptionDone ? (descriptionTranslated as string[]) : description,

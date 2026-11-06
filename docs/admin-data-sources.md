@@ -24,7 +24,8 @@
 | 关键字 | options.seo.keywords | 设置 → SEO → 关键字 | 每个页面的 `<meta name="keywords">`（没填就不输出） | 立即 |
 | 网站地址、评论开关、订阅开关、登录方式、友链申请开关 | options | 设置 | sitemap/RSS、评论区、订阅、登录、友链申请 | 立即（OPTION_UPDATE） |
 | 站长名字、头像、社交账号与名片 | owner（readers + owner_profiles） | 设置 → 用户 | 首屏、页脚落款、页头头像、导航面板 | 立即（OWNER_UPDATE） |
-| 首屏标题与说明 | 片段 theme/yozora 的 `hero`（只写中文） | 附加功能 → 配置与云函数 | 首屏 | 立即（SNIPPET_*） |
+| 首屏问候、标题与说明 | 片段 theme/yozora 的 `hero.greeting`（`{name}` 换成站长名字）、`hero.title`、`hero.description`（只写中文） | 附加功能 → 配置与云函数 | 首屏左侧全部文字 | 立即（SNIPPET_*） |
+| 抱着名字的角色、头像后的影子 | 片段的 `hero.mascot`（back / blink / front 三层图地址）、`hero.shadow`（image + 后台页面 slug，读屏念页面标题）；不写就没有。图传到图床，Core 把片段里的图片登记为已引用（FileReferenceType.Snippet），不会被每小时的清理删掉 | 附加功能 → 配置与云函数 | 首屏名字、首屏头像后面 | 立即（SNIPPET_*） |
 | 页脚那句话、萌备号 | 片段 `footer.motto`、`footer.icp` | 同上 | 页脚 | 立即 |
 | 页脚星带读谁的账号 | 片段 `accounts.github`、`accounts.leetcode` | 同上 | 页脚星带；`scripts/sync-leetcode.mjs` 也读它，同步的日历记着账号，账号不一致就不用 | 立即 |
 | 首页技术栈 | 片段 `techStack`（标题、说明、图标行 `rows`） | 同上 | 首页；`rows` 清空就整块不显示 | 立即 |

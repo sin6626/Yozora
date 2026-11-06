@@ -1,7 +1,7 @@
 import { ChevronDown } from "lucide-react";
 import { unstable_rethrow } from "next/navigation";
 import { Fragment, Suspense, type CSSProperties } from "react";
-import { getOwner, getSiteContent, getSiteDescription, getSiteLikes, getSubscribeOptions, siteDescription, siteOwnerName } from "../lib/blog-data";
+import { getNavigationData, getOwner, getSiteContent, getSiteDescription, getSiteLikes, getSubscribeOptions, siteDescription, siteOwnerName } from "../lib/blog-data";
 import { getApiUrl } from "../lib/config";
 import type { SocialCard, SocialLink } from "../lib/social";
 import ContactCard from "./contact-card";
@@ -12,7 +12,7 @@ import ScrollHint from "./scroll-hint";
 import SocialTooltip, { SocialTooltipGroup } from "./social-tooltip";
 import SiteActions from "./site-actions";
 import MoonTip from "./moon-tip";
-import HeroShadow from "./hero-shadow";
+import HeroShadow, { type Shadow } from "./hero-shadow";
 // 首屏标题与说明用霞鹜文楷（简体版，npm 包已按字符切成小块，浏览器只下载页面上用到的字）；细体、常规，强调词“大三学生”用粗体
 import "lxgw-wenkai-webfont/lxgwwenkai-light.css";
 import "lxgw-wenkai-webfont/lxgwwenkai-regular.css";
@@ -80,11 +80,18 @@ async function Actions() {
   return <SiteActions apiUrl={getApiUrl()} likes={likes} subscribeTypes={subscribe?.enabled ? subscribe.types : null} />;
 }
 
-// 丛雨抱着名字：身体（后层、闭眼帧）在字后面，手臂（前层）在字前面，三张图画布一致、叠在同一位置。
-// 素材在 public/mascot，由 scripts/prepare-mascot.mjs 从生图结果抠图生成；纯装饰，读屏只读到“Sin”。
-function MascotLayer({ layer }: { layer: "back" | "blink" | "front" }) {
+// 抱着名字的角色：身体（后层、闭眼帧）在字后面，手臂（前层）在字前面，三张图画布一致、叠在同一位置。
+// 图在配置片段 theme/yozora 的 hero.mascot（站长的丛雨，由 scripts/prepare-mascot.mjs 抠图后传到图床），没配就没有；纯装饰，读屏只读到名字。
+function MascotLayer({ layer, src }: { layer: "back" | "blink" | "front"; src: string }) {
   // eslint-disable-next-line @next/next/no-img-element -- 三层要像素级叠在一起，直接用原图，不走响应式裁切
-  return <img className={`home-hero-mascot is-${layer}`} src={`/mascot/${layer}.webp`} alt="" aria-hidden="true" width={600} height={390} draggable={false} />;
+  return <img className={`home-hero-mascot is-${layer}`} src={src} alt="" aria-hidden="true" width={600} height={390} draggable={false} />;
+}
+
+// 头像后的影子链到哪个后台页面：页面不存在就不放（点进去会是 404），读屏念页面标题（外文页面是 AI 译名）
+async function shadowOf(shadow: { image: string; page: string } | null, locale: Awaited<ReturnType<typeof getLocale>>): Promise<Shadow | undefined> {
+  if (!shadow) return undefined;
+  const page = (await getNavigationData(locale).catch(() => null))?.pageMeta.find(({ slug }) => slug === shadow.page);
+  return page ? { image: shadow.image, href: `/${page.slug}`, label: page.title } : undefined;
 }
 
 // 站点那句话：外文页面用配置片段里的译文，没写译文时是中文原文并标明语言
@@ -94,7 +101,10 @@ async function Motto() {
 }
 
 export default async function HomeHero() {
-  const [t, { hero }] = await Promise.all([getT().then((all) => all.hero), getLocale().then(getSiteContent)]);
+  const locale = await getLocale();
+  const { hero } = await getSiteContent(locale);
+  const shadow = await shadowOf(hero.shadow, locale);
+  const greeting = hero.greeting;
   return (
     <section className="home-hero" aria-labelledby="home-hero-title">
       {/* 夜空本身是全站的画布（starfield.tsx，挂在根布局），这里只放月亮的悬停区域 */}
@@ -103,23 +113,25 @@ export default async function HomeHero() {
         <div className="home-hero-half is-text">
           <div className="home-hero-content">
             <h1 id="home-hero-title" className="home-hero-title">
-              {/* 结尾的空格（英文 “Hi, I'm ”）放在 inline-block 外面，否则会被吃掉，读出来成了 “I'mSin” */}
-              <span>{t.greeting.trimEnd()}</span>
-              {/\s$/.test(t.greeting) && " "}
+              {/* 第一行问候来自配置片段 hero.greeting，{name} 换成站长名字；结尾的空格（英文 “Hi, I'm ”）放在 inline-block 外面，否则会被吃掉，读出来成了 “I'mSin” */}
+              {greeting && greeting.before.trim() && <span lang={greeting.lang}>{greeting.before.trim()}</span>}
+              {greeting && greeting.after !== null && /\s$/.test(greeting.before) && " "}
               {/* “Sin。”包成一块：窄屏放不下一行时一起换行，句号不会单独掉到下一行 */}
-              <span>
-                <strong className="home-hero-name">
-                  <MascotLayer layer="back" />
-                  <MascotLayer layer="blink" />
-                  {/* 站长名字读后台；丛雨的对位是按“Sin”三个字母调的（home-hero.css），改成别的名字手的位置要重调 */}
-                  <Suspense fallback={siteOwnerName}><OwnerName /></Suspense>
-                  <MascotLayer layer="front" />
-                  <span className="home-hero-star" aria-hidden="true" />
-                </strong>
-                <span>{t.nameSuffix}</span>
-              </span>
+              {greeting && greeting.after !== null && (
+                <span>
+                  <strong className="home-hero-name">
+                    {hero.mascot && <MascotLayer layer="back" src={hero.mascot.back} />}
+                    {hero.mascot && <MascotLayer layer="blink" src={hero.mascot.blink} />}
+                    {/* 站长名字读后台；角色的对位是按“Sin”三个字母调的（home-hero.css），改成别的名字手的位置要重调 */}
+                    <Suspense fallback={siteOwnerName}><OwnerName /></Suspense>
+                    {hero.mascot && <MascotLayer layer="front" src={hero.mascot.front} />}
+                    <span className="home-hero-star" aria-hidden="true" />
+                  </strong>
+                  {greeting.after && <span lang={greeting.lang}>{greeting.after}</span>}
+                </span>
+              )}
               {/* 标题第二行和说明来自后台配置片段 theme/yozora 的 hero（getSiteContent），**…** 是强调的字 */}
-              {hero.title.length > 0 && <br />}
+              {greeting && hero.title.length > 0 && <br />}
               {hero.title.map((part, index) => (
                 // 每段是 inline-block，段首段尾的空格放在块外面，英文词间才不会被吃掉
                 <Fragment key={index}>
@@ -140,7 +152,7 @@ export default async function HomeHero() {
           </div>
         </div>
         <div className="home-hero-half">
-          <HeroShadow label={t.shadowLabel}>
+          <HeroShadow shadow={shadow}>
             <Suspense fallback={<span className="home-hero-avatar is-empty" aria-hidden="true" />}>
               <Portrait />
             </Suspense>

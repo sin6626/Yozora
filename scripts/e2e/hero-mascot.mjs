@@ -3,6 +3,7 @@
 // ② 层叠顺序是 后层 < 文字 < 前层；③ 闭眼帧在播眨眼动画；
 // ④ 桌面上图不盖住旁边的“是”和“。”（名字整层画在普通文字之上，边距不够时句号曾被头发盖住）；
 // ⑤ 手机上“Sin。”一起换到第二行，丛雨的头不碰上一行的“你好，我是”（曾经头发盖住“好，”，句号单独掉到下一行）。
+// 前提：配置片段 theme/yozora 填了 hero.mascot（三层图在图床上）；没填时首页没有角色，这个测试会失败。
 // 需要先运行 pnpm dev（默认 http://127.0.0.1:2323，可用 WEB_URL 覆盖）。用法：pnpm e2e
 import assert from "node:assert/strict";
 import { openBrowser } from "../headless-browser.mjs";

@@ -1,4 +1,5 @@
-// 首屏“丛雨抱着 Sin”的素材处理：生图得到的品红底 PNG → 三层透明 WebP（apps/web/public/mascot/）。
+// 首屏“丛雨抱着 Sin”的素材处理：生图得到的品红底 PNG → 三层透明 WebP（.local/mascot/，不进 git：丛雨是同人图，只给站长自己的站用）。
+// 导出后传到图床，把三个地址填进配置片段 theme/yozora 的 hero.mascot（back / blink / front），首页才会出现。
 // 用法：node scripts/prepare-mascot.mjs <带字的完整构图.png> <去掉字的后层.png> <闭眼的后层.png>
 // 三张图画布尺寸、人物位置必须一致。生图单独画的“只有手”那层位置总会变，所以手直接从完整构图里原位取：
 //   back  = 完整构图，只把字母那几块换成后层同位置的像素（把字擦掉，露出后面的身体）；
@@ -16,7 +17,7 @@ const sharp = createRequire(createRequire(join(root, "apps/web/package.json")).r
 const [referencePath, backPath, blinkPath] = process.argv.slice(2);
 if (!blinkPath) throw new Error("需要三个参数：带字的完整构图、去掉字的后层、闭眼的后层");
 
-const outDir = join(root, "apps/web/public/mascot");
+const outDir = join(root, ".local/mascot");
 const outWidth = 600;
 const key = [255, 0, 255];
 // 与品红的颜色距离小于 near 视为背景，大于 far 视为人物，中间是发丝等半透明边缘

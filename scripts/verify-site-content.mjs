@@ -100,4 +100,17 @@ assert.deepEqual([visible(outdated.title), outdated.titleLang], ['新标题', 'z
 // 说明里有空行：位置按片段数组原来的下标（和 Core 一致）
 const gap = parse({ hero: { description: ['第一行', '', '第三行'] } }, 'en', { 'hero.description.0': tr('第一行', 'One'), 'hero.description.2': tr('第三行', 'Three') }).hero
 assert.deepEqual([gap.description, gap.descriptionLang], [['One', 'Three'], undefined], '空行也占一个下标')
+// 首屏第一行问候（{name} 换成站长名字）、丛雨图层、头像后的影子：都由片段决定
+assert.deepEqual(fallback.hero.greeting, { before: '你好，我是', after: '。' }, '问候没写时用占位，{name} 前后拆开')
+assert.equal(fallback.hero.mascot, null, '丛雨图层默认没有：别人用这个主题不会出现')
+assert.equal(fallback.hero.shadow, null, '头像后的影子默认没有')
+assert.equal(parse({ hero: { greeting: '' } }).hero.greeting, null, '问候写成空就不显示这一行')
+assert.deepEqual(parse({ hero: { greeting: 'Welcome to my sky' } }).hero.greeting, { before: 'Welcome to my sky', after: null }, '没有 {name} 时只显示文字、不放名字')
+assert.deepEqual(parse({ hero: { greeting: '你好，我是{name}。' } }, 'en', { 'hero.greeting': { source: '你好，我是{name}。', text: "Hi, I'm {name}." } }).hero.greeting, { before: "Hi, I'm ", after: '.' }, '外文用译文，英文结尾的空格保留')
+assert.deepEqual(parse({ hero: { greeting: '你好，我是{name}。' } }, 'ja').hero.greeting, { before: '你好，我是', after: '。', lang: 'zh-CN' }, '没有译文时显示中文并标 zh-CN')
+const layers = { back: 'https://s3.example.com/back.webp', blink: 'https://s3.example.com/blink.webp', front: 'https://s3.example.com/front.webp' }
+assert.deepEqual(parse({ hero: { mascot: layers } }).hero.mascot, layers, '丛雨三层图都填了才显示')
+assert.equal(parse({ hero: { mascot: { ...layers, front: 'javascript:alert(1)' } } }).hero.mascot, null, '有一层不是 http(s) 地址就不显示')
+assert.deepEqual(parse({ hero: { shadow: { image: 'https://s3.example.com/shin.webp', page: ' shin ' } } }).hero.shadow, { image: 'https://s3.example.com/shin.webp', page: 'shin' }, '影子：图片和后台页面的 slug')
+assert.equal(parse({ hero: { shadow: { image: 'https://s3.example.com/shin.webp', page: '../x' } } }).hero.shadow, null, 'slug 只能是一段路径')
 console.log('PASS site content from the theme/yozora snippet: fallback, missing, cleared leaves and groups, spaces around emphasis, per-field AI translations, tech stack, link safety')
