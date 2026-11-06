@@ -300,3 +300,5 @@ MIX_SPACE_API_URL=https://Core的公网地址 SITE_NOINDEX=1 pnpm build
 ## 正式切换（以后）
 
 主域名指向新前台、去掉 `SITE_NOINDEX`、后台“网站地址”改成主域名、Webhook 地址改到主域名、停掉旧 Shiro。
+
+后台“设置 → 网站”的 API 地址（serverUrl）、Gateway 地址（wsUrl）是 Core 自己用的，前台不读（前台连 Core 用部署时的 `MIX_SPACE_API_URL`）：GitHub、Google 登录的回调地址是 `serverUrl/auth/callback/<平台>`，退订链接、本地上传文件的地址也用 `serverUrl`，后台的实时连接用 `wsUrl`。线上现在是 `https://sin6626.me/api/v2` 和 `https://sin6626.me`，靠旧站那边把 `/api/v2` 转给 Core 才能用（2026-11-06 实测 200）。新前台没有这条转发，所以切换时二选一：在 1Panel 的主域名站点里保留 `/api/v2`（和 Socket.IO 路径）转发到 Core；或者把这两项改成 `https://api.sin6626.me/api/v2`、`https://api.sin6626.me`，同时把 GitHub、Google 的 OAuth 应用里的回调地址改成新地址。
