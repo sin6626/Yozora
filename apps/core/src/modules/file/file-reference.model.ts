@@ -15,6 +15,7 @@ export enum FileReferenceType {
   Draft = 'draft',
   Murmur = 'murmur',
   Owner = 'owner',
+  Snippet = 'snippet',
 }
 
 @index({ fileUrl: 1 })

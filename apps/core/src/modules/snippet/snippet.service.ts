@@ -14,7 +14,10 @@ import { load } from 'js-yaml'
 import JSON5 from 'json5'
 import type { AggregatePaginateModel, Document } from 'mongoose'
 import qs from 'qs'
+import { FileReferenceType } from '../file/file-reference.model'
+import { FileReferenceService } from '../file/file-reference.service'
 import { ServerlessService } from '../serverless/serverless.service'
+import { snippetImageUrls } from './snippet-images.util'
 import { SnippetModel, SnippetType } from './snippet.model'
 
 @Injectable()
@@ -27,6 +30,7 @@ export class SnippetService {
     private readonly serverlessService: ServerlessService,
     private readonly redisService: RedisService,
     private readonly eventManager: EventManagerService,
+    private readonly fileReferenceService: FileReferenceService,
   ) {}
 
   get model() {
@@ -87,6 +91,7 @@ export class SnippetService {
     }
 
     const created = await this.model.create({ ...model, created: new Date() })
+    await this.syncImageReferences(created)
     this.emitSnippetEvent(BusinessEvents.SNIPPET_CREATE, created)
     return created
   }
@@ -211,6 +216,7 @@ export class SnippetService {
     if (!newerDoc) {
       return newerDoc
     }
+    await this.syncImageReferences(newerDoc)
     this.emitSnippetEvent(BusinessEvents.SNIPPET_UPDATE, newerDoc)
 
     return this.transformLeanSnippetModel(newerDoc.toObject())
@@ -233,7 +239,18 @@ export class SnippetService {
     if (doc.customPath) {
       await this.deleteCachedSnippetByCustomPath(doc.customPath)
     }
+    await this.fileReferenceService.removeReferencesForDocument(String(doc._id), FileReferenceType.Snippet)
     this.emitSnippetEvent(BusinessEvents.SNIPPET_DELETE, doc)
+  }
+
+  // JSON 片段里的图床图片登记为已引用，换掉或删掉的旧图回到待清理（snippet-images.util.ts）
+  private async syncImageReferences(doc: { _id?: unknown; id?: string; type: SnippetType; raw: string }) {
+    if (doc.type !== SnippetType.JSON) return
+    await this.fileReferenceService.updateReferencesForDocument(
+      { text: snippetImageUrls(doc.raw).map((url) => `![](${url})`).join('\n') },
+      doc.id ?? String(doc._id),
+      FileReferenceType.Snippet,
+    )
   }
 
   private async validateTypeAndCleanup(model: SnippetModel) {

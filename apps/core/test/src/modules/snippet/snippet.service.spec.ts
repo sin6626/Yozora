@@ -2,6 +2,7 @@ import { createRedisProvider } from '@/mock/modules/redis.mock'
 import { Test } from '@nestjs/testing'
 import { getModelForClass } from '@typegoose/typegoose'
 import { BizException } from '~/common/exceptions/biz.exception'
+import { FileReferenceService } from '~/modules/file/file-reference.service'
 import { ServerlessService } from '~/modules/serverless/serverless.service'
 import { SnippetModel, SnippetType } from '~/modules/snippet/snippet.model'
 import { SnippetService } from '~/modules/snippet/snippet.service'
@@ -38,6 +39,7 @@ describe('test Snippet Service', async () => {
           },
         },
         { provide: EventManagerService, useValue: mockedEventManageService },
+        { provide: FileReferenceService, useValue: { updateReferencesForDocument: async () => {}, removeReferencesForDocument: async () => {} } },
 
         {
           provide: getModelToken(SnippetModel.name),

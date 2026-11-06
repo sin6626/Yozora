@@ -2,6 +2,7 @@ import { redisHelper } from '@/helper/redis-mock.helper'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import type { ReturnModelType } from '@typegoose/typegoose'
 import { apiRoutePrefix } from '~/common/decorators/api-controller.decorator'
+import { FileReferenceService } from '~/modules/file/file-reference.service'
 import { ServerlessService } from '~/modules/serverless/serverless.service'
 import { SnippetController } from '~/modules/snippet/snippet.controller'
 import { SnippetModel, SnippetType } from '~/modules/snippet/snippet.model'
@@ -29,6 +30,10 @@ describe('test /snippets', async () => {
         useValue: {
           async emit() {},
         },
+      },
+      {
+        provide: FileReferenceService,
+        useValue: { async updateReferencesForDocument() {}, async removeReferencesForDocument() {} },
       },
 
       {
