@@ -21,6 +21,7 @@
 | AI 摘要、AI 翻译、翻译条目 | ai_summaries、ai_translations、translation_entries | AI | 详情摘要、列表摘要、外文页面 | 立即（AI_SUMMARY_*、TRANSLATION_CREATE/UPDATE/DELETE；在后台手动改、删译文也发，2026-11-05 起）；直接改翻译条目不发事件。译文推给访客前会核对原文是否公开（草稿、加密、定时手记的译文不推） |
 | 站名 | options.seo.title | 设置 → SEO → 网站标题 | 页头、浏览器标题、RSS、分享卡片 | 立即（OPTION_UPDATE） |
 | 站点描述 | options.seo.description | 设置 → SEO → 网站描述（外文由 AI → i18n 翻译） | 首屏底部、首页标题、meta | 立即 |
+| 关键字 | options.seo.keywords | 设置 → SEO → 关键字 | 每个页面的 `<meta name="keywords">`（没填就不输出） | 立即 |
 | 网站地址、评论开关、订阅开关、登录方式、友链申请开关 | options | 设置 | sitemap/RSS、评论区、订阅、登录、友链申请 | 立即（OPTION_UPDATE） |
 | 站长名字、头像、社交账号与名片 | owner（readers + owner_profiles） | 设置 → 用户 | 首屏、页脚落款、页头头像、导航面板 | 立即（OWNER_UPDATE） |
 | 首屏标题与说明 | 片段 theme/yozora 的 `hero`（只写中文） | 附加功能 → 配置与云函数 | 首屏 | 立即（SNIPPET_*） |
@@ -44,11 +45,10 @@ theme/yozora 片段的格式写在 `apps/web/lib/theme-config.ts` 开头，只�
 
 ## 仍是例外
 
-- 个人资料里的“个人简介”“个人网站”和 SEO 关键词，后台能填，前台还没用。首屏说明按站长的选择放在片段的 `hero.description` 里，没有和个人简介合并。
-- 思考的结构化卡片（book、media、music、github、link、academic、code）只有 Core 存得下。后台表单和前台卡片都还没做，计划见 `docs/recently-plan.md`。
+- 设置 → 网站里的 API 地址（serverUrl）、Gateway 地址（wsUrl）：前台在浏览器里直连 Core（评论、点赞、登录、实时连接）用的是部署时的环境变量 `MIX_SPACE_API_URL`，没有读这两项。线上这两项现在还指向旧 Shiro 的域名，等正式切换时一起改、再决定要不要让前台读它们。管理后台地址（adminUrl）Core 不对访客公开，前台用不到。
+- 思考的结构化卡片（book、media、music、github、link、academic、code）只有 Core 存得下。后台表单和前台卡片都还没做，计划见 `docs/recently-plan.md`；2026-11-06 站长说暂时没有这个需求，以后再说。
 - 后台手记的地点和坐标、文章或手记的自定义 meta，前台还没有展示约定。
 - 力扣日历 `theme/leetcode-calendar` 由站长 Mac 上的脚本每天写进 Core。它是从力扣同步来的派生数据，不是第二份需要手改的真值。
-- 默认配色（夜紫）写在前台代码里。访客可以自己换配色，但还没有“站长设定的默认配色”这一项。
 
 ## 有意留在代码里的
 
@@ -59,4 +59,6 @@ theme/yozora 片段的格式写在 `apps/web/lib/theme-config.ts` 开头，只�
   - 页脚的“Made with ♥ under the stars”。
 - 源码仓库链接。这是 AGPL 对改过的 Core 的要求，跟着代码走。
 - 样式、布局、动画、配色的具体颜色值、组件实现。
+- 个人资料里的“个人简介”“个人网站”：站长定（2026-11-06）后台用户信息不用全，只要“设置 → 网站”里的信息用全。首屏说明在片段的 `hero.description` 里。
+- 默认配色（夜紫）：站长定（2026-11-06）前台有即可，不做成后台设置。
 - 访客自己的偏好：语言（Cookie NEXT_LOCALE）、深浅主题和配色（localStorage）。这些不是站点配置。

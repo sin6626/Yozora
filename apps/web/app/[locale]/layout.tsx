@@ -86,6 +86,7 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: settings ? new URL(settings.siteUrl) : undefined,
     title: { default: `${name} - ${description}`, template: `%s - ${name}` },
     description,
+    keywords: settings?.keywords.length ? settings.keywords : undefined,
     openGraph: { siteName: name, title: name, description, type: "website", locale: ogLocale(locale) },
     alternates: { types: { "application/rss+xml": [{ url: "/feed.xml", title: name }] } },
     // 灰度时（SITE_NOINDEX=1）整站不让搜索引擎收录

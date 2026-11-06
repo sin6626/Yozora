@@ -62,7 +62,7 @@ export async function getNavigationData(lang: ContentLang = "zh") {
 }
 
 // 站点级设置。对外地址取后台“网站地址”（Core 的 url.webUrl），sitemap、RSS 的完整链接都以它为准，不在前端写死域名；
-// 评论开关取后台“评论设置”（是否关闭评论、是否允许游客评论）；站名、一句话描述取后台 SEO 设置，站长名字取“个人资料”的昵称。
+// 评论开关取后台“评论设置”（是否关闭评论、是否允许游客评论）；站名、一句话描述、关键字取后台 SEO 设置，站长名字取“个人资料”的昵称。
 export async function getSiteSettings() {
   "use cache";
   // 改个人资料、设置经 OWNER_UPDATE、OPTION_UPDATE 立即失效（后台 Webhook 要勾上这两个事件）；没勾时靠这里的过期时间。
@@ -78,6 +78,7 @@ export async function getSiteSettings() {
     ownerName: user?.name?.trim() || siteOwnerName,
     name: seo?.title?.trim() || siteName,
     description: seo?.description?.trim() || siteDescription,
+    keywords: (seo?.keywords ?? []).flatMap((word) => (typeof word === "string" && word.trim() ? [word.trim()] : [])),
     comments: { disabled: Boolean(commentOptions?.disableComment), allowGuest: commentOptions?.allowGuestComment !== false },
   };
 }
