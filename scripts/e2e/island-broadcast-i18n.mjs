@@ -1,11 +1,12 @@
 // 浏览器回归测试：外文页面的夜航岛文章播报（2026-11-05 AI i18n）。
-// ① 新文章、修改文章的通知只带中文标题：英文页面向 Core 要这篇的英文译名，有就播译名，没有就播中文原题并标 lang="zh-CN"；书名号用词典里的写法（英文是引号）。
+// ① 新文章的通知只带中文标题：英文页面向 Core 要这篇的英文译名，有就播译名，没有就播中文原题并标 lang="zh-CN"；书名号用词典里的写法（英文是引号）。
 // ② 播报文案的译文变了以后，页面 router.refresh 拿到新译文，之后的播报用新文案（原来文案存在 ref 里，停在页面第一次打开时的那份）。
 // Core 的实时连接换成页面里的假 WebSocket（按 socket.io 协议回握手、推消息）；②不改 Core 里的译文，而是在浏览器里拦下刷新时的页面数据，
 // 把那句播报文案换成别的。全程只读 Core，不写日常库。
 // 需先开 pnpm dev。用法：node scripts/e2e/island-broadcast-i18n.mjs
 import assert from "node:assert/strict";
 import { openBrowser, sleep } from "../headless-browser.mjs";
+import { fakeSocket } from "./helpers.mjs";
 
 const base = process.env.WEB_URL ?? "http://127.0.0.1:2323";
 const core = process.env.CORE_URL ?? "http://127.0.0.1:2333";
@@ -26,31 +27,9 @@ assert.ok(translated, "本地要有一篇带英文译文的文章");
 const { messages } = await json("/ai/i18n/en");
 const quoted = (title) => messages["notifications.quoted"].replace("{title}", title);
 
-const fakeSocket = `{
-  const Native = window.WebSocket;
-  window.__sockets = [];
-  class Fake extends EventTarget {
-    constructor(url, protocols) {
-      super();
-      if (!String(url).includes("/socket.io")) return new Native(url, protocols);
-      this.url = String(url); this.readyState = 0; this.binaryType = "blob"; this.protocol = ""; this.extensions = "";
-      window.__sockets.push(this);
-      setTimeout(() => { this.readyState = 1; this.onopen?.({}); this.deliver("0" + JSON.stringify({ sid: "fake", upgrades: [], pingInterval: 600000, pingTimeout: 600000, maxPayload: 1000000 })); }, 0);
-    }
-    deliver(data) { this.onmessage?.({ data }); }
-    send(data) {
-      const connect = /^40(\\/[^,]*)?,?/.exec(String(data));
-      if (connect) setTimeout(() => this.deliver("40" + (connect[1] ? connect[1] + "," : "") + JSON.stringify({ sid: "fake-nsp" })), 0);
-    }
-    close() { this.readyState = 3; this.onclose?.({ code: 1000, reason: "" }); }
-  }
-  for (const [name, value] of [["CONNECTING", 0], ["OPEN", 1], ["CLOSING", 2], ["CLOSED", 3]]) { Fake[name] = value; Fake.prototype[name] = value; }
-  window.WebSocket = Fake;
-  window.__emit = (message) => window.__sockets.forEach((socket) => socket.deliver("42/web," + JSON.stringify(["message", message])));
-}`;
 
-const original = messages["notifications.POST_UPDATE.title"];
-const renamed = "Post updated just now";
+const original = messages["notifications.POST_CREATE.title"];
+const renamed = "A new post just landed";
 
 const browser = await openBrowser({ port: 9368 });
 try {
@@ -73,12 +52,12 @@ try {
   assert.deepEqual(await broadcast(messages["notifications.POST_CREATE.title"]), { title: messages["notifications.POST_CREATE.title"], detail: quoted(translated.en), lang: null }, "有英文译名时播译名");
   await sleep(5500);
 
-  await browser.evaluate(`window.__emit(${JSON.stringify({ type: "POST_UPDATE", data: { id: "000000000000000000000000", title: "还没有译文的文章" } })})`);
+  await browser.evaluate(`window.__emit(${JSON.stringify({ type: "POST_CREATE", data: { id: "000000000000000000000000", title: "还没有译文的文章", isPublished: true } })})`);
   assert.deepEqual(await broadcast(original), { title: original, detail: quoted("还没有译文的文章"), lang: "zh-CN" }, "没有译名时播中文原题并标 zh-CN");
   await sleep(5500);
 
   // ② 刷新时把页面数据里这句的译文换掉（RSC 里 LocaleProvider 的 translations），相当于后台改了它
-  const field = (text) => `"notifications.POST_UPDATE.title":${JSON.stringify(text)}`;
+  const field = (text) => `"notifications.POST_CREATE.title":${JSON.stringify(text)}`;
   let swapped = 0;
   // 回调里出的错（比如刷新时服务停了、取不到响应体）记下来交回主流程，让测试失败并照常关浏览器
   let interceptError;
@@ -107,7 +86,7 @@ try {
   await browser.send("Fetch.disable");
   if (interceptError) throw interceptError;
   assert.ok(swapped > 0, "刷新拿到的页面数据里有这句译文");
-  await browser.evaluate(`window.__emit(${JSON.stringify({ type: "POST_UPDATE", data: { id: "000000000000000000000000", title: "还没有译文的文章" } })})`);
+  await browser.evaluate(`window.__emit(${JSON.stringify({ type: "POST_CREATE", data: { id: "000000000000000000000000", title: "还没有译文的文章", isPublished: true } })})`);
   assert.equal((await broadcast(renamed)).title, renamed, "刷新后用新的播报文案");
   assert.deepEqual(browser.errors, [], "页面不应当有报错");
   console.log(`PASS 夜航岛外文播报：有译名播“${translated.en}”、没有时中文原题标 zh-CN、书名号随语言、译文变了刷新后就用新的`);

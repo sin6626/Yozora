@@ -10,7 +10,7 @@ import ArticleAside from "./article-aside";
 import { ArticleAiNotes, ArticleLanguages, loadArticleAi } from "./article-ai";
 import ArticleStats from "./article-stats";
 import Comments from "./comments";
-import { ArticleNotifications, ReadingCount } from "./notifications";
+import { ArticleNotifications, ReadCount, ReadingCount } from "./notifications";
 import IslandReading from "./island-reading";
 import NoteUnlock from "./note-unlock";
 import { getLocale, getT } from "../lib/i18n/server";
@@ -50,7 +50,7 @@ export default async function NoteDetail({ params }: { params: Promise<{ nid: st
   const body = ai.translation ?? note;
   return (
     <article className="post-detail note-detail">
-      <ArticleNotifications id={note.id} />
+      <ArticleNotifications id={note.id} kind="note" />
       <IslandReading title={body.title} kind="note" date={formatDate(note.created)} />
       {note.cover && <NoteCover src={note.cover} />}
       <header className="page-heading">
@@ -63,7 +63,7 @@ export default async function NoteDetail({ params }: { params: Promise<{ nid: st
           <time dateTime={note.created}>{formatDate(note.created)}</time>
           {note.mood && <span>{t.list.mood(note.mood)}</span>}
           {note.weather && <span>{t.list.weather(note.weather)}</span>}
-          <span>{t.list.reads(note.count.read)}</span>
+          <ReadCount id={note.id} count={note.count.read} />
           <ReadingCount apiUrl={getApiUrl()} id={note.id} />
           <ArticleLanguages href={href} ai={ai} />
         </div>

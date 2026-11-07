@@ -22,3 +22,30 @@ export const clickNavAndCaptureTransition = (href) => `(async () => {
   }
   return [];
 })()`;
+
+// 页面加载前注入（Page.addScriptToEvaluateOnNewDocument）：把 Core 的实时连接换成页面里的假 WebSocket，
+// 按 socket.io 协议回握手；window.__emit(message) 往 /web 推一条消息，window.__sent 记下页面发出去的包（加入房间等）。不连真的 Core。
+export const fakeSocket = `{
+  const Native = window.WebSocket;
+  window.__sockets = [];
+  window.__sent = [];
+  class Fake extends EventTarget {
+    constructor(url, protocols) {
+      super();
+      if (!String(url).includes("/socket.io")) return new Native(url, protocols);
+      this.url = String(url); this.readyState = 0; this.binaryType = "blob"; this.protocol = ""; this.extensions = "";
+      window.__sockets.push(this);
+      setTimeout(() => { this.readyState = 1; this.onopen?.({}); this.deliver("0" + JSON.stringify({ sid: "fake", upgrades: [], pingInterval: 600000, pingTimeout: 600000, maxPayload: 1000000 })); }, 0);
+    }
+    deliver(data) { this.onmessage?.({ data }); }
+    send(data) {
+      window.__sent.push(String(data));
+      const connect = /^40(\\/[^,]*)?,?/.exec(String(data));
+      if (connect) setTimeout(() => this.deliver("40" + (connect[1] ? connect[1] + "," : "") + JSON.stringify({ sid: "fake-nsp" })), 0);
+    }
+    close() { this.readyState = 3; this.onclose?.({ code: 1000, reason: "" }); }
+  }
+  for (const [name, value] of [["CONNECTING", 0], ["OPEN", 1], ["CLOSING", 2], ["CLOSED", 3]]) { Fake[name] = value; Fake.prototype[name] = value; }
+  window.WebSocket = Fake;
+  window.__emit = (message) => window.__sockets.forEach((socket) => socket.deliver("42/web," + JSON.stringify(["message", message])));
+}`;

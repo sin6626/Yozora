@@ -315,7 +315,8 @@
 }
 
 .island-activity[data-tone="post"] { --tone: var(--island-tone-post); }
-.island-activity[data-tone="note"] { --tone: var(--island-tone-note); }
+/* 思考、一言和手记同用月光金 */
+.island-activity:is([data-tone="note"], [data-tone="thinking"], [data-tone="say"]) { --tone: var(--island-tone-note); }
 .island-activity[data-tone="update"] { --tone: var(--island-tone-update); }
 .island-activity[data-tone="remove"] { --tone: var(--island-tone-remove); }
 .island-activity:is([data-tone="link"], [data-tone="comment"]) { --tone: var(--island-tone-done); }

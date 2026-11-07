@@ -6,7 +6,7 @@ import { create } from "zustand";
 // - activities：要在岛上播报的实时活动（新文章、文章修改删除……），排队一条条播，每条显示 duration 毫秒；
 // - navOpen：导航面板是否展开着（展开时岛不能收起，否则面板会失去依附）。
 
-export type IslandActivityIcon = "link" | "comment" | "post" | "note" | "update" | "remove" | "info";
+export type IslandActivityIcon = "link" | "comment" | "post" | "note" | "thinking" | "say" | "update" | "remove" | "info";
 
 export type IslandActivity = {
   id: number;

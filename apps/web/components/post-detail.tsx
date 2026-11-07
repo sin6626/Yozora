@@ -1,4 +1,4 @@
-import { ArticleNotifications, ReadingCount } from "./notifications";
+import { ArticleNotifications, ReadCount, ReadingCount } from "./notifications";
 import IslandReading from "./island-reading";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import Link from "./locale-provider";
@@ -43,7 +43,7 @@ export default async function PostDetail({ params }: { params: Promise<{ categor
 
   return (
     <article className="post-detail">
-      <ArticleNotifications id={post.id} />
+      <ArticleNotifications id={post.id} kind="post" />
       <IslandReading title={body.title} kind="post" date={formatDate(post.created)} />
       <header className="page-heading">
         <nav className="detail-crumb" aria-label={t.list.crumb}>
@@ -53,7 +53,7 @@ export default async function PostDetail({ params }: { params: Promise<{ categor
         <h1 className="post-detail-title" lang={ai.original}>{body.title}</h1>
         <div className="post-meta detail-meta">
           <time dateTime={post.created}>{formatDate(post.created)}</time>
-          <span>{t.list.reads(post.count.read)}</span>
+          <ReadCount id={post.id} count={post.count.read} />
           <ReadingCount apiUrl={getApiUrl()} id={post.id} />
           <ArticleLanguages href={href} ai={ai} />
         </div>

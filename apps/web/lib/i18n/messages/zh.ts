@@ -213,9 +213,18 @@ const zh = {
     readingNow: msg<[count: number]>("{count} 人正在读"),
     // 播报里文章标题外面的书名号（英文是引号，交给译文）
     quoted: msg<[title: string]>("《{title}》"),
+    // 实时推送的播报（lib/realtime.ts 决定播哪条，components/notifications.tsx 执行）：
+    // 新内容第二行是标题或正文开头，修改是第二行这句并自动换成最新内容，删除后跳回列表
     POST_CREATE: { title: "有新文章了", description: "博客发布了新文章，可以前往文章列表看看。" },
-    POST_UPDATE: { title: "文章有更新", description: "你正在阅读的文章已修改，稍后刷新可查看最新内容。" },
-    POST_DELETE: { title: "这篇文章已移除", description: "当前文章已删除，可以返回文章列表继续阅读。" },
+    POST_UPDATE: { title: "文章有更新", description: "已换成最新内容。" },
+    POST_DELETE: { title: "这篇文章已移除", description: "带你回到文章列表。" },
+    NOTE_CREATE: { title: "有新手记了", description: "站长写了一篇新手记。" },
+    NOTE_UPDATE: { title: "手记有更新", description: "已换成最新内容。" },
+    NOTE_DELETE: { title: "这篇手记已移除", description: "带你回到手记列表。" },
+    PAGE_UPDATE: { title: "页面有更新", description: "已换成最新内容。" },
+    PAGE_DELETE: { title: "这个页面已移除", description: "带你回到首页。" },
+    RECENTLY_CREATE: { title: "写下了一条新思考", description: "去思考页看看。" },
+    SAY_CREATE: { title: "收录了一句新的一言", description: "去一言页看看。" },
   },
   // 文章末尾的版权说明（components/post-copyright.tsx）
   copyright: {

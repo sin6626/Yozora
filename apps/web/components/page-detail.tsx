@@ -2,6 +2,7 @@ import { notFound, unstable_rethrow } from "next/navigation";
 import { getPage } from "../lib/blog-data";
 import ArticleBody from "./article-body";
 import IslandReading from "./island-reading";
+import { ArticleNotifications } from "./notifications";
 import ArticleAside from "./article-aside";
 import "./post-detail.css";
 import { Suspense } from "react";
@@ -35,6 +36,7 @@ export default async function PageDetail({ params }: { params: Promise<{ slug: s
 
   return (
     <article className="post-detail">
+      <ArticleNotifications id={page.id} kind="page" />
       <IslandReading title={body.title} kind="page" />
       <header className="page-heading">
         <h1 lang={ai.original}>{body.title}</h1>

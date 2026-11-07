@@ -6,6 +6,8 @@ import IconifyIcon from "./iconify-icon";
 export const islandIcons: Record<IslandActivityIcon, React.ReactNode> = {
   post: <IconifyIcon icon="mingcute:file-new-fill" />,
   note: <IconifyIcon icon="mingcute:quill-pen-fill" />,
+  thinking: <IconifyIcon icon="mingcute:bulb-fill" />,
+  say: <IconifyIcon icon="mingcute:quote-left-fill" />,
   update: <IconifyIcon icon="mingcute:edit-2-fill" />,
   remove: <IconifyIcon icon="mingcute:delete-2-fill" />,
   link: <IconifyIcon icon="mingcute:link-2-fill" />,
