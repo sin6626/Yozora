@@ -1,6 +1,8 @@
 // 浏览器回归测试：评论增强（docs/shiro-gaps.md 第 7 项）。
 // ① 表情：文末评论表单和“边读边聊”悬浮窗都有表情按钮；打开后焦点在第一个表情，方向键移动、回车选中，表情插到输入框光标处，
 //    面板收起、光标回到输入框表情后面；鼠标点选同样插入，悬浮窗不会因此关掉。
+// ② 完整 Markdown：调试页的评论列表与悬浮窗消息流里，标题、引用、删除线、表格、图片都显示；javascript: 图片不出现；
+//    原始 HTML 只显示成文字；图片懒加载、悬浮窗里更矮；点图片放大，放大后悬浮窗不关。
 // 只在输入框里打字，不提交，不写日常库。需要先运行 pnpm dev（WEB_URL 可改地址）。
 import assert from "node:assert/strict";
 import { openBrowser, sleep } from "../headless-browser.mjs";
@@ -87,8 +89,62 @@ try {
   assert.ok(await browser.evaluate(`!!document.querySelector(".chat-popup")`), "在表情面板里点选不应当关掉悬浮窗");
   assert.ok(await point(".chat-popup .comment-markdown-hint"), "悬浮窗也应当有“支持 Markdown”提示");
 
+  // —— ② 完整 Markdown：文末评论列表（调试页示例） ——
+  await browser.evaluate(`document.querySelector(".debug-comments").scrollIntoView({ block: "center" })`);
+  await sleep(1500);
+  const list = await browser.evaluate(`(() => {
+    const box = [...document.querySelectorAll(".debug-comments .comment-text")].find((el) => el.querySelector("table"));
+    const img = box?.querySelector(".comment-zoom img");
+    return box && {
+      heading: box.querySelector(".comment-heading")?.tagName,
+      table: box.querySelectorAll("td").length,
+      del: !!box.querySelector("del"), quote: !!box.querySelector("blockquote"),
+      link: box.querySelector("a")?.rel, target: box.querySelector("a")?.target,
+      rawB: box.querySelectorAll("b").length, rawText: box.textContent.includes("<b>"),
+      imgs: box.querySelectorAll("img").length, src: img?.getAttribute("src"), lazy: img?.loading, loaded: img?.complete && img.naturalWidth > 0,
+      height: img?.getBoundingClientRect().height,
+    };
+  })()`);
+  assert.ok(list, "调试页评论列表里应当有带表格的示例评论");
+  assert.equal(list.heading, "H4", `## 标题应当降两级成 h4：${list.heading}`);
+  assert.ok(list.table >= 2 && list.del && list.quote, `表格、删除线、引用都应当显示：${JSON.stringify(list)}`);
+  assert.equal(list.link, "noopener noreferrer nofollow ugc");
+  assert.equal(list.target, "_blank");
+  assert.ok(list.rawB === 0 && list.rawText, "原始 HTML 不应当变成元素，应当原样显示成文字");
+  assert.equal(list.imgs, 1, "只应当显示 http(s) 图片，javascript: 的去掉");
+  assert.match(list.src, /^https?:\/\//);
+  assert.equal(list.lazy, "lazy");
+  assert.ok(list.loaded, "评论里的图片应当加载出来");
+  assert.ok(list.height <= 320.5, `文末评论图片应当限高 20rem：${list.height}`);
+  await click(".debug-comments .comment-zoom");
+  await sleep(600);
+  assert.ok(await browser.evaluate(`!!document.querySelector(".lightbox-image")`), "点评论图片应当放大");
+  await browser.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+  await sleep(600);
+  assert.equal(await browser.evaluate(`!!document.querySelector(".lightbox-image")`), false, "Esc 应当关掉放大");
+
+  // —— ② 悬浮窗消息流 ——
+  await click(".debug-chat .article-action");
+  await sleep(800);
+  await browser.evaluate(`(() => { const img = document.querySelector(".chat-popup .comment-zoom"); img?.scrollIntoView({ block: "center" }); })()`);
+  await sleep(1200);
+  const bubble = await browser.evaluate(`(() => {
+    const img = document.querySelector(".chat-popup .comment-zoom img");
+    return { table: !!document.querySelector(".chat-popup .chat-text table"), height: img?.getBoundingClientRect().height ?? -1, loaded: img?.complete && img.naturalWidth > 0 };
+  })()`);
+  assert.ok(bubble.table, "悬浮窗消息里的表格应当显示");
+  assert.ok(bubble.loaded && bubble.height > 0 && bubble.height <= 144.5, `悬浮窗里的图片应当显示并限高 9rem：${JSON.stringify(bubble)}`);
+  await click(".chat-popup .comment-zoom");
+  await sleep(600);
+  const zoomed = await browser.evaluate(`({ lightbox: !!document.querySelector(".lightbox-image"), chat: !!document.querySelector(".chat-popup") })`);
+  assert.ok(zoomed.lightbox && zoomed.chat, `悬浮窗里点图片应当放大且悬浮窗不关：${JSON.stringify(zoomed)}`);
+  await click(".lightbox");
+  await sleep(600);
+  const closed = await browser.evaluate(`({ lightbox: !!document.querySelector(".lightbox-image"), chat: !!document.querySelector(".chat-popup") })`);
+  assert.ok(!closed.lightbox && closed.chat, `关掉放大后悬浮窗应当还在：${JSON.stringify(closed)}`);
+
   assert.deepEqual(browser.errors, [], `页面不应当报错：${browser.errors.join("\n")}`);
-  console.log("PASS comment emoji picker inserts at caret in both forms, keyboard and mouse");
+  console.log("PASS comment emoji picker inserts at caret in both forms; full Markdown with images and tables in the list and the chat");
 } finally {
   await browser.close();
 }

@@ -1,10 +1,11 @@
 import { unstable_rethrow } from "next/navigation";
-import Markdown from "react-markdown";
 import { getComments, getLoginProviders, getSiteSettings } from "../lib/blog-data";
 import { getApiUrl } from "../lib/config";
 import { formatDate } from "../lib/date";
 import { safeUrl } from "../lib/safe-url";
 import CommentForm, { type CommentRefType } from "./comment-form";
+import CommentMarkdown from "./comment-markdown";
+import ImageLightbox from "./image-lightbox";
 import type { LoginProvider } from "./reader-session";
 import { getT } from "../lib/i18n/server";
 import type { Messages } from "../lib/i18n/messages/zh";
@@ -13,8 +14,8 @@ import "./comments.css";
 export type Thread = Awaited<ReturnType<typeof getComments>>["data"][number];
 type Comment = Omit<Thread, "replies">;
 
-// 评论正文按 Markdown 显示，只放行行内与段落级元素，不渲染图片和 HTML。
-export const allowedElements = ["p", "br", "a", "strong", "em", "del", "code", "pre", "blockquote", "ul", "ol", "li"];
+// 评论图片放大按钮的读屏文字（和碎碎念共用那两句）
+export const zoomLabel = (t: Messages) => (alt: string) => (alt ? t.murmurs.zoomOf(alt) : t.murmurs.zoom);
 
 export type FormOptions = { apiUrl: string; allowGuest: boolean; providers: LoginProvider[] };
 
@@ -37,7 +38,7 @@ function CommentBody({ comment, replyTo, form, canReply, t }: { comment: Comment
           <p className="comment-deleted">{t.comments.deleted}</p>
         ) : (
           <div className="comment-text" lang="zh-CN">
-            <Markdown allowedElements={allowedElements} unwrapDisallowed skipHtml>{comment.text}</Markdown>
+            <CommentMarkdown text={comment.text} zoom={zoomLabel(t)} />
           </div>
         )}
         {canReply && !comment.deleted && <CommentForm {...form} replyTo={{ id: comment.id, author: comment.author }} />}
@@ -73,26 +74,36 @@ export default async function Comments({ refId, refType, allowComment }: { refId
       <h2 id="comments-heading">{t.comments.heading}{total > 0 && ` ${total}`}</h2>
       {closedReason ? <p className="post-meta">{closedReason}</p> : <CommentForm {...form} refId={refId} refType={refType} />}
       {data.length ? (
-        <ol className="comment-list">
-          {data.map((thread) => {
-            const authors = new Map([thread, ...thread.replies].map((item) => [item.id, item.author]));
-            return (
-              <li key={thread.id}>
-                <CommentBody comment={thread} form={form} canReply={canReply} t={t} />
-                {thread.replies.length > 0 && (
-                  <ol className="comment-replies">
-                    {thread.replies.map((reply) => (
-                      <li key={reply.id}>
-                        <CommentBody comment={reply} replyTo={reply.parentId && reply.parentId !== thread.id ? authors.get(reply.parentId) : undefined} form={form} canReply={canReply} t={t} />
-                      </li>
-                    ))}
-                  </ol>
-                )}
-              </li>
-            );
-          })}
-        </ol>
+        <CommentList threads={data} form={form} canReply={canReply} />
       ) : !closedReason && <p className="post-empty">{t.comments.empty}</p>}
     </section>
+  );
+}
+
+// 评论列表（楼中楼）。文末评论区用它，调试页拿示例数据也用它；图片点了在 ImageLightbox 里放大（同一条评论里的几张可左右切换）。
+export async function CommentList({ threads, form, canReply }: { threads: Thread[]; form: FormOptions; canReply: boolean }) {
+  const t = await getT();
+  return (
+    <ImageLightbox itemSelector=".comment-zoom" groupSelector=".comment-text">
+      <ol className="comment-list">
+        {threads.map((thread) => {
+          const authors = new Map([thread, ...thread.replies].map((item) => [item.id, item.author]));
+          return (
+            <li key={thread.id}>
+              <CommentBody comment={thread} form={form} canReply={canReply} t={t} />
+              {thread.replies.length > 0 && (
+                <ol className="comment-replies">
+                  {thread.replies.map((reply) => (
+                    <li key={reply.id}>
+                      <CommentBody comment={reply} replyTo={reply.parentId && reply.parentId !== thread.id ? authors.get(reply.parentId) : undefined} form={form} canReply={canReply} t={t} />
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </ImageLightbox>
   );
 }

@@ -229,6 +229,29 @@
   list-style: revert;
 }
 
+.chat-text .comment-heading {
+  font-size: inherit;
+  font-weight: 600;
+}
+
+.chat-text del {
+  color: var(--muted-foreground);
+}
+
+.chat-text hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+/* 气泡里的表格和图片都比文末小一号：表格横向滚动，图片限高 9rem，点了再放大 */
+.chat-text .comment-table table {
+  font-size: var(--text-xs);
+}
+
+.chat-text .comment-zoom img {
+  max-height: 9rem;
+}
+
 /* 回复：气泡顶部引用被回复的那句话 */
 .chat-quote {
   display: -webkit-box;

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import ArticleBody from "@/components/article-body";
 import { ChatStream, toMessages } from "@/components/comment-chat";
 import CommentChatPanel from "@/components/comment-chat-panel";
-import type { Thread } from "@/components/comments";
+import { CommentList, type Thread } from "@/components/comments";
 import "@/components/article-actions.css";
 import BlogNavigation from "@/components/navigation-menu";
 import { MurmurStream } from "@/components/murmur-list";
@@ -41,6 +41,7 @@ const sampleChat: Thread[] = [
   ] },
   { ...sampleComment("c4", "夜猫子", "这条评论被作者删掉了", "2026-10-28T15:40:00Z", { deleted: true }), replies: [] },
   { ...sampleComment("c5", "Moon", "目录跳转好丝滑。\n\n- 第一点\n- 第二点", "2026-10-29T06:30:00Z", { pinned: true }), replies: [] },
+  { ...sampleComment("c6", "写 Markdown 的人", `## 完整 Markdown\n\n~~删掉~~ **加粗** \`code\` <b>原始 HTML 只显示成文字</b> [链接](https://example.com)\n\n> 引用一句\n\n| 名 | 值 |\n| - | - |\n| 月亮 | 🌙 |\n\n![月亮](${getApiUrl()}/objects/avatar/Sin.jpg)\n\n![坏图](javascript:alert(1))`, "2026-10-30T12:00:00Z"), replies: [] },
 ];
 
 export const metadata: Metadata = { title: "调试" };
@@ -259,11 +260,15 @@ export default function DebugPage() {
             <p className="post-meta" role="status">评论已发送。站长开启审核时，通过后才会显示；列表约一分钟内更新。</p>
             <p className="post-meta" role="status">悄悄话已发送，只有站长能看到。</p>
             <p className="post-meta" role="alert">网络错误，评论没有发出去，请稍后重试。</p>
+            <p className="post-meta">评论列表（comments.tsx 的 CommentList，示例数据同下面的悬浮窗）：完整 Markdown、图片点了放大；站长登录后每条主评论旁有“置顶 / 取消置顶”。</p>
+            <div className="comments debug-comments">
+              <CommentList threads={sampleChat} form={{ apiUrl: getApiUrl(), allowGuest: true, providers: [] }} canReply={false} />
+            </div>
             <p className="post-meta">读者登录（reader-session.ts）：未登录显示“用 GitHub 登录 / 或以游客身份填写下方信息”，已登录显示“以 某某 的身份评论 · 退出”并隐藏昵称邮箱网址；关闭游客评论时只显示“用 GitHub 登录后评论”。</p>
           </li>
           <li>
             <h2>评论悬浮窗</h2>
-            <p className="post-meta">comment-chat.tsx + comment-chat-panel.tsx（文章侧栏的评论按钮）。下面是示例消息：两天、站长回复在右侧、回复引用、已删除、Markdown；空状态见任意没有评论的文章。输入框是真实表单，目标 ID 全 0，Core 必然拒绝。</p>
+            <p className="post-meta">comment-chat.tsx + comment-chat-panel.tsx（文章侧栏的评论按钮）。下面是示例消息：两天、站长回复在右侧、回复引用、已删除、Markdown（含表格和图片）；空状态见任意没有评论的文章。输入框是真实表单，目标 ID 全 0，Core 必然拒绝。</p>
             <div className="article-actions debug-chat">
               <CommentChatPanel title="调试页示例文章" total={sampleChat.length} form={{ apiUrl: getApiUrl(), allowGuest: true, providers: [] }} closedReason={null} target={{ refId: "000000000000000000000000", refType: "Post" }}>
                 <ChatStream messages={toMessages(sampleChat)} canReply />
