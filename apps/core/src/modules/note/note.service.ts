@@ -35,6 +35,17 @@ import { DraftService } from '../draft/draft.service'
 import { SlugTrackerService } from '../slug-tracker/slug-tracker.service'
 import { NoteModel } from './note.model'
 
+// 访客能看到的手记：已发布、没有密码、没有定时公开或公开时间已到（publicAt）。手记列表、搜索、前台 RSS 都用它。
+export function publicNoteCondition(now = new Date()) {
+  return {
+    isPublished: true,
+    $and: [
+      { $or: [{ password: '' }, { password: undefined }, { password: null }] },
+      { $or: [{ publicAt: null }, { publicAt: { $exists: false } }, { publicAt: { $lte: now } }] },
+    ],
+  }
+}
+
 @Injectable()
 export class NoteService {
   constructor(
@@ -57,32 +68,9 @@ export class NoteService {
     return this.noteModel
   }
 
-  public readonly publicNoteQueryCondition = {
-    isPublished: true,
-    $and: [
-      {
-        $or: [
-          {
-            password: '',
-          },
-          {
-            password: undefined,
-          },
-        ],
-      },
-      {
-        $or: [
-          {
-            secret: undefined,
-          },
-          {
-            secret: {
-              $lt: new Date(),
-            },
-          },
-        ],
-      },
-    ],
+  // 每次读取都按当前时间算（原来是写死在服务启动那一刻、还按不存在的旧字段 secret 过滤，定时公开的手记会提前出现）
+  public get publicNoteQueryCondition() {
+    return publicNoteCondition()
   }
 
   public checkNoteIsSecret(note: NoteModel) {
