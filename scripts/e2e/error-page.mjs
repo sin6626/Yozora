@@ -41,7 +41,19 @@ try {
   const again = await browser.evaluate(read);
   assert.ok(again.page && again.header && !again.nextDefault, "重试后应仍是站内错误页");
 
+  // 重试真的会重新向服务端渲染：?once= 只失败第一次，点了重试要换成正常内容（按钮是空操作时这里会失败，Codex 复查指出原来的检查会空过）
+  await browser.goto(`${base}/debug/crash?once=${Date.now()}`, 6000);
+  assert.ok((await browser.evaluate(read)).page, "第一次渲染应出错");
+  await browser.evaluate(`[...document.querySelectorAll(".error-page button")].find((node) => node.checkVisibility()).click()`);
+  let recovered = false;
+  for (let i = 0; i < 60 && !recovered; i++) {
+    await sleep(100);
+    recovered = await browser.evaluate(`!!document.querySelector(".debug-crash-ok") && ![...document.querySelectorAll(".error-page")].some((node) => node.checkVisibility())`);
+  }
+  assert.ok(recovered, "点了重试应重新渲染并显示正常内容");
+
   // 回首页（站内跳转）
+  await browser.goto(`${base}/debug/crash`, 6000);
   await browser.evaluate(`[...document.querySelectorAll(".error-page a")].find((node) => node.checkVisibility()).click()`);
   await sleep(3000);
   assert.equal(await browser.evaluate("location.pathname"), "/", "回首页没有跳到首页");
