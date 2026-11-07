@@ -138,6 +138,11 @@ export default function DebugPage() {
             <p className="post-empty" role="alert">最新文章读取失败，请稍后刷新。</p>
             <p className="post-empty">暂无内容。</p>
           </li>
+          <li>
+            <h2>出错兜底页</h2>
+            <p className="post-meta">app/[locale]/error.tsx：页面渲染出错时显示，保留页头和页脚，有重试和回首页。打开下面这页会故意抛错（生产环境 404）；根布局出错时的 app/global-error.tsx 在浏览器里不好触发，由 scripts/verify-global-error.mjs 直接渲染检查</p>
+            <p><Link href="/debug/crash">打开会出错的页面</Link></p>
+          </li>
           <li id="debug-page-loading">
             <h2>读取中</h2>
             <p className="post-meta">page-loading.tsx：各页面 Suspense 的读取占位，往上飞的小火箭 + Innei 首页那句话（读屏念“正在读取…”），一出现就淡入（0.25 秒），十秒还没读完露出“重试”。页面里铺满页头以下一屏，这里和首页一样用 compact</p>

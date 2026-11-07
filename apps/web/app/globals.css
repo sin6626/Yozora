@@ -979,6 +979,17 @@ html:not(:active-view-transition-type(theme))::view-transition-new(site-header) 
   text-shadow: 0 0 2rem color-mix(in srgb, var(--primary) 40%, transparent);
 }
 
+/* 出错页（app/[locale]/error.tsx）的图标是云遮住的月亮：SVG 不吃 text-shadow，光晕用 drop-shadow */
+svg.empty-state-code {
+  filter: drop-shadow(0 0 1.25rem color-mix(in srgb, var(--primary) 40%, transparent));
+}
+
+.error-page-digest {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: var(--text-xs);
+  opacity: 0.7;
+}
+
 .empty-state h1 {
   font-size: var(--text-xl);
   font-weight: 600;

@@ -22,6 +22,14 @@ const zh = {
     home: "回到首页",
     posts: "看看文章",
   },
+  // 渲染出错时的站内错误页（app/[locale]/error.tsx）；根布局也出错时由 app/global-error.tsx 兜底，那里拿不到词典，文案写死
+  error: {
+    heading: "这片夜空暂时没能亮起来",
+    body: "页面渲染时出了点问题。可以重试一次，还不行的话先回首页看看。",
+    retry: "重试",
+    home: "回到首页",
+    digest: msg<[digest: string]>("错误编号：{digest}"),
+  },
   header: {
     home: "回到首页",
     kinds: { post: "文章", note: "手记", page: "页面" },

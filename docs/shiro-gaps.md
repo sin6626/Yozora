@@ -11,7 +11,7 @@
 1. ~~**窄屏和手机的阅读工具**~~（2026-11-07 已做：窄屏右下角悬浮胶囊，目录浮层、喜欢、评论、分享、订阅、回到顶部，见 `article-actions.tsx`）：宽度不到 90rem（1440px）时整个文章侧栏隐藏，目录、分享、订阅、去评论、回到顶部都没有了，1366、1280 的笔记本也一样（`article-actions.css`、`article-toc.css`）。Shiro 在窄屏有悬浮的目录按钮、阅读进度和回到顶部（`TocFAB`、`ReadIndicatorForMobile`、`BackToTopFAB`）。
 2. **分享图**：Shiro 动态生成 OG 图（首页、文章、手记），带 `og:image` 和 Twitter 大图卡片（`app/(app)/og/route.tsx`）；我们分享出去没有图（`lib/page-metadata.ts`）。
 3. **手记的头图、横幅和文末话题卡片**（`NoteHeadCover`、`NoteBanner`、`NoteBottomTopic`）：我们没有，后台手记的自定义 meta 也还没展示。
-4. **出错兜底页**：Shiro 有 `error.tsx` / `global-error.tsx`；我们渲染出错会落到 Next 默认页。
+4. ~~**出错兜底页**~~（2026-11-07 已做：`app/[locale]/error.tsx` 站内错误页 + `app/global-error.tsx`）：Shiro 有 `error.tsx` / `global-error.tsx`；我们渲染出错会落到 Next 默认页。
 5. **RSS 全文**：Shiro 输出全文 HTML 和手记摘要；我们只有 10 条、只有摘要，手记没有描述。
 6. **实时推送补齐**：Shiro 收到手记、页面更新会直接换正文，删除后跳转，阅读和点赞数实时刷新，站点发新版本提示刷新（`socket/handler.ts`）；我们只处理文章发布/修改/删除和在线人数。
 7. **评论增强**：表情选择器、完整 Markdown（含图片，现在图片会被丢掉）、站长在前台置顶评论、站长评论同步到碎碎念。
