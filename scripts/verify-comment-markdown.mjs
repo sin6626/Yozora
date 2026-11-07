@@ -43,4 +43,11 @@ for (const tag of ['<h3 class="comment-heading">标题</h3>', '<h4 class="commen
 // 公用的放行函数
 assert.equal(commentUrl('https://a.b/c.png', 'src'), 'https://a.b/c.png')
 assert.equal(commentUrl('javascript:alert(1)', 'href'), '')
+// 任务列表：完成和未完成要能分出来（Codex 复查发现 checkbox 被整个丢掉，两项渲染得一模一样）；只读、不可点
+const tasks = render('- [ ] same\n- [x] same')
+const boxes = [...tasks.matchAll(/<input[^>]*>/g)].map(([tag]) => tag)
+assert.equal(boxes.length, 2, `两项各有一个勾选框：${tasks}`)
+assert.ok(!/checked/.test(boxes[0]) && /checked/.test(boxes[1]), `未完成没勾、完成打勾：${boxes}`)
+assert.ok(boxes.every((tag) => /type="checkbox"/.test(tag) && /disabled/.test(tag)), `只能是禁用的勾选框：${boxes}`)
+assert.ok(!/<input/.test(render('<input type="text" value="x">')), '读者自己写的 input 仍是文字')
 console.log('PASS comment markdown keeps http(s) images, common GFM, drops javascript: and raw HTML elements')

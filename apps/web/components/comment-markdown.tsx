@@ -8,6 +8,8 @@ import type { ReactNode } from "react";
 export const commentElements = [
   "p", "br", "hr", "a", "strong", "em", "del", "code", "pre", "blockquote", "ul", "ol", "li", "img",
   "h1", "h2", "h3", "h4", "h5", "h6", "table", "thead", "tbody", "tr", "th", "td",
+  // 任务列表的勾选框（remark-gfm 生成；下面的 input 组件只放行禁用的 checkbox）
+  "input",
 ];
 
 const isHttp = (url: string) => /^https?:\/\//i.test(url);
@@ -34,6 +36,8 @@ const componentsFor = (zoom: (alt: string) => string): Components => ({
     );
   },
   a: ({ href, children }) => (href ? <a href={href} target="_blank" rel="noopener noreferrer nofollow ugc">{children}</a> : <>{children}</>),
+  // 只有 GFM 任务列表会生成 input（读者写的原始 HTML 不会变成元素）；只读、保留勾选状态
+  input: ({ type, checked }) => (type === "checkbox" ? <input type="checkbox" checked={Boolean(checked)} disabled readOnly /> : null),
   table: ({ children }) => <div className="comment-table"><table>{children}</table></div>,
   h1: Heading(1), h2: Heading(2), h3: Heading(3), h4: Heading(4), h5: Heading(4), h6: Heading(4),
 });
