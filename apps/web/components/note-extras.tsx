@@ -1,9 +1,9 @@
 import { CircleAlert, CircleCheck, Info, MessageCircle, TriangleAlert } from "lucide-react";
 import Link from "./locale-provider";
-import { getNotesByTopic, getTopics } from "../lib/blog-data";
+import { getNotesByTopic, getTimeline, getTopics } from "../lib/blog-data";
 import { formatDate } from "../lib/date";
 import { getLocale, getT } from "../lib/i18n/server";
-import { type BannerType, type NoteBanner as Banner } from "../lib/note-extras";
+import { aroundCurrent, type BannerType, type NoteBanner as Banner } from "../lib/note-extras";
 import "./note-extras.css";
 
 // 手记详情的头图（后台“日记设置 → 封面图”，meta.cover）：标题上方，底部渐隐。纯装饰，读屏跳过。
@@ -68,3 +68,27 @@ export async function NoteTopicCard({ topic: ref, noteId }: { topic: TopicRef; n
   );
 }
 
+// 宽屏左侧时间线：按发布时间倒序，当前这篇前后各 10 篇，当前那篇是月光色亮星。数据复用 getTimeline 缓存。
+export async function NoteTimeline({ noteId }: { noteId: string }) {
+  const lang = await getLocale();
+  const t = await getT();
+  const timeline = await getTimeline(lang).catch(() => []);
+  const notes = aroundCurrent(timeline.flatMap((item) => (item.kind === "note" ? [item] : [])), noteId);
+  if (notes.length < 2) return null;
+  return (
+    <nav className="note-timeline" aria-labelledby="note-timeline-title">
+      <div className="note-timeline-inner">
+        <h2 id="note-timeline-title">{t.notes.timeline}</h2>
+        <ol className="note-stars">
+          {notes.map((note) => (
+            <li key={note.id}>
+              <Link href={`/notes/${note.nid}`} aria-current={note.id === noteId ? "page" : undefined} title={note.title}>
+                <span className="note-stars-title">{note.title}</span>
+              </Link>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </nav>
+  );
+}

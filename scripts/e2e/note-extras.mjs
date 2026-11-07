@@ -1,4 +1,5 @@
-// 浏览器回归测试：手记详情的文末话题卡片、头图与横幅（2026-11-07，参考 Shiro 的 NoteBottomTopic / NoteHeadCover / NoteBanner）。
+// 浏览器回归测试：手记详情的左侧时间线、文末话题卡片、头图与横幅（2026-11-07，参考 Shiro 的 NoteLeftSidebar / NoteBottomTopic / NoteHeadCover / NoteBanner）。
+// 1920×991：正文左边有“前后的手记”，当前这篇高亮、前后各 10 篇与 Core 的公开手记对得上，读到底不压页脚，点了能跳；1280 与手机没有。
 // 有话题的手记文末有话题卡片（在相邻手记前），最近几篇不含当前这篇，链到 /notes?topic=<slug> 且打开不是 404。
 // 头图与横幅本地库没有数据，用 /debug 的示例检查（真实组件）。截图存 .local/previews/note-extras/。
 // 需要先运行 pnpm dev。用法：node scripts/e2e/note-extras.mjs
@@ -11,10 +12,32 @@ const core = process.env.CORE_URL ?? "http://127.0.0.1:2333";
 const shots = new URL("../../.local/previews/note-extras/", import.meta.url);
 mkdirSync(shots, { recursive: true });
 
-const notes = (await (await fetch(`${core}/notes?size=50`)).json()).data;
+// 公开手记按时间倒序（和前台 getTimeline 一致），挑中间那篇，两边都有邻居
+const notes = (await (await fetch(`${core}/notes?size=50`)).json()).data.sort((a, b) => Date.parse(b.created) - Date.parse(a.created));
+assert.ok(notes.length >= 3, "本地公开手记不足 3 篇");
+const index = Math.floor(notes.length / 2);
+const current = notes[index];
+const expected = notes.slice(Math.max(0, index - 10), index + 11).map((note) => `/notes/${note.nid}`);
 const topicNote = notes.find((note) => note.topic_id || note.topicId);
 
 const issues = `(() => { const m = (document.querySelector("nextjs-portal")?.shadowRoot?.textContent ?? "").match(/(\\d+)\\s*Issues?/); return m ? Number(m[1]) : 0; })()`;
+const readTimeline = `(() => {
+  const nav = [...document.querySelectorAll(".note-timeline")].find((el) => el.checkVisibility());
+  if (!nav) return null;
+  const links = [...nav.querySelectorAll("a")];
+  const active = nav.querySelector('a[aria-current="page"]');
+  const other = links.find((a) => a !== active);
+  const article = nav.closest(".note-detail").querySelector(".post-list-content").getBoundingClientRect();
+  const box = nav.querySelector(".note-timeline-inner").getBoundingClientRect();
+  return {
+    hrefs: links.map((a) => new URL(a.href).pathname),
+    active: active && new URL(active.href).pathname,
+    activeColor: active && getComputedStyle(active).color,
+    otherColor: other && getComputedStyle(other).color,
+    right: box.right, contentLeft: article.left, top: box.top, bottom: box.bottom,
+    footerTop: document.querySelector(".site-footer")?.getBoundingClientRect().top ?? Infinity,
+  };
+})()`;
 const readTopic = `(() => {
   const card = [...document.querySelectorAll(".note-topic-card")].find((el) => el.checkVisibility());
   if (!card) return null;
@@ -38,6 +61,22 @@ const shot = async (browser, name) => {
 const browser = await openBrowser({ port: 9455 });
 try {
   await browser.setViewport(1920, 991);
+  await browser.goto(`${base}/notes/${current.nid}`, 6000);
+  const timeline = await browser.evaluate(readTimeline);
+  assert.ok(timeline, "1920 宽没有左侧时间线");
+  assert.deepEqual(timeline.hrefs, expected, "时间线不是当前这篇前后各 10 篇");
+  assert.equal(timeline.active, `/notes/${current.nid}`, "当前这篇没有高亮");
+  assert.notEqual(timeline.activeColor, timeline.otherColor, "当前这篇和别的颜色一样");
+  assert.ok(timeline.right <= timeline.contentLeft, `时间线压到正文：${timeline.right} > ${timeline.contentLeft}`);
+  await shot(browser, "timeline-1920.jpg");
+
+  // 读到底：时间线跟着 sticky，但不能压到页脚
+  await browser.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)");
+  await sleep(600);
+  const bottom = await browser.evaluate(readTimeline);
+  assert.ok(bottom.bottom <= bottom.footerTop + 1, `时间线压到页脚：${bottom.bottom} > ${bottom.footerTop}`);
+  await shot(browser, "timeline-bottom-1920.jpg");
+
   // 话题卡片
   if (topicNote) {
     await browser.goto(`${base}/notes/${topicNote.nid}`, 5000);
@@ -57,12 +96,25 @@ try {
     const filtered = await browser.evaluate(`({ url: location.pathname + location.search, empty: !!document.querySelector(".empty-state:not([hidden])")?.checkVisibility(), entries: document.querySelectorAll(".entry").length })`);
     assert.equal(filtered.url, topic.moreHref);
     assert.ok(!filtered.empty && filtered.entries > 0, "话题筛选页是空的或 404");
-    assert.equal(await browser.evaluate(issues), 0, "手记页有 Next Issue");
   } else console.log("note-extras: 本地没有带话题的手记，跳过话题卡片");
 
-  // 手机上话题卡片还在
+  // 站内点时间线里另一篇：跳过去，高亮跟着换
+  await browser.goto(`${base}/notes/${current.nid}`, 5000);
+  const target = expected.find((href) => href !== `/notes/${current.nid}`);
+  await browser.evaluate(`[...document.querySelectorAll(".note-timeline a")].find((a) => a.checkVisibility() && new URL(a.href).pathname === ${JSON.stringify(target)}).click()`);
+  await sleep(3500);
+  const moved = await browser.evaluate(readTimeline);
+  assert.equal(await browser.evaluate("location.pathname"), target);
+  assert.equal(moved?.active, target, "跳转后高亮没有换");
+  assert.equal(await browser.evaluate(issues), 0, "手记页有 Next Issue");
+
+  // 1280 宽、手机：没有时间线；手机上话题卡片还在
+  await browser.setViewport(1280, 800);
+  await browser.goto(`${base}/notes/${current.nid}`, 4000);
+  assert.equal(await browser.evaluate(readTimeline), null, "1280 宽不该有左侧时间线");
   await browser.setViewport(390, 844);
-  await browser.goto(`${base}/notes/${topicNote?.nid ?? notes[0].nid}`, 4000);
+  await browser.goto(`${base}/notes/${topicNote?.nid ?? current.nid}`, 4000);
+  assert.equal(await browser.evaluate(readTimeline), null, "手机不该有左侧时间线");
   if (topicNote) {
     assert.ok(await browser.evaluate(readTopic), "手机上没有话题卡片");
     await browser.evaluate(`document.querySelector(".note-topic-card").scrollIntoView({ block: "center" })`);

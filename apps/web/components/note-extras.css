@@ -100,7 +100,7 @@
   font-size: var(--text-sm);
 }
 
-/* 星座线串起来的手记列表：文末话题卡片用（左侧时间线也会用） */
+/* 星座线串起来的手记列表：文末话题卡片和左侧时间线共用 */
 .note-stars {
   --node-x: 0.375rem;
   position: relative;
@@ -170,3 +170,55 @@
   }
 }
 
+/* 当前这篇：月光色的亮星 */
+.note-detail .note-stars a[aria-current="page"] {
+  color: var(--moonlight);
+
+  &::before {
+    width: 7px;
+    height: 7px;
+    opacity: 1;
+    box-shadow: 0 0 6px 1px color-mix(in srgb, var(--moonlight) 60%, transparent), 0 0 14px 3px color-mix(in srgb, var(--moonlight) 22%, transparent);
+  }
+}
+
+/* 左侧时间线：只在宽屏（和右侧目录同一个 90rem 断点）出现，挂在正文左边的留白里；
+   相对整篇手记绝对定位、里面 sticky，所以跟着读到底也不会压到页脚（右侧目录是 fixed，靠 z-index 浮在页脚上） */
+.note-timeline {
+  display: none;
+}
+
+@media (min-width: 90rem) {
+  .note-detail {
+    position: relative;
+  }
+
+  .note-timeline {
+    position: absolute;
+    top: 0;
+    right: calc(100% + var(--space-8));
+    bottom: 0;
+    display: block;
+    width: 13rem;
+  }
+
+  .note-timeline-inner {
+    position: sticky;
+    top: calc(var(--header-height) + var(--space-8));
+    max-height: calc(100dvh - var(--header-height) - var(--space-16));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  .note-timeline h2 {
+    margin: 0 0 var(--space-2);
+    color: var(--muted-foreground);
+    font-size: var(--text-xs);
+    font-weight: 500;
+  }
+
+  .note-timeline .note-stars-title {
+    font-family: var(--font-serif);
+  }
+}

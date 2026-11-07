@@ -308,6 +308,7 @@ const zh = {
     topics: "话题",
     topicEmpty: "这个话题下还没有公开的手记。",
     neighbors: "相邻手记",
+    timeline: "前后的手记",
     inTopic: "收录于话题",
     topicRecent: "这个话题最近的手记",
     topicAll: msg<[count: number]>("这个话题的全部 {count} 篇"),

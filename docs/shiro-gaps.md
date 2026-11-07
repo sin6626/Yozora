@@ -10,14 +10,14 @@
 
 1. ~~**窄屏和手机的阅读工具**~~（2026-11-07 已做：窄屏右下角悬浮胶囊，目录浮层、喜欢、评论、分享、订阅、回到顶部，见 `article-actions.tsx`）：宽度不到 90rem（1440px）时整个文章侧栏隐藏，目录、分享、订阅、去评论、回到顶部都没有了，1366、1280 的笔记本也一样（`article-actions.css`、`article-toc.css`）。Shiro 在窄屏有悬浮的目录按钮、阅读进度和回到顶部（`TocFAB`、`ReadIndicatorForMobile`、`BackToTopFAB`）。
 2. ~~**分享图**~~（2026-11-07 已做：`/api/og` 用 `next/og` 生成夜空风格 1200×630 图，首页、文章、手记、页面都有 og:image 与 summary_large_image，见 `app/api/og/route.tsx`）：Shiro 动态生成 OG 图（首页、文章、手记），带 `og:image` 和 Twitter 大图卡片（`app/(app)/og/route.tsx`）；我们分享出去没有图（`lib/page-metadata.ts`）。
-3. **手记的头图、横幅和文末话题卡片**（`NoteHeadCover`、`NoteBanner`、`NoteBottomTopic`）：我们没有，后台手记的自定义 meta 也还没展示。
+3. ~~**手记的头图、横幅和文末话题卡片**~~（2026-11-07 已做：后台“日记设置”的封面图 meta.cover 显示在标题上方、底部渐隐，附加字段“横幅信息” meta.banner 显示在正文前，有话题的手记文末有话题卡片，见 `note-extras.tsx`）（`NoteHeadCover`、`NoteBanner`、`NoteBottomTopic`）：我们没有，后台手记的自定义 meta 也还没展示。
 4. ~~**出错兜底页**~~（2026-11-07 已做：`app/[locale]/error.tsx` 站内错误页 + `app/global-error.tsx`）：Shiro 有 `error.tsx` / `global-error.tsx`；我们渲染出错会落到 Next 默认页。
 5. **RSS 全文**：Shiro 输出全文 HTML 和手记摘要；我们只有 10 条、只有摘要，手记没有描述。
 6. **实时推送补齐**：Shiro 收到手记、页面更新会直接换正文，删除后跳转，阅读和点赞数实时刷新，站点发新版本提示刷新（`socket/handler.ts`）；我们只处理文章发布/修改/删除和在线人数。
 7. **评论增强**：表情选择器、完整 Markdown（含图片，现在图片会被丢掉）、站长在前台置顶评论、站长评论同步到碎碎念。
 8. ~~**文章过期提示**~~（2026-11-07 已做：正文前一条月光色沙漏的淡色提示，只在浏览器里按当前时间算，见 `post-outdated.tsx`）：超过 60 天没改的文章顶部提示“可能已过时”（`PostOutdate.tsx`），改动小。
 9. **后台注入自定义脚本和统计**：Shiro 能从后台注入 CSS/JS、接 Umami 统计；灰度上线后需要访问数据。
-10. **手记左侧时间线**（前后各 10 篇 + 话题信息）或**划词引用到评论 / 复制**，二选一先做。
+10. ~~**手记左侧时间线**~~（2026-11-07 已做：宽屏 ≥ 90rem 正文左边“前后的手记”，当前这篇前后各 10 篇、月光色亮星高亮，话题信息放在文末话题卡片里没有在左栏重复，见 `note-extras.tsx` 的 `NoteTimeline`）（前后各 10 篇 + 话题信息）或**划词引用到评论 / 复制**，二选一先做；划词引用还没做。
 
 ## 其他差距
 

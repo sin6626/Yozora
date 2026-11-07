@@ -16,7 +16,7 @@ import NoteUnlock from "./note-unlock";
 import { getLocale, getT } from "../lib/i18n/server";
 import "./post-detail.css";
 import LoadError from "./load-error";
-import { NoteBanner, NoteCover, NoteTopicCard } from "./note-extras";
+import { NoteBanner, NoteCover, NoteTimeline, NoteTopicCard } from "./note-extras";
 
 export default async function NoteDetail({ params }: { params: Promise<{ nid: string }> }) {
   const { nid: rawNid } = await params;
@@ -84,6 +84,8 @@ export default async function NoteDetail({ params }: { params: Promise<{ nid: st
           <Comments refId={note.id} refType="Note" allowComment={note.allowComment} />
         </Suspense>
       </div>
+      {/* 左侧时间线：宽屏挂在正文左边的留白里，窄屏不显示 */}
+      <Suspense><NoteTimeline noteId={note.id} /></Suspense>
       {/* 右侧悬浮栏：目录 + 操作（喜欢、分享、订阅、回到顶部），宽屏悬浮在正文右侧留白里，窄屏隐藏 */}
       <ArticleAside title={body.title} like={{ id: note.id, type: "note", count: note.count.like }} comments={{ refId: note.id, refType: "Note", allowComment: note.allowComment }} />
     </article>

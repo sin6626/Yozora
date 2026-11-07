@@ -3,7 +3,7 @@ import { createRequire } from 'node:module'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-// 检查手记详情的头图/横幅解析（后台 meta.cover、meta.banner）。
+// 检查手记详情的头图/横幅解析（后台 meta.cover、meta.banner）和左侧时间线“前后各 10 篇”的切片。
 const require = createRequire(new URL('../apps/web/package.json', import.meta.url))
 const ts = require('typescript')
 function load(path) {
@@ -13,7 +13,7 @@ function load(path) {
   vm.runInNewContext(code, { module, exports: module.exports, require: (name) => load(new URL(`${name}.ts`, url).href) })
   return module.exports
 }
-const { parseNoteMeta } = load('../apps/web/lib/note-extras.ts')
+const { parseNoteMeta, aroundCurrent } = load('../apps/web/lib/note-extras.ts')
 const plain = (value) => JSON.parse(JSON.stringify(value))
 
 // 没有 meta、meta 不是对象
@@ -31,5 +31,15 @@ assert.equal(parseNoteMeta({ banner: { type: 'danger', message: 'm' } }).banner.
 assert.equal(parseNoteMeta({ banner: { type: 'info' } }).banner, null)
 assert.equal(parseNoteMeta({ banner: { message: '   ' } }).banner, null)
 assert.equal(parseNoteMeta({ banner: ['m'] }).banner, null)
+
+// 时间线切片：前后各 n 篇，靠边少几篇，不在列表里返回空
+const items = Array.from({ length: 30 }, (_, i) => ({ id: `n${i}` }))
+const ids = (list) => list.map(({ id }) => id)
+assert.equal(aroundCurrent(items, 'n15').length, 21)
+assert.deepEqual(ids(aroundCurrent(items, 'n15', 2)), ['n13', 'n14', 'n15', 'n16', 'n17'])
+assert.deepEqual(ids(aroundCurrent(items, 'n0', 2)), ['n0', 'n1', 'n2'])
+assert.deepEqual(ids(aroundCurrent(items, 'n29', 2)), ['n27', 'n28', 'n29'])
+assert.deepEqual(plain(aroundCurrent(items, 'missing')), [])
+assert.equal(aroundCurrent(items.slice(0, 5), 'n2').length, 5)
 
 console.log('note extras: ok')
