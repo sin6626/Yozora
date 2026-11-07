@@ -12,6 +12,7 @@ import Navigation from "@/components/navigation";
 import SiteFooter from "@/components/site-footer";
 import SiteHeader from "@/components/site-header";
 import Starfield from "@/components/starfield";
+import PageView from "@/components/page-view";
 import OwnerPresence from "@/components/owner-presence";
 import HeaderSearch from "@/components/header-search";
 import { getOwner } from "@/lib/blog-data";
@@ -145,6 +146,8 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
           </a>
           {/* 全站一张夜空画布，在换页过渡之外：首页第一屏是完整夜空，其他地方是安静的夜空 */}
           <Starfield />
+          {/* 每打开一页向 Core 报一次访问，后台“数据”的访问记录才知道读者看了哪页；读地址要包在 Suspense 里 */}
+          <Suspense fallback={null}><PageView apiUrl={getApiUrl()} /></Suspense>
           <div className="site-shell">
             <SiteHeader
               brand={<Suspense fallback={<span className="site-brand-avatar" />}><SiteAvatar /></Suspense>}

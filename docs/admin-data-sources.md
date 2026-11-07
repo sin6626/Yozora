@@ -44,6 +44,10 @@ theme/yozora 片段的格式写在 `apps/web/lib/theme-config.ts` 开头，只�
 
 检查脚本是 `scripts/verify-site-content.mjs`、`scripts/verify-i18n.mjs`，Core 的 `apps/core/test/src/modules/ai/ai-i18n.service.spec.ts`，后台 `scripts/e2e/admin-i18n.mjs`。
 
+## 访问统计（2026-11-07）
+
+后台仪表盘和“数据”页的访问记录来自 Core 的 analyzes 集合：Core 对每个 GET 请求记一条（跳过本机、爬虫、已登录的站长）。Shiro 的浏览器直接向 Core 要页面数据，所以每看一页都记得到；Yozora 在服务器上渲染，浏览器不直接要页面数据，所以前台每打开一页（整页打开和站内跳转）额外报一次 `GET /pageview?path=<页面路径>&ref=<来源>`（`components/page-view.tsx`），Core 把这条记成读者看的页面（`analyze.interceptor.ts`、`modules/analyze/pageview.controller.ts`）。当前在线、今日访客、今日最高在线来自实时连接，不受影响；“API 调用”数会比 Shiro 时少，这是正常的。以后接 Umami 做页面统计（国家、热门页面），和这份逐条记录不冲突。
+
 ## 仍是例外
 
 - 设置 → 网站里的 API 地址（serverUrl）、Gateway 地址（wsUrl）：前台在浏览器里直连 Core（评论、点赞、登录、实时连接）用的是部署时的环境变量 `MIX_SPACE_API_URL`，没有读这两项。线上这两项现在还指向旧 Shiro 的域名，等正式切换时一起改、再决定要不要让前台读它们。管理后台地址（adminUrl）Core 不对访客公开，前台用不到。
