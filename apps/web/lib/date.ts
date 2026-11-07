@@ -10,3 +10,9 @@ const timeFormatter = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute
 export function formatTime(value: string | Date) {
   return timeFormatter.format(new Date(value));
 }
+
+// 文章过期提示（照 Shiro 的 PostOutdate）：最后修改时间（没改过看发布时间）距 now 超过 60 天时返回整天数，否则 null
+export function outdatedDays(modified: string | null | undefined, created: string, now: number) {
+  const days = Math.floor((now - Date.parse(modified || created)) / 86_400_000);
+  return days > 60 ? days : null;
+}

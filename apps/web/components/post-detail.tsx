@@ -5,6 +5,7 @@ import Link from "./locale-provider";
 import { notFound, unstable_rethrow } from "next/navigation";
 import { getPost, getSiteContent, getSiteSettings, getTimeline } from "../lib/blog-data";
 import PostCopyright from "./post-copyright";
+import PostOutdated from "./post-outdated";
 import { formatDate } from "../lib/date";
 import { getApiUrl } from "../lib/config";
 import ArticleBody from "./article-body";
@@ -58,6 +59,7 @@ export default async function PostDetail({ params }: { params: Promise<{ categor
         </div>
       </header>
       <div className="post-list-content">
+        <PostOutdated modified={post.modified} created={post.created} />
         <ArticleAiNotes ai={ai} />
         <div lang={ai.original}><ArticleBody text={body.text} contentFormat={body.contentFormat} content={body.content} emptyText={t.posts.noBody} /></div>
         {/* 文章开了后台的“版权注明”、配置片段 theme/yozora 写了 copyright 时，照 Shiro 显示标题、作者、链接、修改时间和版权说明（post-copyright.tsx） */}

@@ -183,6 +183,28 @@
   font-size: var(--text-sm);
 }
 
+/* 文章过期提示（post-outdated.tsx）：一行淡色小字，月光色沙漏，淡淡的月光底，不抢正文 */
+.post-outdated {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--moonlight) 6%, transparent);
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+}
+
+/* 沙漏对齐第一行文字的中线（窄屏折成两行时不跑到中间） */
+.post-outdated svg {
+  flex: none;
+  margin-top: calc((1lh - 14px) / 2);
+  color: var(--moonlight);
+}
+
 /* 手记：标题与 Markdown 正文用衬线体；富文本用 Haklex 的手记主题（variant="note"），字体换成站点加载的思源宋体 */
 .note-detail .post-detail-title,
 .article-body-note {

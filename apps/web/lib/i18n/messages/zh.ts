@@ -286,6 +286,8 @@ const zh = {
     neighbors: "相邻文章",
     related: "关联阅读",
     noBody: "这篇文章暂时没有可展示的正文。",
+    // 最后修改超过 60 天的文章正文前的提示（components/post-outdated.tsx）
+    outdated: msg<[days: number]>("这篇文章最后修改于 {days} 天前，其中的内容可能已经过时。"),
     categoryDescription: msg<[name: string]>("分类“{name}”下的文章。"),
   },
   notes: {

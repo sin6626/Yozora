@@ -15,6 +15,7 @@ function load(path) {
 }
 const { moonPhase, moonLitPath, moonInfo } = load('../apps/web/lib/moon.ts')
 const { excerpt, readingMinutes } = load('../apps/web/lib/excerpt.ts')
+const { outdatedDays } = load('../apps/web/lib/date.ts')
 
 const near = (phase, target) => Math.min(Math.abs(phase - target), 1 - Math.abs(phase - target))
 // 2024-01-11 11:57 UTC 新月，2024-01-25 17:54 UTC 满月，2024-01-18 03:53 UTC 上弦，2024-02-02 23:18 UTC 下弦
@@ -56,4 +57,15 @@ assert.equal(readingMinutes('哈'), 1)
 assert.equal(readingMinutes(null), 1)
 assert.equal(readingMinutes('字'.repeat(2000)), 5)
 assert.equal(readingMinutes('字'.repeat(800) + '\n```js\n' + 'x'.repeat(4000) + '\n```'), 2)
+// 文章过期提示：最后修改（没改过看发布）距今超过 60 天才给出天数，正好 60 天、未来时间、无效时间都不提示
+const day = 86_400_000
+const now = Date.UTC(2026, 10, 7, 12)
+assert.equal(outdatedDays(null, new Date(now - 61 * day).toISOString(), now), 61)
+assert.equal(outdatedDays(null, new Date(now - 60 * day).toISOString(), now), null)
+assert.equal(outdatedDays(null, new Date(now - 60 * day - 1000).toISOString(), now), null)
+assert.equal(outdatedDays(new Date(now - 3 * day).toISOString(), new Date(now - 400 * day).toISOString(), now), null)
+assert.equal(outdatedDays(new Date(now - 90 * day).toISOString(), new Date(now - 400 * day).toISOString(), now), 90)
+assert.equal(outdatedDays(null, new Date(now + 90 * day).toISOString(), now), null)
+assert.equal(outdatedDays(null, 'not a date', now), null)
+console.log('PASS outdated post notice (> 60 days since last modified, else created)')
 console.log('PASS moon phase dates, lit side, crescent/gibbous terminator, new and full moon, hover info; Markdown excerpt (tech stack config: verify-site-content.mjs)')
