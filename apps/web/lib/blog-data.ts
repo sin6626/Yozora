@@ -296,6 +296,30 @@ export async function getNotes(page: number, lang: ContentLang = "zh") {
   return { data: await Promise.all(data.map((note) => noteEntry(note, lang))), pagination: { ...pagination } };
 }
 
+// RSS（feed.xml）：最新 10 篇文章 + 手记按发布时间合并取 10 条（和 Shiro 读的 Core /aggregate/feed 同样多）。
+// 正文 text 是 Markdown：Lexical 富文本保存时 Core 会同步生成 Markdown 版（populateText），所以两种格式都用它。
+// 列表接口本身就过滤了草稿、加密和定时手记；文章按 created 排，不让置顶的旧文章占位。描述同列表摘要：AI 摘要 → 手写摘要 → 正文开头。
+export async function getFeedItems() {
+  "use cache";
+  cacheLife({ stale: 60, revalidate: 300, expire: 3600 });
+  cacheTag("blog:posts", "blog:notes", "blog:categories", "blog:ai");
+  const [posts, notes] = await Promise.all([
+    getApiClient().post.getList(1, 10, { select: ["title", "summary", "text", "created", "categoryId", "slug"], sortBy: "created", sortOrder: -1 }),
+    getApiClient().note.getList(1, 10),
+  ]);
+  const items = [
+    ...posts.data.flatMap((post) => post.category
+      ? [{ id: post.id, summary: post.summary, text: post.text, title: post.title, path: ["posts", post.category.slug, post.slug], created: post.created, category: post.category.name }]
+      : []),
+    ...notes.data.map((note) => ({ id: note.id, summary: null, text: note.text, title: note.title, path: ["notes", String(note.nid)], created: note.created, category: "手记" })),
+  ].sort((a, b) => Date.parse(b.created) - Date.parse(a.created)).slice(0, 10);
+  return Promise.all(items.map(async ({ id, summary, text, ...item }) => ({
+    ...item,
+    text: text ?? "",
+    description: (await listExcerpt(id, summary, text, "zh"))?.text ?? "",
+  })));
+}
+
 // 同 getPostIndex：公开列表里的全部手记（加密手记不在里面，话题和搜索结果里也就不会出现）。
 async function getNoteIndex(lang: ContentLang) {
   "use cache";

@@ -1,35 +1,31 @@
-import { getNotes, getPosts, getSiteSettings } from "@/lib/blog-data";
+import { getFeedItems, getSiteSettings } from "@/lib/blog-data";
+import { cdata, escapeXml as escape, markdownToFeedHtml } from "@/lib/feed";
 
-// RSS 2.0：最新 10 条文章与手记，标题、链接和文章摘要；全文请读者点进站点阅读。
-const escape = (value: string) =>
-  value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[char]!);
-
+// RSS 2.0：最新 10 条文章与手记，带描述（摘要）和 content:encoded 全文 HTML。只有中文版。
 export async function GET() {
-  const [{ siteUrl: site, name: siteName, description: siteDescription }, posts, notes] = await Promise.all([getSiteSettings(), getPosts(1), getNotes(1)]);
+  const [{ siteUrl: site, name: siteName, description: siteDescription }, items] = await Promise.all([getSiteSettings(), getFeedItems()]);
   const link = (...segments: string[]) => `${site}/${segments.map(encodeURIComponent).join("/")}`;
-  // 文章列表置顶在前，这里统一按发布时间重新排序。
-  const items = [
-    ...posts.data.flatMap((post) => post.category
-      ? [{ title: post.title, url: link("posts", post.category.slug, post.slug), created: post.created, description: post.summary, category: post.category.name }]
-      : []),
-    ...notes.data.map((note) => ({ title: note.title, url: link("notes", String(note.nid)), created: note.created, description: undefined, category: "手记" })),
-  ].sort((a, b) => Date.parse(b.created) - Date.parse(a.created)).slice(0, 10);
+  const bodies = await Promise.all(items.map((item) => markdownToFeedHtml(item.text, link(...item.path))));
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
 <channel>
 <title>${escape(siteName)}</title>
 <link>${escape(site)}</link>
 <description>${escape(siteDescription)}</description>
 <language>zh-CN</language>
 <atom:link href="${escape(link("feed.xml"))}" rel="self" type="application/rss+xml"/>
-${items.length ? `<lastBuildDate>${new Date(items[0].created).toUTCString()}</lastBuildDate>\n` : ""}${items.map((item) => `<item>
+${items.length ? `<lastBuildDate>${new Date(items[0].created).toUTCString()}</lastBuildDate>\n` : ""}${items.map((item, index) => {
+    const url = link(...item.path);
+    return `<item>
 <title>${escape(item.title)}</title>
-<link>${escape(item.url)}</link>
-<guid isPermaLink="true">${escape(item.url)}</guid>
+<link>${escape(url)}</link>
+<guid isPermaLink="true">${escape(url)}</guid>
 <pubDate>${new Date(item.created).toUTCString()}</pubDate>
 <category>${escape(item.category)}</category>
-${item.description?.trim() ? `<description>${escape(item.description.trim())}</description>\n` : ""}</item>`).join("\n")}
+${item.description ? `<description>${escape(item.description)}</description>\n` : ""}<content:encoded>${cdata(bodies[index])}</content:encoded>
+</item>`;
+  }).join("\n")}
 </channel>
 </rss>
 `;
