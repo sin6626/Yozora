@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useState, type FormEvent } from "react";
+import { useId, useRef, useState, type FormEvent } from "react";
 import { useIsland } from "../lib/island-store";
 import { refreshAfterWrite } from "./cache-actions";
 import { LogIn } from "lucide-react";
 import { openLoginDialog } from "./account-menu";
+import EmojiPicker from "./emoji-picker";
 import { rich } from "../lib/i18n/rich";
 import { useLocale, useT } from "./locale-provider";
 import type { Messages } from "../lib/i18n/messages/zh";
@@ -34,6 +35,7 @@ export default function CommentForm({ apiUrl, allowGuest, providers, refId, refT
   const chinese = useLocale() === "zh";
   const push = useIsland((state) => state.push);
   const id = useId();
+  const textarea = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
   const session = useReaderSession(apiUrl);
   const loginError = useLoginError("comments");
@@ -122,8 +124,12 @@ export default function CommentForm({ apiUrl, allowGuest, providers, refId, refT
         <input className="field" id={`${id}-url`} name="url" type="url" maxLength={50} autoComplete="url" placeholder={chat ? t.urlShort : "https://"} />
       </div>}
       <label htmlFor={`${id}-text`}>{replyTo ? t.replyTo(`@${replyTo.author}`) : t.text}</label>
-      <textarea className="field" id={`${id}-text`} name="text" required maxLength={500} rows={chat ? 2 : replyTo ? 3 : 4} placeholder={chat ? t.chatPlaceholder : t.placeholder} />
+      <textarea ref={textarea} className="field" id={`${id}-text`} name="text" required maxLength={500} rows={chat ? 2 : replyTo ? 3 : 4} placeholder={chat ? t.chatPlaceholder : t.placeholder} />
       <div className="comment-actions">
+        <div className="comment-tools">
+          <EmojiPicker target={textarea} />
+          <span className="comment-markdown-hint">{t.markdown}</span>
+        </div>
         <label><input type="checkbox" name="whisper" /> {t.whisper}</label>
         {replyTo && !chat && <button className="btn btn-ghost" type="button" onClick={() => { setOpen(false); setStatus({ type: "idle" }); }}>{t.cancel}</button>}
         <button className={chat ? "btn btn-primary btn-sm" : "btn btn-primary"} type="submit" disabled={status.type === "sending"}>{status.type === "sending" ? t.sending : t.send}</button>

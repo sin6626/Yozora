@@ -162,6 +162,19 @@
   margin-right: auto;
 }
 
+/* 输入框下面左边：表情按钮 + “支持 Markdown” 小提示 */
+.comment-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.comment-markdown-hint {
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+  opacity: 0.8;
+}
+
 .comment-reply-button {
   margin-top: var(--space-1);
   margin-left: calc(-1 * var(--space-3));
