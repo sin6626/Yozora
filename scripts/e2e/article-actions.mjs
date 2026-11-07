@@ -161,7 +161,7 @@ try {
       atBottom: (() => { const box = scroller.getBoundingClientRect(); const last = document.querySelector(".chat-message:last-of-type").getBoundingClientRect(); return last.bottom <= box.bottom && last.bottom > box.bottom - 80; })(),
     };
   })()`);
-  assert.deepEqual(stream.ids, ["c1", "c2", "c3", "c4", "c5"], `消息应当按时间排成一条流：${stream.ids}`);
+  assert.deepEqual(stream.ids, ["c1", "c2", "c3", "c4", "c5", "c6"], `消息应当按时间排成一条流：${stream.ids}`);
   assert.ok(stream.ownerRight, "站长的消息应当在右侧");
   assert.ok(stream.atBottom, "打开时应当停在最新一条");
   await browser.evaluate(`document.querySelector('.chat-message[data-id="c1"]').scrollIntoView({ block: "center" })`);
