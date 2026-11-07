@@ -3,6 +3,8 @@
 //    面板收起、光标回到输入框表情后面；鼠标点选同样插入，悬浮窗不会因此关掉。
 // ② 完整 Markdown：调试页的评论列表与悬浮窗消息流里，标题、引用、删除线、表格、图片都显示；javascript: 图片不出现；
 //    原始 HTML 只显示成文字；图片懒加载、悬浮窗里更矮；点图片放大，放大后悬浮窗不关。
+// ③ 站长置顶：游客看不到按钮；替身站长会话（拦截 /auth/get-session）下，每条未删除的主评论旁有“置顶 / 取消置顶”，回复没有；
+//    点了从浏览器带 Cookie 发 PATCH /comments/:id { pin }（请求被页面内替身拦下，不真的置顶）。
 // 只在输入框里打字，不提交，不写日常库。需要先运行 pnpm dev（WEB_URL 可改地址）。
 import assert from "node:assert/strict";
 import { openBrowser, sleep } from "../headless-browser.mjs";
@@ -143,8 +145,38 @@ try {
   const closed = await browser.evaluate(`({ lightbox: !!document.querySelector(".lightbox-image"), chat: !!document.querySelector(".chat-popup") })`);
   assert.ok(!closed.lightbox && closed.chat, `关掉放大后悬浮窗应当还在：${JSON.stringify(closed)}`);
 
+  // —— ③ 站长置顶 ——
+  assert.equal(await browser.evaluate(`document.querySelectorAll(".comment-pin").length`), 0, "游客不应当看到置顶按钮");
+  await browser.send("Page.addScriptToEvaluateOnNewDocument", { source: `{
+    const real = window.fetch;
+    window.__patches = [];
+    window.fetch = async (input, init = {}) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.endsWith("/auth/get-session")) return new Response(JSON.stringify({ session: { provider: "github" }, user: { name: "Sin", role: "owner" } }), { headers: { "Content-Type": "application/json" } });
+      if (/\\/comments\\/[^/]+$/.test(url) && init.method === "PATCH") { window.__patches.push({ url, method: init.method, body: init.body, credentials: init.credentials }); return new Response(null, { status: 204 }); }
+      return real(input, init);
+    };
+  }` });
+  await browser.goto(`${base}/debug`);
+  await browser.evaluate(`document.querySelector(".debug-comments").scrollIntoView({ block: "center" })`);
+  await sleep(500);
+  const pins = await browser.evaluate(`[...document.querySelectorAll(".debug-comments .comment-pin")].map((b) => ({ id: b.closest(".comment").id, text: b.textContent, reply: !!b.closest(".comment-replies") }))`);
+  assert.deepEqual(pins.map((p) => p.id), ["comment-c1", "comment-c5", "comment-c6"], `站长应当在每条未删除的主评论旁看到置顶按钮：${JSON.stringify(pins)}`);
+  assert.equal(pins[0].text, "置顶");
+  assert.equal(pins[1].text, "取消置顶", "已置顶的那条应当是“取消置顶”");
+  await click("#comment-c1 .comment-pin");
+  await sleep(1500);
+  const sent = await browser.evaluate("window.__patches");
+  assert.equal(sent.length, 1, `应当发出一次置顶请求：${JSON.stringify(sent)}`);
+  assert.match(sent[0].url, /^https?:\/\/[^/]+.*\/comments\/c1$/);
+  assert.deepEqual(JSON.parse(sent[0].body), { pin: true });
+  assert.equal(sent[0].credentials, "include", "置顶要带上站长的登录 Cookie");
+  await click("#comment-c5 .comment-pin");
+  await sleep(1500);
+  assert.deepEqual(JSON.parse((await browser.evaluate("window.__patches"))[1].body), { pin: false }, "取消置顶应当发 pin: false");
+
   assert.deepEqual(browser.errors, [], `页面不应当报错：${browser.errors.join("\n")}`);
-  console.log("PASS comment emoji picker inserts at caret in both forms; full Markdown with images and tables in the list and the chat");
+  console.log("PASS comment emoji picker inserts at caret in both forms; full Markdown with images and tables in the list and the chat; owner-only pin button sends PATCH");
 } finally {
   await browser.close();
 }

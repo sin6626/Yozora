@@ -5,6 +5,7 @@ import { formatDate } from "../lib/date";
 import { safeUrl } from "../lib/safe-url";
 import CommentForm, { type CommentRefType } from "./comment-form";
 import CommentMarkdown from "./comment-markdown";
+import CommentPin from "./comment-pin";
 import ImageLightbox from "./image-lightbox";
 import type { LoginProvider } from "./reader-session";
 import { getT } from "../lib/i18n/server";
@@ -19,7 +20,8 @@ export const zoomLabel = (t: Messages) => (alt: string) => (alt ? t.murmurs.zoom
 
 export type FormOptions = { apiUrl: string; allowGuest: boolean; providers: LoginProvider[] };
 
-function CommentBody({ comment, replyTo, form, canReply, t }: { comment: Comment; replyTo?: string; form: FormOptions; canReply: boolean; t: Messages }) {
+// top：主评论（不是楼中楼里的回复），站长登录时旁边有“置顶 / 取消置顶”
+function CommentBody({ comment, replyTo, top, form, canReply, t }: { comment: Comment; replyTo?: string; top?: boolean; form: FormOptions; canReply: boolean; t: Messages }) {
   const avatar = safeUrl(comment.avatar);
   const site = safeUrl(comment.url);
   return (
@@ -33,6 +35,7 @@ function CommentBody({ comment, replyTo, form, canReply, t }: { comment: Comment
           <time dateTime={comment.created}>{formatDate(comment.created)}</time>
           {comment.location && <span>{t.comments.from(comment.location)}</span>}
           {comment.pinned && <span>{t.list.pinned}</span>}
+          {top && !comment.deleted && <CommentPin apiUrl={form.apiUrl} id={comment.id} pinned={comment.pinned} />}
         </p>
         {comment.deleted ? (
           <p className="comment-deleted">{t.comments.deleted}</p>
@@ -90,7 +93,7 @@ export async function CommentList({ threads, form, canReply }: { threads: Thread
           const authors = new Map([thread, ...thread.replies].map((item) => [item.id, item.author]));
           return (
             <li key={thread.id}>
-              <CommentBody comment={thread} form={form} canReply={canReply} t={t} />
+              <CommentBody comment={thread} top form={form} canReply={canReply} t={t} />
               {thread.replies.length > 0 && (
                 <ol className="comment-replies">
                   {thread.replies.map((reply) => (

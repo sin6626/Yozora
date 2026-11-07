@@ -25,6 +25,7 @@ import { NoContentCanBeModifiedException } from '~/common/exceptions/no-content-
 import { BusinessEvents, EventScope } from '~/constants/business-event.constant'
 import { ErrorCodeEnum } from '~/constants/error-code.constant'
 import { EventManagerService } from '~/processors/helper/helper.event.service'
+import { RedisService } from '~/processors/redis/redis.service'
 import { MongoIdDto } from '~/shared/dto/id.dto'
 import { PagerDto } from '~/shared/dto/pager.dto'
 import { transformDataToPaginate } from '~/transformers/paginate.transformer'
@@ -59,6 +60,7 @@ export class CommentController {
     private readonly configsService: ConfigsService,
     @Inject(forwardRef(() => ReaderService))
     private readonly readerService: ReaderService,
+    private readonly redisService: RedisService,
   ) {}
 
   private async createCommentWithBody(
@@ -383,11 +385,11 @@ export class CommentController {
         },
         updateResult,
       )
-
-      return
     } catch {
       throw new NoContentCanBeModifiedException()
     }
+    // 置顶、审核会改变访客看到的列表：清掉接口缓存，前台（站长在前台点置顶后马上刷新）不会读回 15 秒内的旧列表
+    await this.redisService.cleanCatch()
   }
 
   @Delete('/:id')

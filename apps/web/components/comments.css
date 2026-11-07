@@ -170,6 +170,36 @@
   border-radius: inherit;
 }
 
+/* 站长的置顶按钮：和元信息同一行的小字，悬停才显出强调色 */
+.comment-pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  padding: 0 var(--space-1);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted-foreground);
+  font: inherit;
+  cursor: pointer;
+  transition: color var(--duration-fast), background-color var(--duration-fast);
+}
+
+.comment-pin:hover,
+.comment-pin:focus-visible {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.comment-pin:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.comment-pin-failed {
+  color: var(--danger);
+}
+
 .comment-deleted {
   margin-top: var(--space-2);
   color: var(--muted-foreground);

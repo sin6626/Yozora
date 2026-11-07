@@ -389,6 +389,10 @@ const zh = {
     failed: "评论读取失败，请稍后刷新。",
     empty: "还没有评论，来说两句吧。",
     owner: "站长",
+    // 站长登录后每条主评论旁的按钮
+    pin: "置顶",
+    unpin: "取消置顶",
+    pinFailed: "没改成，请稍后再试",
   },
   chat: {
     trigger: "评论",
