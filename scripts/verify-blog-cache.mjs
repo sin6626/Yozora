@@ -165,6 +165,10 @@ await assert.rejects(cache.getPost('technology', 'broken'))
 detailError = undefined
 invalidNavigation = true
 await assert.rejects(cache.getNavigationData(), /导航数据/)
+// 外文页面没有译文的手记标题仍是中文：带 titleLang，展示组件据此标 lang="zh-CN"（Codex 复查：话题卡片、左侧时间线漏标）
+assert.equal(byTopic.data[0].titleLang, undefined, '中文页面不标')
+assert.equal((await cache.getNotesByTopic('t1', 'en')).data[0].titleLang, 'zh-CN', '外文页面没译文的标题标 zh-CN')
+assert.ok((await cache.getTimeline('en')).every((item) => item.titleLang === 'zh-CN'), '时间线条目同样标')
 console.log('PASS public cache projections, key parameters, tag coverage and lifetime constraints')
 const comments = await cache.getComments('post-id')
 assert.ok(tags.includes('blog:comments'))

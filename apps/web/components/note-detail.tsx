@@ -69,7 +69,7 @@ export default async function NoteDetail({ params }: { params: Promise<{ nid: st
         </div>
       </header>
       <div className="post-list-content">
-        {note.banner && <NoteBanner banner={note.banner} />}
+        {note.banner && <NoteBanner banner={note.banner} lang={(await getLocale()) === "zh" ? undefined : "zh-CN"} />}
         <ArticleAiNotes ai={ai} />
         <div lang={ai.original}><ArticleBody text={body.text} contentFormat={body.contentFormat} content={body.content} emptyText={t.notes.noBody} variant="note" /></div>
         <div className="article-end"><ArticleStats apiUrl={getApiUrl()} id={note.id} type="note" like={note.count.like} /></div>

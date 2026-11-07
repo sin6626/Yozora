@@ -439,10 +439,12 @@ export async function getTimeline(lang: ContentLang = "zh") {
   cacheTag("blog:posts", "blog:notes", "blog:categories", "blog:ai");
   const [{ data }, names] = await Promise.all([getApiClient().aggregate.getTimeline({ sort: "desc" }), localizedNames(lang)]);
   const title = (id: string, original: string) => names?.titles[id] ?? original;
+  // 外文页面没有译文、仍是中文原题的条目标 zh-CN（展示组件放到 lang 上）
+  const titleLang = (id: string) => (lang !== "zh" && !names?.titles[id] ? ("zh-CN" as const) : undefined);
   const posts = (data.posts ?? []).flatMap((post) => post.category
-    ? [{ kind: "post" as const, id: post.id, title: title(post.id, post.title), created: post.created, category: { name: names?.categories[post.category.slug] ?? post.category.name, slug: post.category.slug }, slug: post.slug }]
+    ? [{ kind: "post" as const, id: post.id, title: title(post.id, post.title), titleLang: titleLang(post.id), created: post.created, category: { name: names?.categories[post.category.slug] ?? post.category.name, slug: post.category.slug }, slug: post.slug }]
     : []);
-  const notes = (data.notes ?? []).map((note) => ({ kind: "note" as const, id: note.id, title: title(note.id, note.title), created: note.created, nid: note.nid }));
+  const notes = (data.notes ?? []).map((note) => ({ kind: "note" as const, id: note.id, title: title(note.id, note.title), titleLang: titleLang(note.id), created: note.created, nid: note.nid }));
   return [...posts, ...notes].sort((a, b) => Date.parse(b.created) - Date.parse(a.created));
 }
 
@@ -776,7 +778,7 @@ export async function searchNotes(keyword: string, lang: ContentLang = "zh") {
   const [{ data, pagination }, names] = await Promise.all([getApiClient().search.search("note", keyword), localizedNames(lang)]);
   return {
     total: pagination.total,
-    data: data.map((note) => ({ id: note.id, nid: note.nid, title: names?.titles[note.id] ?? note.title, created: note.created })),
+    data: data.map((note) => ({ id: note.id, nid: note.nid, title: names?.titles[note.id] ?? note.title, titleLang: lang !== "zh" && !names?.titles[note.id] ? ("zh-CN" as const) : undefined, created: note.created })),
   };
 }
 
@@ -822,7 +824,7 @@ export async function getNotesByTopic(topicId: string, lang: ContentLang = "zh")
   const [{ data, pagination }, names] = await Promise.all([getApiClient().note.getNoteByTopicId(topicId, 1, 50, { sortBy: "created", sortOrder: -1 }), localizedNames(lang)]);
   return {
     total: pagination.total,
-    data: data.map((note) => ({ id: note.id, nid: note.nid, title: names?.titles[note.id] ?? note.title, created: note.created })),
+    data: data.map((note) => ({ id: note.id, nid: note.nid, title: names?.titles[note.id] ?? note.title, titleLang: lang !== "zh" && !names?.titles[note.id] ? ("zh-CN" as const) : undefined, created: note.created })),
   };
 }
 

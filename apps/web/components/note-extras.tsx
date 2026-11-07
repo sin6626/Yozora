@@ -19,10 +19,11 @@ export function NoteCover({ src }: { src: string }) {
 const bannerIcons = { info: Info, warning: TriangleAlert, error: CircleAlert, success: CircleCheck, secondary: MessageCircle } satisfies Record<BannerType, unknown>;
 
 // 横幅（后台附加字段“横幅信息”，meta.banner）：正文前一条提示，按类型换图标和颜色。
-export function NoteBanner({ banner }: { banner: Banner }) {
+// 横幅文字没有翻译链路，外文页面标 zh-CN（lang 由调用方按页面语言给）
+export function NoteBanner({ banner, lang }: { banner: Banner; lang?: "zh-CN" }) {
   const Icon = bannerIcons[banner.type];
   return (
-    <p className="note-banner" data-type={banner.type} role="note">
+    <p className="note-banner" data-type={banner.type} role="note" lang={lang}>
       <Icon size={16} aria-hidden="true" />
       <span>{banner.message}</span>
     </p>
@@ -58,7 +59,7 @@ export async function NoteTopicCard({ topic: ref, noteId }: { topic: TopicRef; n
         <ol className="note-stars" aria-label={t.notes.topicRecent}>
           {recent.map((note) => (
             <li key={note.id}>
-              <Link href={`/notes/${note.nid}`}><span className="note-stars-title">{note.title}</span><time dateTime={note.created}>{formatDate(note.created)}</time></Link>
+              <Link href={`/notes/${note.nid}`}><span className="note-stars-title" lang={note.titleLang}>{note.title}</span><time dateTime={note.created}>{formatDate(note.created)}</time></Link>
             </li>
           ))}
         </ol>
@@ -83,7 +84,7 @@ export async function NoteTimeline({ noteId }: { noteId: string }) {
           {notes.map((note) => (
             <li key={note.id}>
               <Link href={`/notes/${note.nid}`} aria-current={note.id === noteId ? "page" : undefined} title={note.title}>
-                <span className="note-stars-title">{note.title}</span>
+                <span className="note-stars-title" lang={note.titleLang}>{note.title}</span>
               </Link>
             </li>
           ))}
