@@ -16,6 +16,7 @@ import PageView from "@/components/page-view";
 import OwnerPresence from "@/components/owner-presence";
 import HeaderSearch from "@/components/header-search";
 import { getOwner } from "@/lib/blog-data";
+import { shareImage } from "@/lib/page-metadata";
 import { LocaleProvider } from "@/components/locale-provider";
 import { htmlLang, ogLocale, type Locale } from "@/lib/i18n/config";
 import { getI18nBundle, getSiteLocales } from "@/lib/i18n/data";
@@ -88,7 +89,9 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: `${name} - ${description}`, template: `%s - ${name}` },
     description,
     keywords: settings?.keywords.length ? settings.keywords : undefined,
-    openGraph: { siteName: name, title: name, description, type: "website", locale: ogLocale(locale) },
+    // 分享图：首页那张（app/api/og/route.tsx），列表页等没有自己分享图的页面也用它；详情页在 lib/page-metadata.ts 换成自己的
+    openGraph: { siteName: name, title: name, description, type: "website", locale: ogLocale(locale), images: shareImage(locale, {}, name) },
+    twitter: { card: "summary_large_image" },
     alternates: { types: { "application/rss+xml": [{ url: "/feed.xml", title: name }] } },
     // 灰度时（SITE_NOINDEX=1）整站不让搜索引擎收录
     robots: hiddenFromSearch() ? { index: false, follow: false } : undefined,

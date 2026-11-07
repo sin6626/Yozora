@@ -2,17 +2,27 @@ import "server-only";
 import type { Metadata } from "next";
 import { unstable_rethrow } from "next/navigation";
 import { getArticleTranslation, getCategories, getNote, getPage, getPost, getSiteSettings, siteName } from "./blog-data";
-import { ogLocale } from "./i18n/config";
+import { defaultLocale, ogLocale } from "./i18n/config";
+import { ogSize } from "./og";
 import { getLocale, getT } from "./i18n/server";
 
 // 详情页的 <title>、描述和分享卡片。复用页面正文同一份 "use cache" 数据，不会多请求一次 Core。
 // 地址非法、内容不存在或读取失败时退回布局的默认值，错误提示和 404 由正文负责。
 export { siteDescription, siteName } from "./blog-data";
 
-async function describe(title: string, description?: string | null, type: "article" | "website" = "article"): Promise<Metadata> {
+// 分享图（app/api/og/route.tsx）的地址和尺寸；相对地址由根布局的 metadataBase（后台“网站地址”）补全。
+// twitter 只在根布局写 card，标题、描述、图片由 Next 从 openGraph 补上（metadata 合并时 twitter 缺的项继承 openGraph）。
+export function shareImage(lang: string, query: Record<string, string> = {}, alt?: string) {
+  const search = new URLSearchParams(query);
+  if (lang !== defaultLocale) search.set("lang", lang);
+  return [{ url: `/api/og${search.size ? `?${search}` : ""}`, ...ogSize, type: "image/png", alt }];
+}
+
+async function describe(title: string, description: string | null | undefined, type: "article" | "website", query?: Record<string, string>): Promise<Metadata> {
   const text = description?.trim() || undefined;
   const name = (await getSiteSettings().catch(() => null))?.name ?? siteName;
-  return { title, description: text, openGraph: { siteName: name, title, description: text, type, locale: ogLocale(await getLocale()) } };
+  const locale = await getLocale();
+  return { title, description: text, openGraph: { siteName: name, title, description: text, type, locale: ogLocale(locale), images: shareImage(locale, query, title) } };
 }
 
 async function safe(load: () => Promise<Metadata | null>): Promise<Metadata> {
@@ -41,7 +51,7 @@ export async function postMetadata(params: Promise<{ category: string; slug: str
     const post = await getPost(reencode(category), reencode(slug));
     if (!post) return null;
     const { title, description } = await inLocale(post.id, post.title, post.summary);
-    return describe(title, description);
+    return describe(title, description, "article", { type: "post", category: decodeURIComponent(category), slug: decodeURIComponent(slug) });
   });
 }
 
@@ -51,7 +61,7 @@ export async function noteMetadata(params: Promise<{ nid: string }>) {
     if (!/^[1-9]\d*$/.test(nid) || !Number.isSafeInteger(Number(nid))) return null;
     const note = await getNote(Number(nid));
     if (!note || note.locked) return null;
-    return describe((await inLocale(note.id, note.title)).title);
+    return describe((await inLocale(note.id, note.title)).title, null, "article", { type: "note", nid });
   });
 }
 
@@ -61,7 +71,7 @@ export async function pageMetadata(params: Promise<{ slug: string }>) {
     const page = await getPage(reencode(slug));
     if (!page) return null;
     const { title, description } = await inLocale(page.id, page.title, page.subtitle);
-    return describe(title, description, "website");
+    return describe(title, description, "website", { type: "page", slug: decodeURIComponent(slug) });
   });
 }
 
