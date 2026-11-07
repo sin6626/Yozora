@@ -84,6 +84,18 @@ export class AnalyzeInterceptor implements NestInterceptor {
       return call$
     }
 
+    // 前台报来的页面访问（pageview.controller.ts）：路径换成读者看的页面，来源换成页面的 document.referrer；不像本站页面就不记
+    const parsed = new URL(`http://a.com${url}`)
+    let path = parsed.pathname
+    let referer = request.headers.referer || request.headers.Referer
+    if (path === '/pageview') {
+      const page = parsed.searchParams.get('path')
+      if (!page || !/^\/(?!\/)/.test(page) || page.length > 300) return call$
+      const ref = parsed.searchParams.get('ref')
+      path = page
+      referer = ref && /^https?:\/\//i.test(ref) && ref.length <= 500 ? ref : undefined
+    }
+
     scheduleManager.schedule(async () => {
       try {
         if (request.headers['user-agent']) {
@@ -95,10 +107,10 @@ export class AnalyzeInterceptor implements NestInterceptor {
         this.queue.push({
           ip,
           ua,
-          path: new URL(`http://a.com${url}`).pathname,
+          path,
           country:
             request.headers['cf-ipcountry'] || request.headers['CF-IPCountry'],
-          referer: request.headers.referer || request.headers.Referer,
+          referer,
         })
 
         const client = this.redisService.getClient()
