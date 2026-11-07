@@ -13,7 +13,8 @@
 | 分享图（og:image、Twitter 大图卡片） | 站名 options.seo.title、头像 user.avatar、网站地址 url.webUrl、站点描述，文章/手记/页面的标题、摘要、分类、日期、心情天气（外文用 Core 译文） | 不单独设置，跟着上面各项走 | `/api/og` 生成的 1200×630 图（`app/api/og/route.tsx`），首页、列表页用首页那张 | 跟数据缓存走；图本身带 1 小时 Cache-Control，社交平台另有自己的缓存 |
 | 文章版权说明 | posts.copyright（开关）+ 片段 `copyright`（文字，一行一段，`[文字](https://…)` 是链接）；标题、作者（个人资料昵称）、链接（网站地址 + 文章路径）、最后修改时间自动生成 | 文章 → 版权注明；附加功能 → 配置与云函数 | 详情文末（照 Shiro 的 PostCopyright） | 立即（POST_* / SNIPPET_*） |
 | 手记、心情、天气、回忆项、加密 | notes | 手记 | 列表、详情、首页 | 立即（NOTE_*） |
-| 话题：名字、图标、简介、详细描述 | topics | 手记 → 话题 | 手记话题筛选页、导航、详情面包屑 | 立即（TOPIC_*） |
+| 手记头图、横幅 | notes.meta.cover（地址，只放行 http(s)）、notes.meta.banner（字符串，或 `{ type: info\|warning\|error\|success\|secondary, message }`；`className`、`style` 是 Shiro 的 Tailwind 写法，前台不认） | 手记 → 日记设置（右上角滑块图标）：“图片设置 → 文章缩略图”就是 meta.cover；“附加字段 → 横幅信息”是 Core 内置预设，选类型、填消息内容（也可在“自定义 JSON”里写 `{"banner": …}`） | 手记详情：头图在标题上方、底部渐隐；横幅在正文前（`components/note-extras.tsx`，解析 `lib/note-extras.ts`） | 立即（NOTE_*） |
+| 话题：名字、图标、简介、详细描述 | topics | 手记 → 话题 | 手记话题筛选页、导航、详情面包屑、详情文末话题卡片 | 立即（TOPIC_*） |
 | 分类、页面（标题、副标题、排序） | categories、pages | 分类、页面 | 导航、分类页、页面详情 | 立即 |
 | 碎碎念、一言、思考 | murmurs、says、recentlies | 各自菜单 | 各自页面、首页 | 立即 |
 | 作品 | projects | 作品 | /projects | 立即（PROJECT_*，2026-11-04 起 Core 才登记） |
@@ -53,7 +54,7 @@ theme/yozora 片段的格式写在 `apps/web/lib/theme-config.ts` 开头，只�
 
 - 设置 → 网站里的 API 地址（serverUrl）、Gateway 地址（wsUrl）：前台在浏览器里直连 Core（评论、点赞、登录、实时连接）用的是部署时的环境变量 `MIX_SPACE_API_URL`，没有读这两项。线上这两项现在还指向旧 Shiro 的域名，等正式切换时一起改、再决定要不要让前台读它们。管理后台地址（adminUrl）Core 不对访客公开，前台用不到。
 - 思考的结构化卡片（book、media、music、github、link、academic、code）只有 Core 存得下。后台表单和前台卡片都还没做，计划见 `docs/recently-plan.md`；2026-11-06 站长说暂时没有这个需求，以后再说。
-- 后台手记的地点和坐标、文章或手记的自定义 meta，前台还没有展示约定。
+- 后台手记的地点和坐标、文章的 meta（封面图、横幅等）、手记 meta 里 cover 和 banner 以外的字段（aiGen、keywords、style 等），前台还没有展示约定。
 - 力扣日历 `theme/leetcode-calendar` 由站长 Mac 上的脚本每天写进 Core。它是从力扣同步来的派生数据，不是第二份需要手改的真值。
 
 ## 有意留在代码里的

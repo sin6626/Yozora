@@ -1,0 +1,43 @@
+/* 手记详情的头图、横幅、文末话题卡片和左侧时间线（note-extras.tsx） */
+
+/* 头图：标题上方一张宽幅图，底部渐隐融进夜空，不加边框和阴影 */
+.note-cover {
+  margin: 0 0 calc(-1 * var(--space-8));
+  overflow: hidden;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  mask-image: linear-gradient(to bottom, #000 45%, transparent);
+}
+
+.note-cover img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 5;
+  object-fit: cover;
+}
+
+/* 横幅：正文前一条带图标的提示，按类型取颜色（淡边框 + 6% 底色，和文章过期提示同一路） */
+.note-banner {
+  --tone: var(--primary);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--tone) 28%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--tone) 7%, transparent);
+  line-height: var(--leading-relaxed);
+  white-space: pre-line;
+}
+
+.note-banner svg {
+  flex: none;
+  margin-top: calc((1lh - 16px) / 2);
+  color: var(--tone);
+}
+
+.note-banner[data-type="warning"] { --tone: var(--moonlight); }
+.note-banner[data-type="error"] { --tone: var(--danger); }
+.note-banner[data-type="success"] { --tone: var(--success); }
+.note-banner[data-type="secondary"] { --tone: var(--muted-foreground); }
+

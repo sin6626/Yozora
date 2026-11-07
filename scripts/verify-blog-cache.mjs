@@ -10,13 +10,14 @@ const source = readFileSync(new URL('../apps/web/lib/blog-data.ts', import.meta.
 const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
 const lifetimes = [], tags = [], calls = []
 const themeConfig = { exports: runTs('apps/web/lib/theme-config.ts', { './i18n/msg': loadI18n().msg }) }
+const noteExtras = runTs('apps/web/lib/note-extras.ts', { './safe-url': { safeUrl: (value) => value && /^https?:\/\//i.test(value) ? value : undefined } })
 const i18nConfig = runTs('apps/web/lib/i18n/config.ts')
 // 后台“AI i18n”翻好的译文（Core GET /ai/i18n/:lang），按语言替换
 const emptyBundle = { messages: {}, site: {}, projects: {} }
 let i18nBundles = {}
 const category = { id: 'category-id', name: '技术', slug: 'technology', type: 0, count: 1, created: '2026-10-22' }
 const post = { id: 'post-id', title: '正文', text: 'body', slug: 'test', category, created: '2026-10-22', liked: true, content: 'unused JSON', copyright: false, related: [{ id: 'rel-b', title: '旧标题 B', slug: 'b' }, { id: 'rel-draft', title: '草稿', slug: 'draft' }, { id: 'rel-a', title: 'A', slug: 'a' }] }
-const note = { id: 'note-id', nid: 5, title: '手记', text: 'note body', created: '2026-10-22', mood: '开心', weather: '晴', topic: { id: 't1', name: '近况', slug: 'now', introduce: 'unused' }, password: 'secret', liked: true, content: 'unused JSON' }
+const note = { id: 'note-id', nid: 5, title: '手记', text: 'note body', created: '2026-10-22', mood: '开心', weather: '晴', topic: { id: 't1', name: '近况', slug: 'now', introduce: 'unused' }, meta: { cover: 'https://img.test/cover.webp', banner: { type: 'warning', message: '旧文', className: 'x' } }, password: 'secret', liked: true, content: 'unused JSON' }
 const project = { id: 'project-id', name: '作品', description: '简介', avatar: 'https://example.com/a.png', text: 'unused', created: '2026-10-22' }
 let invalidNavigation = false
 let projectList = [project]
@@ -74,7 +75,7 @@ const api = {
 const module = { exports: {} }
 vm.runInNewContext(code, {
   module, exports: module.exports,
-  require: (id) => id === 'server-only' ? {} : id === './excerpt' ? { excerpt: (value) => value ?? '', readingMinutes: () => 1 } : id === './social' ? { socialLinks: () => [], socialCards: () => [] } : id === './theme-config' ? themeConfig.exports : id === './i18n/config' ? i18nConfig : id === './i18n/data' ? { getI18nBundle: async (lang) => i18nBundles[lang] ?? emptyBundle } : id === './safe-url' ? { safeUrl: (value) => value && /^https?:\/\//i.test(value) ? value : undefined } : id === './api' ? { getApiClient: () => api } : id === 'next/cache' ? { cacheLife: (value) => lifetimes.push(value), cacheTag: (...value) => tags.push(...value) } : require(id),
+  require: (id) => id === 'server-only' ? {} : id === './excerpt' ? { excerpt: (value) => value ?? '', readingMinutes: () => 1 } : id === './social' ? { socialLinks: () => [], socialCards: () => [] } : id === './theme-config' ? themeConfig.exports : id === './note-extras' ? noteExtras : id === './i18n/config' ? i18nConfig : id === './i18n/data' ? { getI18nBundle: async (lang) => i18nBundles[lang] ?? emptyBundle } : id === './safe-url' ? { safeUrl: (value) => value && /^https?:\/\//i.test(value) ? value : undefined } : id === './api' ? { getApiClient: () => api } : id === 'next/cache' ? { cacheLife: (value) => lifetimes.push(value), cacheTag: (...value) => tags.push(...value) } : require(id),
 })
 const cache = module.exports
 const navigation = await cache.getNavigationData()
@@ -106,6 +107,9 @@ assert.equal('password' in noteDetail || 'liked' in noteDetail || 'content' in n
 assert.equal(JSON.stringify(noteDetail.newer), JSON.stringify({ nid: 6, title: '较新' }))
 assert.equal(noteDetail.older, null)
 assert.equal(JSON.stringify(noteDetail.topic), JSON.stringify({ name: '近况', slug: 'now' }), '详情里的话题带 slug，可以链回话题筛选')
+// 后台手记 meta 的头图与横幅，解析成普通 JSON 放进详情（"use cache" 只能返回普通对象）
+assert.equal(JSON.stringify([noteDetail.cover, noteDetail.banner]), JSON.stringify(['https://img.test/cover.webp', { type: 'warning', message: '旧文' }]))
+assert.equal('meta' in noteDetail, false)
 assert.ok(tags.includes('blog:notes') && tags.includes('blog:note:note-id'))
 const projects = await cache.getProjects()
 assert.equal('text' in projects[0], false)

@@ -9,6 +9,8 @@ import "@/components/article-actions.css";
 import BlogNavigation from "@/components/navigation-menu";
 import { MurmurStream } from "@/components/murmur-list";
 import NoteUnlock from "@/components/note-unlock";
+import { NoteBanner, NoteCover } from "@/components/note-extras";
+import "@/components/post-detail.css";
 import RecentlyAttitude from "@/components/recently-attitude";
 import SubscribeForm from "@/components/subscribe-form";
 import { getApiUrl } from "@/lib/config";
@@ -166,6 +168,21 @@ export default function DebugPage() {
             <p className="post-empty">还没有作品。</p>
             <p className="post-meta">note-detail.tsx：Core 对加密手记返回 403 时显示 note-unlock.tsx 的密码表单（真实组件，提交会请求 Core，这里只展示）</p>
             <NoteUnlock nid={1} />
+          </li>
+          <li id="debug-note-extras">
+            <h2>手记头图与横幅</h2>
+            <p className="post-meta">note-extras.tsx：后台“日记设置”的封面图（meta.cover）显示在标题上方、底部渐隐；附加字段“横幅信息”（meta.banner）显示在正文前，五种类型。示例数据，头图借用站点分享图 /api/og</p>
+            <article className="post-detail note-detail">
+              <NoteCover src="/api/og" />
+              <header className="page-heading"><h1 className="post-detail-title">示例手记标题</h1></header>
+              <div className="post-list-content">
+                <NoteBanner banner={{ type: "info", message: "这是一条信息横幅。" }} />
+                <NoteBanner banner={{ type: "warning", message: "这篇写于很久以前，有些想法已经变了。" }} />
+                <NoteBanner banner={{ type: "error", message: "文中的链接已经失效。" }} />
+                <NoteBanner banner={{ type: "success", message: "后来这件事解决了。" }} />
+                <NoteBanner banner={{ type: "secondary", message: "次要提示：第一行\n第二行（保留换行）" }} />
+              </div>
+            </article>
           </li>
           <li>
             <h2>时间线、友链、一言与思考</h2>

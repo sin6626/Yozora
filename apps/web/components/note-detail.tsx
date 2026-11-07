@@ -16,6 +16,7 @@ import NoteUnlock from "./note-unlock";
 import { getLocale, getT } from "../lib/i18n/server";
 import "./post-detail.css";
 import LoadError from "./load-error";
+import { NoteBanner, NoteCover } from "./note-extras";
 
 export default async function NoteDetail({ params }: { params: Promise<{ nid: string }> }) {
   const { nid: rawNid } = await params;
@@ -51,6 +52,7 @@ export default async function NoteDetail({ params }: { params: Promise<{ nid: st
     <article className="post-detail note-detail">
       <ArticleNotifications id={note.id} />
       <IslandReading title={body.title} kind="note" date={formatDate(note.created)} />
+      {note.cover && <NoteCover src={note.cover} />}
       <header className="page-heading">
         <nav className="detail-crumb" aria-label={t.list.crumb}>
           <Link href="/notes">{t.notes.title}</Link>
@@ -67,6 +69,7 @@ export default async function NoteDetail({ params }: { params: Promise<{ nid: st
         </div>
       </header>
       <div className="post-list-content">
+        {note.banner && <NoteBanner banner={note.banner} />}
         <ArticleAiNotes ai={ai} />
         <div lang={ai.original}><ArticleBody text={body.text} contentFormat={body.contentFormat} content={body.content} emptyText={t.notes.noBody} variant="note" /></div>
         <div className="article-end"><ArticleStats apiUrl={getApiUrl()} id={note.id} type="note" like={note.count.like} /></div>
