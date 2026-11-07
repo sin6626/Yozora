@@ -78,6 +78,17 @@ try {
       await browser.send("Fetch.continueRequest", { requestId });
     }
   });
+  // 记下刷新前后发出的请求：替换响应只能证明“重新要了数据”，还要证明先让这篇的缓存失效（服务端函数 refreshArticle，
+  // 带 next-action 头的 POST，参数里有这篇的 id），否则删掉失效逻辑测试也会过（Codex 复查指出）
+  const requests = [];
+  browser.listeners.push((message) => {
+    if (message.method !== "Network.requestWillBeSent") return;
+    const { method, headers, postData, url } = message.params.request;
+    if (!url.includes(`/notes/${note.nid}`)) return;
+    const action = Object.keys(headers).some((name) => name.toLowerCase() === "next-action");
+    requests.push({ method, action, body: postData ?? "" });
+  });
+  await browser.send("Network.enable");
   await browser.send("Fetch.enable", { patterns: [{ urlPattern: `*/notes/${note.nid}*`, resourceType: "Fetch", requestStage: "Response" }] });
   await emit("NOTE_UPDATE", { id: other.id, title: "别的手记" });
   await sleep(500);
@@ -88,6 +99,10 @@ try {
   await browser.send("Fetch.disable");
   if (interceptError) throw interceptError;
   assert.ok(swapped > 0, "修改后重新向服务端要了这篇的页面数据");
+  const invalidated = requests.findIndex((request) => request.method === "POST" && request.action && request.body.includes(note.id));
+  const refetched = requests.findIndex((request) => request.method === "GET");
+  assert.ok(invalidated >= 0, `刷新前要先让这篇手记的缓存失效：${JSON.stringify(requests.map(({ method, action }) => ({ method, action })))}`);
+  assert.ok(refetched > invalidated, "缓存失效在重新取数据之前");
   assert.equal(await browser.evaluate("window.__marker"), 1, "没有整页刷新");
   await sleep(5500);
 
