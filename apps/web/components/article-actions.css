@@ -111,14 +111,74 @@
   }
 }
 
-/* 窄屏时整个侧栏（含目录）隐藏，没有目录的文章也不单独露出这一排 */
+/* 窄屏（侧栏放不下，侧栏里的目录隐藏，见 article-toc.css）：这一排变成右下角的悬浮胶囊，半透明夜色和导航弹层一样；
+   让开手机底部安全区。往下读时（data-tucked）沉到屏幕下面，有浮层开着或键盘聚焦在里面时不收。 */
 @media (width < 90rem) {
   .article-actions {
+    position: fixed;
+    right: calc(var(--space-4) + env(safe-area-inset-right, 0px));
+    bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+    z-index: var(--z-header);
+    gap: 0.125rem;
+    margin: 0;
+    padding: 0.25rem;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-full);
+    background: var(--glass-popup);
+    backdrop-filter: blur(16px);
+    box-shadow: var(--shadow-popup);
+    transition: translate var(--duration-slow) var(--ease-out), opacity var(--duration-slow) var(--ease-out);
+  }
+
+  .article-actions[data-tucked]:not(:has([data-popup-open], :focus-visible)) {
+    translate: 0 calc(100% + var(--space-4) + env(safe-area-inset-bottom, 0px));
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* 还在页面顶部时回到顶部不占位置，胶囊靠右，出现时往左长出一格 */
+  .article-action.is-top {
+    margin-left: 0;
+  }
+
+  .article-action.is-top:not([data-visible]) {
+    display: none;
+  }
+
+  /* 页脚最后一行在胶囊底下，页面滚到底时让出胶囊的高度（标记由 article-actions.tsx 打在 <html> 上） */
+  :root[data-reading-tools] .site-footer {
+    padding-bottom: 4.5rem;
+  }
+}
+
+/* 宽屏目录就在侧栏里，不需要目录按钮 */
+@media (min-width: 90rem) {
+  .article-action.is-toc {
     display: none;
   }
 }
 
+/* 窄屏的目录浮层：和订阅浮层同一个面板（subscribe-popover.css 的 .site-action-popup），目录太长时自己滚动 */
+.toc-positioner {
+  z-index: var(--z-popup);
+}
+
+.toc-popup {
+  display: flex;
+  flex-direction: column;
+  width: min(18rem, calc(100vw - 2rem));
+  max-height: min(60dvh, var(--available-height));
+  padding: var(--space-4);
+}
+
+.toc-popup .article-toc {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .article-actions,
   .article-action,
   .article-action-ring-bar,
   .article-action.is-like svg {

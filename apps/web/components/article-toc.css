@@ -45,9 +45,10 @@
   outline-offset: -2px;
 }
 
-/* 正文右侧留白放不下目录时（宽度不足 90rem，见 globals.css 的 .site-details），补充信息会排在正文下方，目录放在文末没有意义，直接隐藏 */
+/* 正文右侧留白放不下目录时（宽度不足 90rem，见 globals.css 的 .site-details），侧栏里的目录放在文末没有意义，隐藏；
+   改由右下角悬浮胶囊里的目录按钮在浮层里打开同一份目录（article-actions.tsx） */
 @media (width < 90rem) {
-  .site-details:has(.article-toc) {
+  .site-details .article-toc {
     display: none;
   }
 }

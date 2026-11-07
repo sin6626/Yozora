@@ -233,6 +233,7 @@ const zh = {
     shareTitle: "分享",
     top: msg<[percent: number]>("回到顶部（已读 {percent}%）"),
     topTitle: "回到顶部",
+    toc: "目录",
   },
   list: {
     retry: "重试",

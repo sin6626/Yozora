@@ -1,17 +1,22 @@
 "use client";
 
-import { ArrowUp, Bell, Heart, Share2 } from "lucide-react";
-import type { ReactNode } from "react";
+import { Popover } from "@base-ui/react/popover";
+import { ArrowUp, Bell, Heart, ListTree, Share2 } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useIsland } from "../lib/island-store";
 import { useArticleLike } from "../lib/use-article-like";
 import { useT } from "./locale-provider";
+import ArticleToc, { useTocEntries } from "./article-toc";
 import SubscribePopover from "./subscribe-popover";
+import "./subscribe-popover.css";
 import "./article-actions.css";
 
 type Like = { apiUrl: string; id: string; type: "post" | "note"; count: number };
 
 // 文章目录下面的一排操作（参考 Shiro 的 PostActionAside，做了改动）：喜欢、评论（边读边聊的悬浮窗）、分享、订阅，再加一个 Shiro 没有的“回到顶部”。
 // 回到顶部的按钮外面套着阅读进度环（读的是页头夜航岛同一份进度），读得越多画得越满；还在页面顶部时淡出隐藏。
+// 宽度不到 90rem 时侧栏放不下，这一排变成右下角的悬浮胶囊（article-actions.css），最前面多一个目录按钮（侧栏里的目录这时隐藏）；
+// 往下读时胶囊收起不挡正文，往上滚、滚到底或有浮层开着时出现（参考 Shiro 的 TocFAB、BackToTopFAB，样子是自己的）。
 // comments：评论悬浮窗（comment-chat.tsx，服务端组件，作为节点传进来）
 export default function ArticleActions({ title, like, comments, subscribe }: {
   title: string;
@@ -21,9 +26,11 @@ export default function ArticleActions({ title, like, comments, subscribe }: {
 }) {
   const t = useT().articleActions;
   const progress = useIsland((state) => state.reading?.progress ?? 0);
+  const tucked = useTuckOnScroll();
 
   return (
-    <div className="article-actions" role="group" aria-label={t.group}>
+    <div className="article-actions" role="group" aria-label={t.group} data-tucked={tucked ? "" : undefined}>
+      <TocButton />
       {like && <LikeButton like={like} />}
       {comments}
       <ShareButton title={title} />
@@ -34,6 +41,54 @@ export default function ArticleActions({ title, like, comments, subscribe }: {
       )}
       <BackToTop progress={progress} />
     </div>
+  );
+}
+
+// 往下读（超过一屏的六分之一后）收起，往上滚出现；快到页面底部时一直出现（回到顶部、去评论最常用在这里）。
+// 宽屏时 CSS 不理这个标记。挂载期间给 <html> 打 data-reading-tools，窄屏页脚据此在底下让出胶囊的位置；
+// 上一页被 Next 用 Activity 藏起来时 effect 会清理，标记跟着去掉。
+function useTuckOnScroll() {
+  const [tucked, setTucked] = useState(false);
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.readingTools = "";
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      const nearEnd = window.innerHeight + y >= root.scrollHeight - 80;
+      if (!nearEnd && Math.abs(y - last) < 8) return;
+      setTucked(!nearEnd && y > last && y > window.innerHeight / 6);
+      last = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      delete root.dataset.readingTools;
+    };
+  }, []);
+  return tucked;
+}
+
+// 窄屏的目录按钮：浮层里是和侧栏同一个目录组件（当前章节高亮），点某一节跳过去并收起浮层。正文没有标题时不显示。
+function TocButton() {
+  const t = useT().articleActions;
+  const entries = useTocEntries();
+  const [open, setOpen] = useState(false);
+  if (!entries?.length) return null;
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger className="article-action is-toc" aria-label={t.toc} title={t.toc}>
+        <ListTree size={18} strokeWidth={1.75} aria-hidden="true" />
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Positioner className="toc-positioner" side="top" align="end" sideOffset={12} collisionPadding={16}>
+          {/* 打开时焦点落在当前章节上（顺带把它滚进浮层可见范围），还没读到第一节时落在第一项 */}
+          <Popover.Popup className="site-action-popup toc-popup" aria-label={t.toc} initialFocus={() => document.querySelector<HTMLElement>('.toc-popup [aria-current="location"]') ?? true}>
+            <ArticleToc onJump={() => setOpen(false)} />
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }
 

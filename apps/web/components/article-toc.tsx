@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useSyncExternalStore, type MouseEvent, type ReactNode } from "react";
 import { useT } from "./locale-provider";
 import "./article-toc.css";
 
@@ -71,10 +71,17 @@ function jump(event: MouseEvent<HTMLAnchorElement>, id: string) {
   history.replaceState(history.state, "", `#${encodeURIComponent(id)}`);
 }
 
-// children 是没有标题时显示的默认右栏内容。
-export default function ArticleToc({ children = null }: { children?: ReactNode }) {
+// 正文里的标题；服务端拿不到正文 DOM，返回 null。窄屏的目录按钮（article-actions.tsx）用它判断这篇有没有目录。
+export function useTocEntries() {
+  return useSyncExternalStore<Entry[] | null>(subscribeContent, getEntries, () => null);
+}
+
+// children 是没有标题时显示的默认右栏内容；onJump 是点了某一节之后（窄屏目录浮层用它收起浮层）。
+export default function ArticleToc({ children = null, onJump }: { children?: ReactNode; onJump?: () => void }) {
   // 服务端拿不到正文 DOM，先不渲染，避免先闪默认内容再变成目录。
-  const entries = useSyncExternalStore<Entry[] | null>(subscribeContent, getEntries, () => null);
+  const entries = useTocEntries();
+  // 窄屏浮层打开时侧栏那份目录也还在 DOM 里，标题 id 不能重复
+  const headingId = useId();
   const activeId = useSyncExternalStore(subscribeScroll, getActiveId, () => null);
   const nav = useRef<HTMLElement>(null);
   const t = useT().article;
@@ -90,12 +97,12 @@ export default function ArticleToc({ children = null }: { children?: ReactNode }
   if (!entries.length) return children;
   const minLevel = Math.min(...entries.map((entry) => entry.level));
   return (
-    <nav ref={nav} className="article-toc" aria-labelledby="article-toc-heading">
-      <h2 id="article-toc-heading">{t.toc}</h2>
+    <nav ref={nav} className="article-toc" aria-labelledby={headingId}>
+      <h2 id={headingId}>{t.toc}</h2>
       <ol>
         {entries.map((entry) => (
           <li key={entry.id} data-depth={Math.min(entry.level - minLevel, 3)}>
-            <a href={`#${encodeURIComponent(entry.id)}`} onClick={(event) => jump(event, entry.id)} aria-current={entry.id === activeId ? "location" : undefined}>
+            <a href={`#${encodeURIComponent(entry.id)}`} onClick={(event) => { jump(event, entry.id); onJump?.(); }} aria-current={entry.id === activeId ? "location" : undefined}>
               {entry.text}
             </a>
           </li>
