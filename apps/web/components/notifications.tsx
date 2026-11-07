@@ -79,14 +79,16 @@ function Connection({ url, apiUrl, children }: { url: string; apiUrl: string; ch
         case "refresh-article":
           await new Promise((resolve) => setTimeout(resolve, refreshDelay));
           await refreshArticle(action.kind, action.id, true);
-          return router.refresh();
+          // 等待期间读者可能已经去了别的页面，那就只让缓存失效、不刷新当前页
+          return currentArticle?.id === action.id ? router.refresh() : undefined;
         case "refresh-list":
           await new Promise((resolve) => setTimeout(resolve, refreshDelay));
           await refreshAfterWrite([action.list]);
           return router.refresh();
         case "leave":
           await new Promise((resolve) => setTimeout(resolve, leaveDelay));
-          return router.replace(localizeHref(action.href, locale.current));
+          // 等待期间读者自己离开了被删的那篇，就不要再把他拉回列表
+          return currentArticle?.id === action.id ? router.replace(localizeHref(action.href, locale.current)) : undefined;
         case "announce": {
           // 文字按类型从当前语言的文案里取；新文章/手记第二行是标题（书名号也在文案里，英文是引号），思考、一言是正文开头（原样中文）
           const text = copy.current[action.copy];

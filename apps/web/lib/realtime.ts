@@ -23,8 +23,8 @@ export type RealtimeAction =
   | { type: "refresh-article"; kind: ArticleKind; id: string }
   // 当前就在这份列表上：让列表缓存失效再刷新（cache-actions.ts 的 refreshAfterWrite）
   | { type: "refresh-list"; list: "recently" | "says" }
-  // 正在看的这篇被删了：播报后跳回列表（不带语言前缀）
-  | { type: "leave"; href: string };
+  // 正在看的这篇被删了：播报后跳回列表（不带语言前缀）；id 用来在等待结束时确认读者还在这篇上
+  | { type: "leave"; id: string; href: string };
 
 const listOf: Record<ArticleKind, string> = { post: "/posts", note: "/notes", page: "/" };
 const object = (value: unknown): Record<string, unknown> | null => (value && typeof value === "object" ? value as Record<string, unknown> : null);
@@ -97,7 +97,7 @@ export function realtimeActions(message: unknown, context: RealtimeContext): Rea
     case "PAGE_DELETE": {
       const kind = type.slice(0, 4).toLowerCase() as ArticleKind;
       if (typeof data !== "string" || current?.kind !== kind || current.id !== data) return [];
-      return [{ type: "announce", copy: type, icon: "remove" }, { type: "leave", href: listOf[kind] }];
+      return [{ type: "announce", copy: type, icon: "remove" }, { type: "leave", id: data, href: listOf[kind] }];
     }
     default:
       return [];

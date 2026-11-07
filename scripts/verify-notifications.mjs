@@ -45,9 +45,9 @@ assert.deepEqual(run('TRANSLATION_UPDATE', { refId: id, refType: 'note', lang: '
 assert.deepEqual(run('TRANSLATION_CREATE', { refId: other }, reading('note')), []);
 
 // 删除：载荷是 id 字符串；播报并跳回列表
-assert.deepEqual(run('POST_DELETE', id, reading('post')), [{ type: 'announce', copy: 'POST_DELETE', icon: 'remove' }, { type: 'leave', href: '/posts' }]);
-assert.deepEqual(run('NOTE_DELETE', id, reading('note'))[1], { type: 'leave', href: '/notes' });
-assert.deepEqual(run('PAGE_DELETE', id, reading('page'))[1], { type: 'leave', href: '/' });
+assert.deepEqual(run('POST_DELETE', id, reading('post')), [{ type: 'announce', copy: 'POST_DELETE', icon: 'remove' }, { type: 'leave', id, href: '/posts' }]);
+assert.deepEqual(run('NOTE_DELETE', id, reading('note'))[1], { type: 'leave', id, href: '/notes' });
+assert.deepEqual(run('PAGE_DELETE', id, reading('page'))[1], { type: 'leave', id, href: '/' });
 assert.deepEqual(run('POST_DELETE', other, reading('post')), []);
 assert.deepEqual(run('POST_DELETE', { id }, reading('post')), [], '载荷不是字符串不认');
 

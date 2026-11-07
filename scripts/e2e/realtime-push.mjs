@@ -6,7 +6,7 @@
 // 需先开 pnpm dev。用法：node scripts/e2e/realtime-push.mjs
 import assert from "node:assert/strict";
 import { openBrowser, sleep } from "../headless-browser.mjs";
-import { fakeSocket } from "./helpers.mjs";
+import { clickNav, fakeSocket } from "./helpers.mjs";
 
 const base = process.env.WEB_URL ?? "http://127.0.0.1:2323";
 const core = process.env.CORE_URL ?? "http://127.0.0.1:2333";
@@ -100,6 +100,15 @@ try {
   assert.equal(await browser.evaluate("location.pathname"), `/notes/${note.nid}`, "先让读者看清播报");
   await waitFor("跳回手记列表", async () => (await browser.evaluate("location.pathname")) === "/notes", 20);
   assert.equal(await browser.evaluate("window.__marker"), 1, "站内跳转，不整页刷新");
+  await sleep(5500);
+
+  // ③b 收到删除后读者马上自己去了别的页面：等待结束后不能再把他拉回列表（Codex 复查发现）
+  await browser.evaluate(`(async () => { document.querySelector('a[href="/notes/${note.nid}"]').click(); for (let i = 0; i < 100 && location.pathname !== "/notes/${note.nid}"; i++) await new Promise((r) => setTimeout(r, 50)); await new Promise((r) => setTimeout(r, 1500)); })()`);
+  assert.equal(await browser.evaluate("location.pathname"), `/notes/${note.nid}`, "回到这篇手记");
+  await emit("NOTE_DELETE", note.id);
+  assert.equal(await browser.evaluate(clickNav("/timeline", 300)), "/timeline", "读者自己去了时间线");
+  await sleep(2500);
+  assert.equal(await browser.evaluate("location.pathname"), "/timeline", "离开了被删的那篇，就不再跳回手记列表");
   await sleep(5500);
 
   // ④ 新手记、新思考：别的页面上播报，带“去看看”
