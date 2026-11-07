@@ -355,7 +355,7 @@ export async function getNote(nid: number, lang: ContentLang = "zh") {
     created: note.created,
     mood: (note.mood && names?.moods[note.mood]) || note.mood,
     weather: (note.weather && names?.weathers[note.weather]) || note.weather,
-    topic: note.topic ? { name: names?.topics[note.topic.id] ?? note.topic.name, slug: note.topic.slug } : null,
+    topic: note.topic ? { id: note.topic.id, name: names?.topics[note.topic.id] ?? note.topic.name, slug: note.topic.slug } : null,
     // 后台“日记设置”的封面图（meta.cover）与附加字段“横幅信息”（meta.banner），规则见 lib/note-extras.ts
     ...parseNoteMeta(note.meta),
     newer: link(prev),

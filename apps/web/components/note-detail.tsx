@@ -16,7 +16,7 @@ import NoteUnlock from "./note-unlock";
 import { getLocale, getT } from "../lib/i18n/server";
 import "./post-detail.css";
 import LoadError from "./load-error";
-import { NoteBanner, NoteCover } from "./note-extras";
+import { NoteBanner, NoteCover, NoteTopicCard } from "./note-extras";
 
 export default async function NoteDetail({ params }: { params: Promise<{ nid: string }> }) {
   const { nid: rawNid } = await params;
@@ -73,6 +73,7 @@ export default async function NoteDetail({ params }: { params: Promise<{ nid: st
         <ArticleAiNotes ai={ai} />
         <div lang={ai.original}><ArticleBody text={body.text} contentFormat={body.contentFormat} content={body.content} emptyText={t.notes.noBody} variant="note" /></div>
         <div className="article-end"><ArticleStats apiUrl={getApiUrl()} id={note.id} type="note" like={note.count.like} /></div>
+        {note.topic && <Suspense><NoteTopicCard topic={note.topic} noteId={note.id} /></Suspense>}
         {(note.newer || note.older) && (
           <nav className="neighbor-nav" aria-label={t.notes.neighbors}>
             {note.newer ? <Link href={`/notes/${note.newer.nid}`}><span className="neighbor-label"><ArrowLeft size={14} aria-hidden="true" />{t.list.newer}</span><span className="neighbor-title">{note.newer.title}</span></Link> : <span />}

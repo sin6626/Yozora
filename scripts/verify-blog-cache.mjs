@@ -106,7 +106,7 @@ const noteDetail = await cache.getNote(5)
 assert.equal('password' in noteDetail || 'liked' in noteDetail || 'content' in noteDetail, false)
 assert.equal(JSON.stringify(noteDetail.newer), JSON.stringify({ nid: 6, title: '较新' }))
 assert.equal(noteDetail.older, null)
-assert.equal(JSON.stringify(noteDetail.topic), JSON.stringify({ name: '近况', slug: 'now' }), '详情里的话题带 slug，可以链回话题筛选')
+assert.equal(JSON.stringify(noteDetail.topic), JSON.stringify({ id: 't1', name: '近况', slug: 'now' }), '详情里的话题带 id 和 slug，可以取话题卡片、链回话题筛选')
 // 后台手记 meta 的头图与横幅，解析成普通 JSON 放进详情（"use cache" 只能返回普通对象）
 assert.equal(JSON.stringify([noteDetail.cover, noteDetail.banner]), JSON.stringify(['https://img.test/cover.webp', { type: 'warning', message: '旧文' }]))
 assert.equal('meta' in noteDetail, false)
