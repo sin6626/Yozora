@@ -262,6 +262,8 @@ test "$(readlink -f "$W/current")" = "$W/releases/f28dd0b" &&
   docker rename yozora-web-pre-f28dd0b yozora-web && docker start yozora-web
 ```
 
+**同日恢复首页角色**：此前上线只切了前台，正式片段缺少 `hero.mascot` 和 `hero.shadow`。已把本机 `.local/mascot/{back,blink,front}.webp`、`.local/persona/shin-avatar.webp` 原样放在现有对象存储的 `mx-images/theme/yozora/hero/`（文件名带内容哈希），四个公开对象逐个校验 SHA-256。它们是独立维护的主题素材，不用开发图链，也不属于 Core 上传后等待引用登记的文件。通过后台 API 只补这两项、保留其他字段，影子指向既有页面 `shin`；未升级 Core、未重建前台。中英日首页 HTML 均有三层角色图和本语言的角色页链接。修改前片段备份在 `.local/backups/yozora-prod-before-hero-20261108-213755.json`；如需撤回，只还原这两个字段，不要覆盖之后的其他配置。
+
 ## 第 1 步：备份
 
 - MongoDB：`mongodump` 整库导出（Docker 跑的就在容器里执行再拷出来），放到服务器以外的地方再留一份。
