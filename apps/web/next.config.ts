@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: { "/api/og": ["./assets/og/text.woff", "./assets/og/OFL.txt"] },
   experimental: {
     agentFeedback: true,
+    // 灰度预渲染从小内存线上 Core 读取，按页串行，避免构建流量挤占实时服务。
+    ...(process.env.YOZORA_BETA_BUILD === "1" && { cpus: 1, staticGenerationMaxConcurrency: 1 }),
     // 构建时预渲染要从线上 Core、力扣、GitHub 取数据，偶尔断一下不该让整次构建失败
     staticGenerationRetryCount: 3,
   },

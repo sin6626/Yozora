@@ -77,7 +77,7 @@ try {
   // NEXT_DEPLOYMENT_ID：Next 自带的版本偏差保护。<html data-dpl-id> 记着页面是哪一版，换页时服务端已经是新版本就整页重新加载，
   // 不会拿旧页面的脚本去调新版本的服务端函数；所以前台不另做“网站已更新，请刷新”的提示（Shiro 有）。
   const deploymentId = execFileSync("git", ["rev-parse", "--short", "HEAD"], { cwd: checkout }).toString().trim();
-  const env = { ...process.env, NEXT_DEPLOYMENT_ID: deploymentId, MIX_SPACE_API_URL: apiUrl, MIX_SPACE_TIMEOUT_MS: "90000", SITE_NOINDEX: "1", NEXT_TELEMETRY_DISABLED: "1", NODE_USE_ENV_PROXY: "1", HTTPS_PROXY: proxyUrl, HTTP_PROXY: proxyUrl, NO_PROXY: "localhost,127.0.0.1,::1" };
+  const env = { ...process.env, YOZORA_BETA_BUILD: "1", NEXT_DEPLOYMENT_ID: deploymentId, MIX_SPACE_API_URL: apiUrl, MIX_SPACE_TIMEOUT_MS: "90000", SITE_NOINDEX: "1", NEXT_TELEMETRY_DISABLED: "1", NODE_USE_ENV_PROXY: "1", HTTPS_PROXY: proxyUrl, HTTP_PROXY: proxyUrl, NO_PROXY: "localhost,127.0.0.1,::1" };
   const web = join(checkout, "apps/web");
   await run("pnpm", ["build:sdk"], { cwd: checkout });
   await run("pnpm", ["exec", "next", "build"], { cwd: web, env });
