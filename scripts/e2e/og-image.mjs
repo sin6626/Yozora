@@ -14,37 +14,43 @@ const note = (await (await fetch(`${core}/notes?size=1`)).json()).data[0];
 const postPath = `/posts/${encodeURIComponent(post.category.slug)}/${encodeURIComponent(post.slug)}`;
 const pages = [["home", "/"], ["post", postPath], ["note", `/notes/${note.nid}`], ["post-en", `/en${postPath}`]];
 
-const read = `(() => {
-  const meta = (key) => document.head.querySelector(\`meta[property="\${key}"], meta[name="\${key}"]\`)?.content ?? null;
-  return { image: meta("og:image"), width: meta("og:image:width"), card: meta("twitter:card"), twitterImage: meta("twitter:image"), title: meta("og:title") };
-})()`;
-
+// 爬虫不执行页面脚本。只解析它们各自收到的 HTML head，不测试水合后的 DOM。
 const browser = await openBrowser({ port: 9442 });
+const manifest = [];
 try {
-  await browser.setViewport(1920, 991);
   for (const [name, path] of pages) {
-    await browser.goto(`${base}${path}`, 5000);
-    const meta = await browser.evaluate(read);
-    assert.ok(meta.image, `${path} 的 <head> 里没有 og:image`);
-    assert.equal(meta.card, "summary_large_image", `${path} 的 twitter:card 不对：${meta.card}`);
-    assert.equal(meta.twitterImage, meta.image, `${path} 的 twitter:image 应与 og:image 相同`);
-    assert.equal(meta.width, "1200");
-    if (name === "post-en") assert.match(meta.image, /[?&]lang=en\b/, "英文页面的分享图要带 lang=en");
-    else assert.doesNotMatch(meta.image, /[?&]lang=/, "中文页面的分享图不带 lang");
-
-    // 绝对地址的主机是后台“网站地址”，本地就是开发服务；换成 base 去请求
-    const url = new URL(meta.image);
-    const res = await fetch(`${base}${url.pathname}${url.search}`);
-    assert.equal(res.status, 200, `${meta.image} 返回 ${res.status}`);
-    assert.equal(res.headers.get("content-type"), "image/png");
-    const png = Buffer.from(await res.arrayBuffer());
-    assert.equal(png.subarray(1, 4).toString(), "PNG", "不是 PNG");
-    assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [1200, 630], `${path} 的分享图尺寸不对`);
-    if (process.env.OG_PREVIEW_DIR) {
-      mkdirSync(process.env.OG_PREVIEW_DIR, { recursive: true });
-      writeFileSync(join(process.env.OG_PREVIEW_DIR, `${name}.png`), png);
+    for (const bot of ["Twitterbot/1.0", "Discordbot/2.0"]) {
+      const res = await fetch(base + path, { headers: { "User-Agent": bot } });
+      assert.equal(res.status, 200);
+      const head = (await res.text()).split("</head>", 1)[0];
+      const tags = await browser.evaluate(`Object.fromEntries([...new DOMParser().parseFromString(${JSON.stringify(head)}, "text/html").head.querySelectorAll("meta")].map(m => [m.getAttribute("property") ?? m.name, m.content]))`);
+      const url = new URL(tags["og:image"]);
+      assert.equal(new URL(tags["og:url"]).href, new URL(path, url.origin).href, `${bot}: ${path} 的永久地址错误`);
+      assert.equal(url.searchParams.get("type"), name === "home" ? null : name === "note" ? "note" : "post");
+      assert.equal(tags["og:type"], name === "home" ? "website" : "article");
+      for (const key of ["og:title", "og:site_name", "og:description", "og:image:alt"]) assert.ok(tags[key]?.trim(), `${bot}: ${path} 缺 ${key}`);
+      assert.equal(tags["twitter:card"], "summary_large_image");
+      for (const field of ["title", "description", "image", "image:alt"]) assert.equal(tags["twitter:" + field], tags["og:" + field]);
+      assert.equal(tags["og:image:type"], "image/png");
+      assert.equal(tags["og:image:width"], "1200");
+      assert.equal(tags["og:image:height"], "630");
+      assert.equal(url.searchParams.get("lang"), name === "post-en" ? "en" : null);
+      if (bot.startsWith("Discord")) continue;
+      const image = await fetch(base + url.pathname + url.search);
+      assert.equal(image.status, 200);
+      assert.equal(image.headers.get("content-type"), "image/png");
+      const png = Buffer.from(await image.arrayBuffer());
+      assert.equal(png.subarray(1, 4).toString(), "PNG");
+      assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [1200, 630]);
+      assert.ok(png.length < 5_000_000);
+      if (process.env.OG_PREVIEW_DIR) {
+        mkdirSync(process.env.OG_PREVIEW_DIR, { recursive: true });
+        writeFileSync(join(process.env.OG_PREVIEW_DIR, name + ".png"), png);
+        manifest.push({ name, title: tags["og:title"], description: tags["og:description"], site: tags["og:site_name"], url: tags["og:url"] });
+      }
     }
   }
+  if (process.env.OG_PREVIEW_DIR) writeFileSync(join(process.env.OG_PREVIEW_DIR, "cards.json"), JSON.stringify(manifest, null, 2));
 
   // 参数不对时不报 500
   for (const query of ["?type=post&category=nope&slug=nope", "?type=note&nid=abc", "?type=nope"]) {

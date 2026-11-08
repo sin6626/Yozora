@@ -10,7 +10,7 @@
 |---|---|---|---|---|
 | 文章：标题、正文、摘要、分类、标签、置顶 | posts | 文章 | 列表、详情、首页、导航、时间线、RSS | 立即（POST_*） |
 | 文章关联阅读 | posts.related | 文章 → 关联阅读 | 详情文末（只列已发布的；Core 的公开接口和推给访客的消息都不带草稿） | 立即（POST_*） |
-| 分享图（og:image、Twitter 大图卡片） | 站名 options.seo.title、头像 user.avatar、网站地址 url.webUrl、站点描述，文章/手记/页面的标题、摘要、分类、日期、心情天气（外文用 Core 译文） | 不单独设置，跟着上面各项走 | `/api/og` 生成的 1200×630 图（`app/api/og/route.tsx`），首页、列表页用首页那张 | 跟数据缓存走；图本身带 1 小时 Cache-Control，社交平台另有自己的缓存 |
+| 分享图（og:image、Twitter 大图卡片） | 站名 options.seo.title、头像 user.avatar、网站地址 url.webUrl、站点描述，文章/手记/页面的标题、摘要、分类、日期、心情天气（外文用 Core 译文） | 不单独设置，跟着上面各项走 | `/api/og` 生成的 1200×630 图（`app/api/og/route.tsx`），首页和列表共用夜空地平线，文章用星图、手记用暖纸月景；X 和 Discord 共用封面，分享描述优先手写摘要、否则取正文首段 | 跟数据缓存走；图本身带 1 小时 Cache-Control，社交平台另有自己的缓存 |
 | 文章版权说明 | posts.copyright（开关）+ 片段 `copyright`（文字，一行一段，`[文字](https://…)` 是链接）；标题、作者（个人资料昵称）、链接（网站地址 + 文章路径）、最后修改时间自动生成 | 文章 → 版权注明；附加功能 → 配置与云函数 | 详情文末（照 Shiro 的 PostCopyright） | 立即（POST_* / SNIPPET_*） |
 | 手记、心情、天气、回忆项、加密 | notes | 手记 | 列表、详情、首页 | 立即（NOTE_*） |
 | 手记头图、横幅 | notes.meta.cover（地址，只放行 http(s)）、notes.meta.banner（字符串，或 `{ type: info\|warning\|error\|success\|secondary, message }`；`className`、`style` 是 Shiro 的 Tailwind 写法，前台不认） | 手记 → 日记设置（右上角滑块图标）：“图片设置 → 文章缩略图”就是 meta.cover；“附加字段 → 横幅信息”是 Core 内置预设，选类型、填消息内容（也可在“自定义 JSON”里写 `{"banner": …}`） | 手记详情：头图在标题上方、底部渐隐；横幅在正文前（`components/note-extras.tsx`，解析 `lib/note-extras.ts`） | 立即（NOTE_*） |
