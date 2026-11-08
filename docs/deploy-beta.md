@@ -238,6 +238,30 @@ D=/root/mx-space/core/data/mx-space; mv $D/admin $D/admin-yozora-ac758f0 && mv $
 
 磁盘留给站长自己清：`/root/mx-space/core-image-20261105`、上传用的 `yozora-web-ac758f0.tgz`、`yozora-admin-ac758f0.tgz`，以及上一节列的旧版本。
 
+## 2026-11-08 已做：X / Discord 分享卡片前台（f28dd0b）
+
+按站长要求，仅切换 beta 前台，从 `releases/ac758f0` 到 `releases/f28dd0b`（封面设计为 1302adc）。未改 Core、admin、主站或数据库配置。后台网站地址仍是主站；本次仅给 beta 指定分享基址和爬虫例外，普通搜索爬虫仍禁止，页面继续 noindex。
+
+构建和容器运行时均设 `SITE_NOINDEX=1`，并传入同一份环境变量：
+
+```sh
+export BETA_SHARE_URLS='https://beta.sin6626.me/ https://beta.sin6626.me/posts/study%26think/drive-based-learning-insights https://beta.sin6626.me/notes/10'
+```
+
+未设该变量的灰度部署仍对所有爬虫禁抓。开启后仅 Twitterbot / Discordbot 可抓上述页面和 `/api/og?`。第一轮用 11 个 worker 预渲染使线上读取超时，未切换版本；重启原 beta 前台释放内存后，构建脚本改用单 worker、每次预渲染一页，82 页成功。使用独立 worktree 构建 standalone；以旧 release 为 rsync 的 `--copy-dest` 上传至新目录，校验 server.js、BUILD_ID、OG route 和字体的 SHA-256 后切换。
+
+验证：容器口、HTTPS 虚拟主机、公网源站（本机保留正式 TLS 域名指定源站 IP）均按两个爬虫的 UA 读取三页。标题、og:url、og:image、twitter:image 都正确，三张图均为 1200×630 PNG，页面 noindex，robots 保留测试范围。跨境 TLS 偶发重置，公网检查重试通过；未向平台发帖。验收时容器约 214 MiB / 400 MiB，未 OOM、未重启。临时构建 worktree 已移除。
+
+旧容器 `yozora-web-pre-f28dd0b` 已停止并保留，挂载原版目录。切换脚本和验收日志在服务器 `/root/mx-space/yozora-web/switch-og-f28dd0b.{sh,log}`。如需回滚，先核实当前仍为这一版，再执行：
+
+```sh
+W=/root/mx-space/yozora-web
+test "$(readlink -f "$W/current")" = "$W/releases/f28dd0b" &&
+  docker stop yozora-web && docker rename yozora-web yozora-web-f28dd0b-stopped &&
+  ln -sfn "$W/releases/ac758f0" "$W/current" &&
+  docker rename yozora-web-pre-f28dd0b yozora-web && docker start yozora-web
+```
+
 ## 第 1 步：备份
 
 - MongoDB：`mongodump` 整库导出（Docker 跑的就在容器里执行再拷出来），放到服务器以外的地方再留一份。
