@@ -4,7 +4,7 @@ import { Cormorant_Garamond, Geist_Mono, Noto_Sans_SC, Noto_Serif_SC, Nunito } f
 import Notifications from "@/components/notifications";
 import { getApiUrl } from "@/lib/config";
 import { getSiteDescription, getSiteSettings, siteName, siteOwnerName } from "@/lib/blog-data";
-import { hiddenFromSearch } from "@/lib/indexing";
+import { betaShareUrls, hiddenFromSearch } from "@/lib/indexing";
 import { Suspense } from "react";
 import HeaderAccount from "@/components/header-account";
 import { islandIcons } from "@/components/island-icons";
@@ -84,8 +84,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const [settings, motto] = await Promise.all([getSiteSettings().catch(() => null), getSiteDescription(locale)]);
   const name = settings?.name ?? siteName;
   const description = motto.text;
+  const previewSite = betaShareUrls()[0];
   return {
-    metadataBase: settings ? new URL(settings.siteUrl) : undefined,
+    metadataBase: previewSite ? new URL(previewSite.origin) : settings ? new URL(settings.siteUrl) : undefined,
     title: { default: `${name} - ${description}`, template: `%s - ${name}` },
     description,
     keywords: settings?.keywords.length ? settings.keywords : undefined,

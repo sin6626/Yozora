@@ -10,7 +10,7 @@ const ts = require('typescript')
 const source = readFileSync(new URL('../apps/web/lib/indexing.ts', import.meta.url), 'utf8')
 const load = (env) => {
   const module = { exports: {} }
-  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { module, exports: module.exports, process: { env } })
+  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { module, exports: module.exports, URL, process: { env } })
   return module.exports
 }
 const plain = (value) => JSON.parse(JSON.stringify(value))
@@ -25,3 +25,11 @@ assert.deepEqual(plain(open.robotsFor('https://example.com')), { rules: { userAg
 assert.equal(load({ SITE_NOINDEX: 'true' }).hiddenFromSearch(), false, '只认 1，免得写错时悄悄挡住正式站')
 
 console.log('PASS 灰度不收录开关：SITE_NOINDEX=1 时 robots 整站禁止，没设时照常')
+
+const beta = load({ SITE_NOINDEX: '1', BETA_SHARE_URLS: 'https://beta.example.com/ https://beta.example.com/notes/10' })
+assert.equal(beta.betaShareUrls()[0].origin, 'https://beta.example.com')
+assert.deepEqual(plain(beta.robotsFor('').rules), [
+  { userAgent: ['Twitterbot', 'Discordbot'], allow: ['/$', '/notes/10$', '/api/og?'], disallow: '/' },
+  { userAgent: '*', disallow: '/' },
+])
+assert.equal(load({ BETA_SHARE_URLS: 'https://beta.example.com/' }).betaShareUrls().length, 0, '正式站不采用测试域名')
