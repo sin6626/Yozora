@@ -1,0 +1,13 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Live photo fixture</title></head><body>
+<div id="app" style="max-width:920px;margin:40px auto;padding:20px 64px"></div>
+<script>window.injectData={BASE_API:'/live-photo-fixture-api'};window.version='fixture'</script>
+<script type="module">
+import { createApp, h } from 'vue'
+import { createPinia } from 'pinia'
+import { RichEditor } from '/src/components/editor/rich/RichEditor.tsx'
+const data = sessionStorage.getItem('fixture-doc')
+createApp({render:()=>h(RichEditor,{
+  initialValue:data ? JSON.parse(data) : undefined, theme:'light',
+  onChange:value=>sessionStorage.setItem('fixture-doc',JSON.stringify(value))
+})}).use(createPinia()).mount('#app')
+</script></body></html>

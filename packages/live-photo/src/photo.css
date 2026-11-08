@@ -1,0 +1,62 @@
+.yz-live-figure {
+  margin: 1em 0;
+  text-align: center;
+}
+.yz-live-frame {
+  display: inline-block;
+  position: relative;
+  vertical-align: middle;
+  overflow: hidden;
+  max-width: 100%;
+  border-radius: var(--rc-radius-md, 8px);
+}
+.yz-live-frame > img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: min(70vh, 42rem);
+  margin: auto;
+}
+.yz-live-clip {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+.yz-live-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  border: 0;
+  border-radius: 4px;
+  padding: 3px 6px;
+  background: rgba(0, 0, 0, 0.65);
+  color: white;
+  font: 600 10px/1.4 system-ui;
+  cursor: pointer;
+}
+[data-live-photo] .rr-image-frame.rr-image-loaded {
+  width: fit-content !important;
+  aspect-ratio: auto !important;
+}
+[data-live-photo] .rr-image-loaded > .rr-image-img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: min(70vh, 400px);
+  object-fit: contain;
+}
+[data-live-photo][data-live-selected="true"] .rr-image-frame {
+  outline: 2px solid var(--rc-accent);
+  outline-offset: 2px;
+}
+.yz-photo-field {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+  color: var(--rc-text-secondary);
+  font-size: var(--rc-font-size-sm);
+}

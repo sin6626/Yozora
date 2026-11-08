@@ -4,6 +4,8 @@
 // Haklex 0.0.85 与 Lexical 0.41.0 和后台同版本，工作区的 rich-static-renderer 补丁自动生效
 // （表格 tbody、合并单元格、段落缩进方向、标题唯一 slug）。
 import { ExcalidrawConfigProvider } from "@haklex/rich-kit-shiro/excalidraw";
+import { LivePhotoNode } from "@yozora/live-photo/haklex";
+import "@yozora/live-photo/style.css";
 import { ShiroRenderer } from "@haklex/rich-kit-shiro/renderer";
 import { EmbedRendererProvider } from "@haklex/rich-kit-shiro/renderers";
 import type { ElementFormatType, SerializedEditorState, SerializedLexicalNode } from "lexical";
@@ -17,6 +19,7 @@ import "@excalidraw/excalidraw/index.css";
 
 // 链接卡片用节点里保存的静态信息渲染，不依赖历史 source 插件识别。
 const rendererConfig = { LinkCard: undefined };
+const extraNodes = [LivePhotoNode];
 const embedRenderers = { tweet: TweetEmbed };
 
 function isNode(value: unknown): value is SerializedLexicalNode {
@@ -64,7 +67,7 @@ export default function RichContent({ content, apiUrl, variant = "article", chil
       <div className="article-rich">
         <ExcalidrawConfigProvider apiUrl={apiUrl}>
           <EmbedRendererProvider value={embedRenderers}>
-            <ShiroRenderer rendererConfig={rendererConfig} value={value} theme={theme} variant={variant} />
+            <ShiroRenderer extraNodes={extraNodes} rendererConfig={rendererConfig} value={value} theme={theme} variant={variant} />
           </EmbedRendererProvider>
         </ExcalidrawConfigProvider>
       </div>

@@ -217,3 +217,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - 2026-11-08：X / Discord 分享卡片共用 1200×630 PNG（组件 `share-cover.tsx`）：首页夜空地平线、文章星图、手记暖纸月景。首页与详情按页面语言输出真实的 og:url；X 使用 summary_large_image，图片地址的 v=2 区分旧封面。封面字体在 apps/web/assets/og（现有霞鹜文楷常规字形重新封装为 WOFF，附 OFL），由 Node 从磁盘读取，standalone 部署按 next.config.ts 显式追踪；不再向 Google Fonts 临时取字。先运行 `OG_PREVIEW_DIR=.local/previews/og-atlas node scripts/e2e/og-image.mjs` 核对两个爬虫拿到的原始 head 和 PNG，再运行 `node scripts/preview-og-cards.mjs .local/previews/og-atlas` 输出两平台的本地样式预览。这些 PNG 不是平台实机截图。
 
 - 2026-11-08：OG 版 beta 前台已部署到 releases/f28dd0b，回滚容器保留。BETA_SHARE_URLS 只在 SITE_NOINDEX=1 的灰度部署启用，为显式列出的分享实测页面指定 beta 基址和两种社交爬虫的 robots 例外；不要为了测试修改 Core 的正式网站地址。部署构建按单 worker 串行读取线上 Core。三页公网验收、参数和回滚见 docs/deploy-beta.md 的本日记录。
+
+- 2026-11-08：实况图是 Haklex 的 live-photo 图片块，文章/手记/页面共用。后台保存实际 image/file 上传接口的持久 URL，Core 同时支持节点校验、Markdown 投影、封面引用，前台继续走 ShiroRenderer。没有接入 Mac 自动转码或真实发布测试。用 packages/live-photo/README.md 中的单浏览器隔离回归，不写真实文章或对象存储。

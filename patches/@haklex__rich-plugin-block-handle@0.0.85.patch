@@ -1,5 +1,5 @@
 diff --git a/dist/index.mjs b/dist/index.mjs
-index b1c70c6e3455ab177f0cdb217e643bfab22507ec..151f59aafe40d2b5bd86a7e86aacacb978ad56bf 100644
+index b1c70c6..9eb887b 100644
 --- a/dist/index.mjs
 +++ b/dist/index.mjs
 @@ -1,3 +1,4 @@
@@ -7,17 +7,14 @@ index b1c70c6e3455ab177f0cdb217e643bfab22507ec..151f59aafe40d2b5bd86a7e86aacacb9
  import { jsx, jsxs } from "react/jsx-runtime";
  import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator } from "@haklex/rich-editor-ui";
  import { usePortalTheme } from "@haklex/rich-style-token";
-@@ -5,9 +6,8 @@ import { $createCodeNode } from "@lexical/code";
+@@ -5,7 +6,6 @@ import { $createCodeNode } from "@lexical/code";
  import { INSERT_CHECK_LIST_COMMAND, INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND } from "@lexical/list";
  import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
  import { INSERT_HORIZONTAL_RULE_COMMAND } from "@lexical/react/LexicalHorizontalRuleNode";
 -import { $createQuoteNode, $createHeadingNode } from "@lexical/rich-text";
  import { $setBlocksType } from "@lexical/selection";
--import { $getNearestNodeFromDOMNode, $getNodeByKey, $createParagraphNode, $isElementNode, $getSelection, $isRangeSelection, DRAGOVER_COMMAND, COMMAND_PRIORITY_HIGH, DROP_COMMAND, DRAGSTART_COMMAND } from "lexical";
-+import { $getNearestNodeFromDOMNode, $getNodeByKey, $isElementNode, $getSelection, $isRangeSelection, DRAGOVER_COMMAND, COMMAND_PRIORITY_HIGH, DROP_COMMAND, DRAGSTART_COMMAND } from "lexical";
+ import { $getNearestNodeFromDOMNode, $getNodeByKey, $createParagraphNode, $isElementNode, $getSelection, $isRangeSelection, DRAGOVER_COMMAND, COMMAND_PRIORITY_HIGH, DROP_COMMAND, DRAGSTART_COMMAND } from "lexical";
  import { Plus, GripVertical, Type, Heading1, Heading2, Heading3, List, ListOrdered, ListChecks, TextQuote, Minus, Code2, Copy, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
- import { useState, useRef, useCallback, useEffect } from "react";
- import { createPortal } from "react-dom";
 @@ -260,16 +260,8 @@ function BlockHandleInner({ editor }) {
          node.selectStart();
          const sel = $getSelection();
@@ -37,3 +34,35 @@ index b1c70c6e3455ab177f0cdb217e643bfab22507ec..151f59aafe40d2b5bd86a7e86aacacb9
        });
      },
      [editor, handle.nodeKey]
+@@ -338,8 +330,29 @@ function BlockHandleInner({ editor }) {
+       const block = activeBlockRef.current;
+       if (!block) return;
+       clearDragVisualState();
+-      const rect = block.getBoundingClientRect();
+-      const preview = block.cloneNode(true);
++      const frame = block.matches(".rich-image-wrapper") ? block.querySelector(".rr-image-frame") : null;
++      const cover = frame?.classList.contains("rr-image-loaded") ? frame.querySelector("img.rr-image-img") : null;
++      const visual = cover?.complete && cover.naturalWidth ? cover : frame ?? block;
++      const rect = visual.getBoundingClientRect();
++      let preview;
++      if (visual === cover && rect.width > 0 && rect.height > 0) {
++        const canvas = document.createElement("canvas");
++        canvas.width = Math.max(1, Math.round(rect.width));
++        canvas.height = Math.max(1, Math.round(rect.height));
++        const ctx = canvas.getContext("2d");
++        if (ctx) {
++          ctx.drawImage(cover, 0, 0, canvas.width, canvas.height);
++          preview = canvas;
++        }
++      }
++      preview ??= (frame ?? block).cloneNode(true);
++      if (frame) {
++        Object.assign(preview.style, {
++          height: `${rect.height}px`,
++          border: "0", background: "transparent", boxShadow: "none",
++          borderRadius: getComputedStyle(frame).borderRadius
++        });
++      }
+       preview.classList.add(dragPreview);
+       preview.style.width = `${rect.width}px`;
+       if (portalClassName) {

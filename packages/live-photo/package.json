@@ -1,0 +1,18 @@
+{
+  "name": "@yozora/live-photo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./browser": "./src/browser.ts",
+    "./haklex": "./src/haklex.ts",
+    "./style.css": "./src/photo.css"
+  },
+  "dependencies": {
+    "@haklex/rich-editor": "0.0.85",
+    "lexical": "0.41.0",
+    "react": "19.3.0"
+  },
+  "devDependencies": { "@types/react": "19.3.0" }
+}

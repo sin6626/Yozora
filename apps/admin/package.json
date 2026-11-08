@@ -9,6 +9,8 @@
     "lint:fix": "biome lint --write ."
   },
   "dependencies": {
+    "@yozora/live-photo": "workspace:*",
+    "@haklex/rich-renderer-image": "0.0.85",
     "@antv/g2": "^5.4.8",
     "@better-auth/passkey": "1.7.9",
     "@bytebase/vue-kbar": "0.1.8",

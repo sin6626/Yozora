@@ -1,3 +1,4 @@
+import { HeadlessLivePhotoNode } from '~/utils/live-photo-node'
 import { allHeadlessNodes } from '@haklex/rich-headless'
 import { createHeadlessEditor } from '@lexical/headless'
 import { BadRequestException, Injectable } from '@nestjs/common'
@@ -36,6 +37,7 @@ const lexicalNodeTypes = new Set([
   'text',
   'linebreak',
   'tab',
+  'live-photo',
   ...allHeadlessNodes.map((Node) => Node.getType()),
 ])
 
@@ -370,7 +372,7 @@ export class LexicalService {
 
   private convertToMarkdown(editorState: string): string {
     const editor = createHeadlessEditor({
-      nodes: allHeadlessNodes,
+      nodes: [...allHeadlessNodes, HeadlessLivePhotoNode],
       onError: (error) => {
         throw error
       },

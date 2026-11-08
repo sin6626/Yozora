@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@yozora/live-photo": "workspace:*",
     "@base-ui/react": "^1.9.0",
     "@excalidraw/excalidraw": "0.18.1",
     "@haklex/rich-kit-shiro": "0.0.85",

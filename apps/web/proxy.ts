@@ -9,7 +9,7 @@ import { defaultLocale, isKnownLanguage, isLocale, localeCookie, pickLocale, sit
 //   是开着的外文就跳到带前缀的地址，否则在内部改写成 /zh/…，地址栏不变。
 // 规则检查：scripts/verify-i18n.mjs（纯函数）、scripts/e2e/i18n.mjs（真实请求）。
 // 静态文件（public 里的图片、feed.xml、robots.txt、sitemap.xml 等）不处理；只看最后一段的扩展名，文章 slug 里带点（如 v1.2）照常处理
-const staticFile = /\.(?:ico|png|jpe?g|gif|webp|avif|svg|txt|xml|json|webmanifest|js|css|map|woff2?)$/i;
+const staticFile = /\.(?:ico|png|jpe?g|gif|webp|avif|mp4|svg|txt|xml|json|webmanifest|js|css|map|woff2?)$/i;
 
 // 内部改写成 /zh/… 时加在请求上的标记
 const rewriteMark = "x-locale-rewrite";

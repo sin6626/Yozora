@@ -142,6 +142,11 @@ const sourceMetadata = z.object({
 // Called before Lexical imports JSON, so invalid metadata cannot be normalized away.
 export function validateProjectionNode(value: unknown) {
   const node = sourceMetadata.parse(value)
+  if (node.type === 'live-photo') {
+    const photo = livePhotoSchema.parse(value)
+    safeUrl(photo.src, 'media')
+    safeUrl(photo.videoSrc, 'media')
+  }
   if (node.style) safeStyle(node.style)
   if (node.backgroundColor)
     safeStyle(`background-color: ${node.backgroundColor}`)
@@ -191,6 +196,8 @@ const imageSchema = z.object({
   width: positivePixels.optional(),
   height: positivePixels.optional(),
 })
+const livePhotoSchema = imageSchema.extend({version:z.literal(1), videoSrc:z.string()})
+
 function imageMarkdown(value: unknown) {
   const image = imageSchema.parse(value)
   safeUrl(image.src, 'media')
@@ -467,6 +474,11 @@ export function $toProjectedMarkdown(project: (state: unknown) => string) {
           if (delta) z.record(z.string(), z.unknown()).parse(JSON.parse(delta))
         } else z.record(z.string(), z.unknown()).parse(JSON.parse(snapshot))
         return fence(snapshot, 'excalidraw')
+      }
+      if (type === 'live-photo') {
+        const photo = livePhotoSchema.parse(node.exportJSON())
+        const cover = `![${literalText(photo.altText.replace(/[\r\n]/g, ' '))}](<${photo.src}>)`
+        return [cover, photo.caption && literalText(photo.caption), `[▶ Live Photo](<${photo.videoSrc}>)`].filter(Boolean).join('\n\n')
       }
       if (type === 'image') return imageMarkdown(node.exportJSON())
       if (type === 'gallery') {

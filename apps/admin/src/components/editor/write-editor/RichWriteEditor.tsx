@@ -20,7 +20,7 @@ type UploadState = { fileKey: string } & (
 
 function containsImage(content: unknown, src: string): boolean {
   if (typeof content !== 'object' || content === null) return false
-  if ('type' in content && content.type === 'image' && 'src' in content) {
+  if ('type' in content && (content.type === 'image' || content.type === 'live-photo') && 'src' in content) {
     return content.src === src
   }
   return Object.values(content).some((value) => containsImage(value, src))

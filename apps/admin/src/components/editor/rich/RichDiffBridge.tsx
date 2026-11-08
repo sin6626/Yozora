@@ -1,3 +1,5 @@
+import { LivePhotoNode } from '@yozora/live-photo/haklex'
+import '@yozora/live-photo/style.css'
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { defineComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -21,7 +23,7 @@ import './note-serif-font'
 import { useUIStore } from '~/stores/ui'
 
 const extraNodes = [
-  ExcalidrawNode,
+  ExcalidrawNode, LivePhotoNode,
   ...embedNodes,
   ...galleryNodes,
   ...codeSnippetNodes,

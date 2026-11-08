@@ -1,0 +1,128 @@
+diff --git a/dist/index.mjs b/dist/index.mjs
+index db30cad..73f628f 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -2,14 +2,16 @@ import { jsx, jsxs, Fragment } from "react/jsx-runtime";
+ import { useRendererMode } from "@haklex/rich-editor";
+ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+ import { atom, createStore, Provider, useStore, useAtomValue, useSetAtom } from "jotai";
+-import { useRef, useState, useEffect, useCallback } from "react";
++import { useRef, useState, useEffect, useCallback, createContext, useContext } from "react";
+ import { decodeThumbHash, computeImageMeta } from "@haklex/rich-editor/renderers";
+ import { ActionBar, ActionButton, SegmentedControl, Popover, PopoverTrigger, PopoverPanel } from "@haklex/rich-editor-ui";
+ import { ImageIcon, Type, Captions, Loader2, Upload, Replace, ExternalLink, Copy, Download, Trash2 } from "lucide-react";
+ import { e as editField, s as semanticClassNames, a as editFieldIcon, b as editInput, r as replaceUploadArea, p as panelHint, c as replacePreview, d as editToolbar, f as editToolbarVisible, g as editToolbarButton, h as editPanel, i as editToolbarButtonDanger, j as editPlaceholder, I as ImageRenderer, k as editTrigger, l as root, m as image, n as imageVisible, o as loader, q as errorBadge, t as frame, u as frameEditMode, v as imageState, w as caption } from "./ImageRenderer-DyeaT08P.js";
+-import { $isImageNode, $createImageNode } from "@haklex/rich-editor/nodes";
++import { $isImageNode } from "@haklex/rich-editor/nodes";
+ import { useImageUpload } from "@haklex/rich-editor/plugins";
+-import { $getNearestNodeFromDOMNode } from "lexical";
++import { $copyNode, $getNearestNodeFromDOMNode } from "lexical";
++const ImageEditExtensionsContext = createContext({});
++const ImageEditExtensionsProvider = ImageEditExtensionsContext.Provider;
+ function getCaptionText(altText, caption2) {
+   if (caption2) return caption2;
+   if (!altText) return void 0;
+@@ -146,6 +148,7 @@ function loadImageByUrl(src) {
+   });
+ }
+ function useImageActions() {
++  const { onDownload } = useContext(ImageEditExtensionsContext);
+   const store = useStore();
+   const [editor] = useLexicalComposerContext();
+   const uploadImage = useImageUpload();
+@@ -194,30 +197,23 @@ function useImageActions() {
+     if (src) window.open(src, "_blank", "noopener,noreferrer");
+   }, [store]);
+   const handleDownload = useCallback(() => {
++    if (onDownload) { void onDownload(); return; }
+     const src = store.get(srcAtom);
+     if (!src) return;
+     const link = document.createElement("a");
+     link.href = src;
+     link.download = store.get(altTextAtom) || "image";
+     link.click();
+-  }, [store]);
++  }, [store, onDownload]);
+   const handleDuplicate = useCallback(() => {
+     withImageNode((node) => {
+-      const copy = $createImageNode({
+-        src: node.getSrc(),
+-        altText: node.getAltText(),
+-        width: node.getWidth(),
+-        height: node.getHeight(),
+-        caption: node.getCaption(),
+-        thumbhash: node.getThumbhash(),
+-        accent: node.getAccent()
+-      });
++      const copy = $copyNode(node);
+       node.insertAfter(copy);
+     });
+   }, [withImageNode]);
+   const handleReplaceFile = useCallback(
+     async (file) => {
+       if (!file || !file.type.startsWith("image/")) return;
+       store.set(replaceLoadingAtom, true);
+       store.set(replaceErrorAtom, null);
+       try {
+@@ -474,6 +470,7 @@ function ReplacePanel() {
+   ] });
+ }
+ function ImageEditToolbar() {
++  const { renderToolbarActions } = useContext(ImageEditExtensionsContext);
+   const toolbarVisible = useAtomValue(toolbarVisibleAtom);
+   const metaOpen = useAtomValue(metaOpenAtom);
+   const setMetaOpen = useSetAtom(metaOpenAtom);
+@@ -484,6 +481,7 @@ function ImageEditToolbar() {
+     {
+       className: `${editToolbar} ${semanticClassNames.editToolbar} ${toolbarVisible ? `${editToolbarVisible} ${semanticClassNames.editToolbarVisible}` : ""}`,
+       children: [
++        renderToolbarActions?.(`${editToolbarButton} ${semanticClassNames.editToolbarButton}`),
+         /* @__PURE__ */ jsxs(
+           Popover,
+           {
+@@ -624,6 +622,7 @@ function ImageEditRendererInner(props) {
+   return /* @__PURE__ */ jsx(ImageEditProvider, { props, children: /* @__PURE__ */ jsx(ImageEditContent, {}) });
+ }
+ function ImageEditContent() {
++  const { mediaOverlay } = useContext(ImageEditExtensionsContext);
+   const wrapperRef = useAtomValue(wrapperRefAtom);
+   const setHovering = useSetAtom(hoveringAtom);
+   const src = useAtomValue(srcAtom);
+@@ -678,6 +677,7 @@ function ImageEditContent() {
+                     onLoad: () => setLoadState("loaded")
+                   }
+                 ),
++                loadState === "loaded" && mediaOverlay,
+                 loadState === "loading" && /* @__PURE__ */ jsx("span", { className: `${loader} ${semanticClassNames.loader}` }),
+                 loadState === "error" && /* @__PURE__ */ jsx("span", { className: `${errorBadge} ${semanticClassNames.errorBadge}`, children: "Image failed to load" })
+               ]
+@@ -698,6 +698,7 @@ function ImageEditContent() {
+   );
+ }
+ export {
++  ImageEditExtensionsProvider,
+   ImageEditRenderer,
+   ImageRenderer
+ };
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index 81c573d..9761259 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -1,3 +1,3 @@
+-export { ImageEditRenderer } from './ImageEditRenderer';
++export { ImageEditRenderer, ImageEditExtensionsProvider } from './ImageEditRenderer';
+ export { ImageRenderer } from './ImageRenderer';
+ //# sourceMappingURL=index.d.ts.map
+\ No newline at end of file
+diff --git a/dist/ImageEditRenderer.d.ts b/dist/ImageEditRenderer.d.ts
+index cf3e316..9cb2a83 100644
+--- a/dist/ImageEditRenderer.d.ts
++++ b/dist/ImageEditRenderer.d.ts
+@@ -1,3 +1,5 @@
+ import { ImageRendererProps } from '@haklex/rich-editor/renderers';
+ export declare function ImageEditRenderer(props: ImageRendererProps): import("react/jsx-runtime").JSX.Element;
+-//# sourceMappingURL=ImageEditRenderer.d.ts.map
+\ No newline at end of file
++//# sourceMappingURL=ImageEditRenderer.d.ts.map
++import type { Provider, ReactNode } from "react";
++export declare const ImageEditExtensionsProvider: Provider<{ mediaOverlay?: ReactNode; renderToolbarActions?: (buttonClassName: string) => ReactNode; onDownload?: () => void | Promise<void>; }>;

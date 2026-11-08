@@ -10,6 +10,7 @@ allowBuilds:
   sharp: false
   unrs-resolver: false
 patchedDependencies:
+  '@haklex/rich-renderer-image@0.0.85': patches/@haklex__rich-renderer-image@0.0.85.patch
   '@lexical/code@0.41.0': patches/@lexical__code@0.41.0.patch
   '@haklex/rich-static-renderer@0.0.85': patches/@haklex__rich-static-renderer@0.0.85.patch
   '@haklex/rich-plugin-slash-menu@0.0.85': patches/@haklex__rich-plugin-slash-menu@0.0.85.patch

@@ -1,3 +1,6 @@
+import { LivePhotoNode, PhotoViewContext } from '@yozora/live-photo/haklex'
+import '@yozora/live-photo/style.css'
+import { EditPhoto, LivePhotoPlugin } from './live-photo'
 import type { RichEditorVariant } from '@haklex/rich-editor'
 import { restoreBlockIds } from '@haklex/rich-editor/plugins'
 import { DialogStackProvider } from '@haklex/rich-editor-ui'
@@ -57,9 +60,9 @@ function NestedDocDialogEditor({
       onEditorReady?.(editor)
     },
     imageUpload,
-    extraNodes: nestedDocEditNodes,
-    header: createElement(ToolbarPlugin),
-  })
+    extraNodes: [...nestedDocEditNodes, LivePhotoNode],
+    header: createElement(ToolbarPlugin, {insertItemOrder: ['Image', 'Live photo', 'Video']}),
+  }, createElement(LivePhotoPlugin))
 }
 
 // React wrapper: syncs Vue-driven props and emits callbacks back
@@ -95,9 +98,9 @@ const ShiroEditorReact = (props: {
             ...props.editorProps,
             extraNodes: [
               ...(props.editorProps.extraNodes || []),
-              ...nestedDocEditNodes,
+              ...nestedDocEditNodes, LivePhotoNode,
             ],
-            header: createElement(ToolbarPlugin),
+            header: createElement(ToolbarPlugin, {insertItemOrder: ['Image', 'Live photo', 'Video']}),
             onChange: props.onChange,
             onSubmit: props.onSubmit,
             onEditorReady: (editor) => {
@@ -106,7 +109,7 @@ const ShiroEditorReact = (props: {
               props.onEditorReady?.(editor)
             },
           },
-          createElement(NestedDocPlugin),
+          createElement(NestedDocPlugin), createElement(LivePhotoPlugin),
         ),
       ),
     ),
@@ -168,7 +171,7 @@ export const RichEditor = defineComponent({
     const renderReact = (resolvedTheme: 'dark' | 'light') => {
       if (!root) return
       root.render(
-        createElement(ShiroEditorReact, {
+        createElement(PhotoViewContext.Provider, { value: EditPhoto }, createElement(ShiroEditorReact, {
           editorProps: buildEditorProps(resolvedTheme),
           onChange: (value: SerializedEditorState) => {
             if (unmounting) return
@@ -189,7 +192,7 @@ export const RichEditor = defineComponent({
               })
             }
           },
-        }),
+        })),
       )
     }
 

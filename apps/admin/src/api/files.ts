@@ -49,11 +49,20 @@ export const filesApi = {
   getByType: (type: string) => request.get<FileItem[]>(`/files/${type}`),
 
   // 上传文件
-  upload: (file: File, type?: string) => {
+  upload: (file: File, type?: string, signal?: AbortSignal) => {
     const formData = new FormData()
     formData.append('file', file)
     return request.post<UploadResponse>('/files/upload', {
       data: formData,
+      signal,
+      ...(import.meta.env.DEV ? {
+        onResponse: ({ response, options }) => {
+          const headers = new Headers(options.headers)
+          console.debug('[files/upload]', {method:'POST', url:'/files/upload', statusCode:response.status,
+            headers:{'content-type':headers.get('content-type') ?? 'multipart/form-data'}, params:{type, name:file.name, size:file.size, mime:file.type},
+            response:{name:response._data?.name, uploaded:response.ok}})
+        },
+      } : {}),
       params: type ? { type } : undefined,
     })
   },

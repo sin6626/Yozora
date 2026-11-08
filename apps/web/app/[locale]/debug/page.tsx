@@ -114,6 +114,7 @@ export default function DebugPage() {
         <ul className="debug-sections">
           <li>
             <StyleGuide />
+            <Link href="/debug/live-photo">实况图阅读预览</Link>
           </li>
           <li>
             <h2>导航菜单</h2>

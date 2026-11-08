@@ -34,7 +34,7 @@ export function extractImagesFromContent(
     const editorState = JSON.parse(doc.content)
     const images: string[] = []
     traverseLexicalNodes(editorState.root, (node) => {
-      if (node.type === 'image' && node.src) {
+      if ((node.type === 'image' || node.type === 'live-photo') && node.src) {
         images.push(node.src)
       } else if (node.type === 'gallery' && Array.isArray(node.images)) {
         for (const img of node.images) {
