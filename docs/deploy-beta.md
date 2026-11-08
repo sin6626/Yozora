@@ -264,6 +264,16 @@ test "$(readlink -f "$W/current")" = "$W/releases/f28dd0b" &&
 
 **同日恢复首页角色**：此前上线只切了前台，正式片段缺少 `hero.mascot` 和 `hero.shadow`。已把本机 `.local/mascot/{back,blink,front}.webp`、`.local/persona/shin-avatar.webp` 原样放在现有对象存储的 `mx-images/theme/yozora/hero/`（文件名带内容哈希），四个公开对象逐个校验 SHA-256。它们是独立维护的主题素材，不用开发图链，也不属于 Core 上传后等待引用登记的文件。通过后台 API 只补这两项、保留其他字段，影子指向既有页面 `shin`；未升级 Core、未重建前台。中英日首页 HTML 均有三层角色图和本语言的角色页链接。修改前片段备份在 `.local/backups/yozora-prod-before-hero-20261108-213755.json`；如需撤回，只还原这两个字段，不要覆盖之后的其他配置。
 
+## 2026-11-08 已做：实况图富文本节点（3b895ae）
+
+按站长要求从同一提交构建 Core、beta 前台和 mx-admin。顺序：Core 健康 → beta 可用 → 替换后台。旧主站 Shiro 未更换。服务器上的数据库备份在 `/root/backups/yozora-live-3b895ae/mongo-serial.archive.gz`；第一次并行 dump 未完成，不可用，随后用单集合并发重做，gzip 检查与 mongorestore --dryRun 通过。本机 `.local/backups/server-live-3b895ae/` 内有逐项校验过 SHA-256 的有效备份和原 compose。
+
+- Core：`yozora/mx-server:live-3b895ae`；原镜像 `yozora/mx-server:20261105-ac758f0` 保留。新 bundle 覆盖基础镜像中的同名入口，`node main.mjs` 导入新哈希模块，已对运行容器内的入口验哈希。
+- beta：`releases/3b895ae`，保留三个 OG 实测链接和 noindex；旧容器 `yozora-web-pre-live-3b895ae` 已停止并保留，挂载 `releases/f28dd0b`。
+- 后台：Core 数据目录 `admin/` 为新版，旧目录 `admin-before-live-3b895ae` 保留。线上写文章页 `https://api.sin6626.me/proxy/qaqdmin#/posts/edit` 的富文本工具栏可点开 **Live photo** 弹窗；只读浏览器检查确认实际的 JPEG/PNG 与 MP4 两个文件框，未放行任何写请求。截图在本机 `.local/previews/live-photo-online/admin-insert.jpg`。
+- 本地：pnpm verify、实况图 4 项 Core 测试和真实编辑器/渲染器的隔离浏览器回归通过（测试上传响应，不写库）。线上：公网和服务器 HTTPS 入口验过 Core、旧主站、beta 首页/文章/手记、OG 图、原有丛雨与久遠真；实况图前后台脚本及样例 JPG/MP4 与构建哈希一致。未真实上传、保存或发布测试文章；功能范围见 `packages/live-photo/README.md`。
+- 切换脚本及验收结果保存在 `/root/backups/yozora-live-3b895ae/{switch.sh,switch.log,check.py,expected.json}`。需回滚时先核对线上仍为此版本，停止新 beta 容器：将后台 `admin/` 改名留存并将旧后台目录改回 `admin/`，用备份 compose 还原 Core 并 `docker compose up -d --no-deps app`，beta 的 `current` 指回旧 release 后恢复旧容器原名并启动。回滚代码不应自动覆盖数据库，也不清理既有媒体。
+
 ## 第 1 步：备份
 
 - MongoDB：`mongodump` 整库导出（Docker 跑的就在容器里执行再拷出来），放到服务器以外的地方再留一份。

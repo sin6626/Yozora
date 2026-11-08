@@ -219,3 +219,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - 2026-11-08：OG 版 beta 前台已部署到 releases/f28dd0b，回滚容器保留。BETA_SHARE_URLS 只在 SITE_NOINDEX=1 的灰度部署启用，为显式列出的分享实测页面指定 beta 基址和两种社交爬虫的 robots 例外；不要为了测试修改 Core 的正式网站地址。部署构建按单 worker 串行读取线上 Core。三页公网验收、参数和回滚见 docs/deploy-beta.md 的本日记录。
 
 - 2026-11-08：实况图是 Haklex 的 live-photo 图片块，文章/手记/页面共用。后台保存实际 image/file 上传接口的持久 URL，Core 同时支持节点校验、Markdown 投影、封面引用，前台继续走 ShiroRenderer。没有接入 Mac 自动转码或真实发布测试。用 packages/live-photo/README.md 中的单浏览器隔离回归，不写真实文章或对象存储。
+
+- 2026-11-08：3b895ae 实况图节点现已部署到线上 Core、mx-admin 与 beta；正式后台撰写页 Live photo 弹窗、公网产物与样例媒体验证通过，未上传或发布真实测试文章。回滚位置与具体测试边界见 docs/deploy-beta.md。
