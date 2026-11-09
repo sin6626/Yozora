@@ -77,6 +77,21 @@ try {
   assert.equal(more.footerLook, timelineLook.footer, "底栏链接样式和时间线面板的“查看时间线”一样");
   assert.deepEqual([more.warp.text, more.warp.href, more.warp.target], ["跃迁 空间跃迁门", "https://travel.moe/go.html", "_blank"], "跃迁在底栏，新标签页打开 travel.moe");
   assert.ok(more.warp.rel.includes("noopener"), "跃迁带 noopener");
+  // 底栏整行都是链接（2026-11-09 站长：鼠标停在“空间跃迁门”上跃迁不亮，上面的行是整行都能悬停）；文章面板的“N 篇文章”同理
+  for (const [label, panel] of [["更多", "is-more"], ["文章", "is-posts"]]) {
+    await hover(label);
+    const [fx, fy] = await browser.evaluate(`(() => {
+      const r = document.querySelector(".navigation-Popup .nav-panel.${panel} .nav-panel-footer").getBoundingClientRect();
+      return [r.right - 6, r.bottom - 10];
+    })()`);
+    await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: fx, y: fy });
+    await sleep(300);
+    const footer = await browser.evaluate(`(() => {
+      const link = document.querySelector(".navigation-Popup .nav-panel.${panel} .nav-panel-footer a");
+      return { hovered: link.matches(":hover"), color: getComputedStyle(link).color, row: getComputedStyle(document.querySelector(".navigation-Popup .nav-panel.${panel} .nav-category")).color };
+    })()`);
+    assert.ok(footer.hovered, `鼠标停在${label}面板底栏右端，底栏链接要算悬停（整行都是链接）`);
+  }
   assert.equal((await fetch(`${base}/visit`, { redirect: "manual" })).status === 307, false, "旧的串门跳转已删");
 
   await hover("首页");

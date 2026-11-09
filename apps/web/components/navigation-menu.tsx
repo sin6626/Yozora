@@ -95,11 +95,15 @@ function EntryList({ entries, pathname, showKind }: { entries: NavigationEntry[]
   );
 }
 
-function PanelFooter({ href, label, aside }: { href: string; label: string; aside?: ReactNode }) {
+// 底栏整行是一个链接（和上面的行一样，鼠标停在右边的说明上也算），说明保持淡色
+function PanelFooter({ href, label, aside, external }: { href: string; label: string; aside?: ReactNode; external?: boolean }) {
+  const Arrow = external ? ArrowUpRight : ArrowRight;
   return (
     <div className="nav-panel-footer">
-      <PanelLink href={href} className="nav-panel-more">{label}<ArrowRight size={14} aria-hidden="true" /></PanelLink>
-      {aside && <span>{aside}</span>}
+      <PanelLink href={href} className="nav-panel-more" external={external}>
+        <span className="nav-panel-more-label">{label}<Arrow size={14} aria-hidden="true" /></span>
+        {aside && <span className="nav-panel-more-aside">{aside}</span>}
+      </PanelLink>
     </div>
   );
 }
@@ -364,10 +368,7 @@ export default function BlogNavigation({ state, account }: { state: NavigationSt
                   ))}
                 </ul>
               </section>
-              <div className="nav-panel-footer">
-                <PanelLink href={warpHref} className="nav-panel-more" external>{t.moreLinks.warp.label}<ArrowUpRight size={14} aria-hidden="true" /></PanelLink>
-                <span>{t.moreLinks.warp.note}</span>
-              </div>
+              <PanelFooter href={warpHref} label={t.moreLinks.warp.label} aside={t.moreLinks.warp.note} external />
               {state.status === "loading" && <p className="navigation-message" role="status">{t.loading}</p>}
               {state.status === "error" && (
                 <p className="navigation-message" role="status">

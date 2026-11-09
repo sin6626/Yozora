@@ -718,9 +718,22 @@ li[data-highlighted] > .nav-category .nav-category-name::before,
 }
 
 .nav-panel-more {
-  gap: var(--space-1);
+  flex: 1;
+  justify-content: space-between;
+  gap: var(--space-4);
   font-size: var(--text-xs);
   letter-spacing: 0.04em;
+}
+
+.nav-panel-more-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.nav-panel-more-aside {
+  color: var(--muted-foreground);
+  letter-spacing: normal;
 }
 
 /* 更多：小标题 + 和分类一样的行（小星 名字 …… 说明，说明的位置就是分类的篇数）；跃迁在底栏 */

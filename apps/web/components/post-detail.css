@@ -448,3 +448,16 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+/* 代码块的复制按钮：Haklex 按语言给它上色（--rr-code-accent：TypeScript 蓝、JavaScript 黄、没收录的语言灰），
+   同一个按钮在不同代码块里长得不一样。统一成站内弹层同款的玻璃按钮，语言只留在右下角的图标里（e2e code-copy-button.mjs） */
+.article-rich .rr-code-copy {
+  border-color: var(--glass-border);
+  background: var(--glass-popup);
+  color: var(--muted-foreground);
+  transition: opacity 0.2s ease, color var(--duration-fast);
+}
+
+.article-rich .rr-code-copy:hover {
+  color: var(--foreground);
+}
