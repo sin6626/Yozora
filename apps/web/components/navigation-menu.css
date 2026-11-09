@@ -329,11 +329,31 @@
 }
 
 .nav-panel-main {
+  position: relative;
+  min-width: 0;
+  padding-left: var(--space-6);
+  /* 旧的一层比新的长时，滚出去的几行不越出面板；留一点余量给焦点框 */
+  overflow: clip;
+  overflow-clip-margin: 4px;
+}
+
+/* 右栏的新旧两层（GroupPanel）：新的一层在文档流里，旧的一层叠在它上面、内边距跟着右栏 */
+.nav-roll-layer {
   display: grid;
   align-content: start;
   gap: var(--space-2);
-  min-width: 0;
-  padding-left: var(--space-6);
+}
+
+.nav-roll-layer[aria-hidden="true"] {
+  position: absolute;
+  inset: 0;
+  padding: inherit;
+  pointer-events: none;
+}
+
+/* 每一格裁成一行，滚动中的字不露到上下行 */
+.nav-roll-layer :is(.nav-panel-label, time, .nav-entry-kind, .nav-panel-empty) {
+  overflow: hidden;
 }
 
 .nav-panel-body > .nav-panel-main:only-child {

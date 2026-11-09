@@ -1,5 +1,11 @@
 /* 逐字翻滚（roll-text.tsx）：整个词裁成一行高，每个字下面一行用 text-shadow 画着同一个字，
    悬停 / 键盘聚焦时每个字上移一行，按 --i 依次晚 28ms；移开时滚回。左右放宽一点，免得斜体或字形出头被切 */
+/* 两种翻滚共用的节奏 */
+:root {
+  --roll-duration: 0.45s;
+  --roll-ease: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
 .roll-text {
   display: inline-block;
   white-space: pre;
@@ -9,7 +15,7 @@
 .roll-glyph {
   display: inline-block;
   text-shadow: 0 1lh currentColor;
-  transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1) calc(var(--i, 0) * 28ms);
+  transition: transform var(--roll-duration) var(--roll-ease) calc(var(--i, 0) * 28ms);
 }
 
 @media (hover: hover) {
@@ -27,5 +33,41 @@
   :is(a, button):is(:hover, :focus-visible) .roll-glyph {
     transform: none;
     transition: none;
+  }
+}
+
+/* 从旧文字滚到新文字（RollChars）：新的一层每个字从下一行滚上来，旧的一层每个字往上滚出去，按 --d 依次开始 */
+.roll-ch {
+  display: inline-block;
+  white-space: pre;
+}
+
+[data-roll="in"] .roll-ch {
+  animation: roll-in var(--roll-duration) var(--roll-ease) var(--d, 0ms) both;
+}
+
+[data-roll="out"] .roll-ch {
+  animation: roll-out var(--roll-duration) var(--roll-ease) var(--d, 0ms) both;
+}
+
+@keyframes roll-in {
+  from {
+    transform: translateY(1lh);
+  }
+}
+
+@keyframes roll-out {
+  to {
+    transform: translateY(-1lh);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-roll] .roll-ch {
+    animation: none;
+  }
+
+  [data-roll="out"] {
+    visibility: hidden;
   }
 }
