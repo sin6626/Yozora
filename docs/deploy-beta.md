@@ -342,3 +342,29 @@ MIX_SPACE_API_URL=https://Core的公网地址 SITE_NOINDEX=1 pnpm build
 2026-11-06 只读查过线上库：正文、草稿、评论、碎碎念里没有 `sin6626.me/api/v2` 的地址；但有 5 个存死的旧图片地址走的是 `https://sin6626.me/api/v2/objects/...`——友链头像 2 个（Guo xk 的博客、LZWcc's Blog）、话题图标 2 个（近况、占位符）、读者头像 1 个。同一个文件换成 `https://api.sin6626.me/api/v2/objects/...` 一样能打开。如果选“统一到 api 子域名”，切换时要把这 5 个地址一起改掉，再在主域名站点加一条 `/api/v2/*` → `https://api.sin6626.me/api/v2/*` 的 301 跳转，兜住已经发出去的退订邮件链接和别处存的旧图片地址。
 
 注意：不要在线上用 mongosh 对整个库逐条 `JSON.stringify` 扫描（这次扫到 serverless_logs 等大集合时服务器可用内存掉到 21MB、SSH 断开，及时 kill 后恢复，服务没受影响）。只对内容集合的具体字段用正则 `countDocuments`。
+
+## 2026-11-09 已做：缓存分层改造上线（b30be94）
+
+站长同意后执行，只换 Core 和 beta 前台，后台不变（改动见 `docs/architecture-cache-plan.md` 与 AGENTS.md 2026-11-09 各条）。
+
+- 备份：服务器 `/root/backups/yozora-cache-b30be94/`（`mongo.archive.gz` 整库，`mongorestore --dryRun` 通过；`compose-before.yml`；`web.env.before`；`yozora-web-inspect.json`）。切换脚本 `switch.sh` 与 `switch.log`、检查脚本和结果 `check.log`、`throttle.log` 也在这里。
+- 构建：本机临时 worktree `/tmp/yozora-build`（b30be94），Core `apps/core/out` 用 rsync 传到 `/root/mx-space/core-image-b30be94/`（以上一版 `out/` 为底只传差异），服务器上构建镜像 `yozora/mx-server:cache-b30be94`，入口 `main.mjs` 哈希与本机一致；前台 standalone 包 75MB，解压到 `releases/b30be94`。worktree 和两个包都已删除。
+- 内部密钥：切换脚本在服务器上用 `openssl rand -hex 32` 生成，写进 `/root/mx-space/core/.env`（600）和前台 `web.env`（600），没有打印，本机没有副本。compose 的 Core 环境变量加了 `- YOZORA_INTERNAL_KEY=${YOZORA_INTERNAL_KEY:?}`，镜像标签改为 `cache-b30be94`。
+- 前台：`web.env` 加 `MIX_SPACE_INTERNAL_API_URL=http://mx-server:2333/api/v2`，容器启动参数与上一版相同，只是改为 `docker create` → `docker network connect core_mx-space yozora-web` → `docker start`。**以后重建前台容器都要加入这个网络**，否则内网连不上，前台会退回公网（照常可用，但重建缓存的请求会走 openresty）。
+- 停机：Core 重建约 20 秒，前台约 10 秒。
+- 验证：服务器本机 17 个地址 200（三种语言首页、文章、手记、碎碎念、一言、友链、思考、RSS、站点地图、robots、分享图），页面 `data-dpl-id="b30be94"`，robots 照旧；公网 beta、sin6626.me、API 200。容器里带密钥对 Core 并发 130 次全 200，不带密钥 100 次 200、30 次 429。openresty 的 api 日志里切换后前台容器只剩每分钟一次的 `/ai/i18n`（`proxy.ts` 读语言列表，量小没改）和分享图取头像（头像本来就是公网地址）。发一次 `/pageview?path=/posts&ref=…` 得 204，访问记录里是 `/posts` 和来源页；切换前最新的访问记录还是 `/aggregate` 这类接口地址。内存：刚启动时前台容器 331MB/400MB，一分钟后约 229MB，服务器可用约 250MB。
+
+回滚：
+
+```bash
+# 先停新前台，把旧容器（挂着 releases/3b895ae）改回原名启动
+W=/root/mx-space/yozora-web; B=/root/backups/yozora-cache-b30be94
+docker stop yozora-web && docker rename yozora-web yozora-web-cache-b30be94-stopped
+ln -sfn $W/releases/3b895ae $W/current && cp -p $B/web.env.before $W/web.env
+docker rename yozora-web-pre-cache-b30be94 yozora-web && docker start yozora-web
+# Core（约 20 秒）
+cp -p $B/compose-before.yml /root/mx-space/core/docker-compose.yml
+cd /root/mx-space/core && docker compose up -d --no-deps app
+```
+
+磁盘留给站长自己清：`/root/mx-space/core-image-20261104`、`core-image-20261105`、`core-image-ac758f0`，前台旧版本 `releases/7dd878b`、`1b5a6d4`、`2131c7a`、`81383e8`、`cf9d6bf`，以及停着的旧容器 `yozora-web-pre-live-3b895ae`。回滚要用的 `releases/3b895ae`、镜像 `live-3b895ae` 和容器 `yozora-web-pre-cache-b30be94` 先别删。

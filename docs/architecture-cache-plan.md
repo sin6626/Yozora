@@ -92,7 +92,7 @@ flowchart LR
 6. **验证**：第 0 步量具改后再跑一次；`pnpm verify`；相关 e2e（dev-issues、realtime-push、comment-enhance、list-filters、i18n-content、og-image、feed）；更新 AGENTS.md 与 `docs/admin-data-sources.md`。
 7. **上线（需站长同意）**：重建 Core 镜像、前台；`docker network connect core_mx-space yozora-web`；生成一把随机 `YOZORA_INTERNAL_KEY`，同时写进 Core 的 compose 环境变量和前台 `web.env`，前台再加 `MIX_SPACE_INTERNAL_API_URL=http://mx-server:2333/api/v2`；回滚是换回旧镜像和旧前台版本、断开网络即可（两个变量不配时功能自动关闭，旧前台不受影响）。
 
-**状态（2026-11-09）**：第 0–6 步已在本地完成并提交，第 7 步未做。
+**状态（2026-11-09）**：第 0–7 步都已完成，b30be94 已上线（Core 镜像 `yozora/mx-server:cache-b30be94`、前台 `releases/b30be94`），记录与回滚见 `docs/deploy-beta.md`。
 
 不放过的风险：详情页 `generateMetadata` 改为现取后，Next 16 可能报“metadata 里有未缓存数据”（10-28、10-30 的同类问题），第 5 步要用 dev-issues 检查；页面更“动态”后读取中的小火箭会多出现，内网 + Redis 命中预计很快，以第 0 步实测为准。
 
