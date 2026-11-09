@@ -665,6 +665,36 @@ describe('DraftService with FileReference integration', () => {
     })
     const makeLexical = (text: string) => JSON.stringify(makeState([text]))
 
+    it('autosaves while a freshly inserted link still has its https:// placeholder', async () => {
+      const state = makeState(['see '])
+      state.root.children[0].children.push({
+        type: 'link',
+        version: 1,
+        url: 'https://',
+        children: [{ type: 'text', version: 1, text: 'docs' }],
+      } as any)
+      const content = JSON.stringify(state)
+      mockDrafts.push({
+        _id: 'linkdraft1',
+        id: 'linkdraft1',
+        refType: DraftRefType.Post,
+        title: 'Link',
+        text: 'see',
+        contentFormat: ContentFormat.Lexical,
+        content: makeLexical('see'),
+        version: 1,
+        history: [],
+        updated: new Date(),
+        created: new Date(),
+      })
+
+      await draftService.update('linkdraft1', { content })
+
+      const saved = mockDrafts.find((d) => d.id === 'linkdraft1')
+      expect(JSON.parse(saved.content).root.children[0].children[1].url).toBe('https://')
+      expect(saved.text).toBe('see')
+    })
+
     it('should store first Lexical version as full snapshot with content', async () => {
       const content1 = makeLexical('Hello')
       const draft = {

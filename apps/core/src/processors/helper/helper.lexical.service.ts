@@ -50,6 +50,15 @@ const nonInlineChildren = new Set([
   'table', 'tablerow', 'tablecell', 'details',
 ])
 
+function isLexicalState(content: string | undefined) {
+  if (!content) return false
+  try {
+    return lexicalStateSchema.safeParse(JSON.parse(content)).success
+  } catch {
+    return false
+  }
+}
+
 function isPlainParagraph(node: z.infer<typeof lexicalNodeSchema>) {
   return Object.entries(node).every(([key, value]) => {
     if (key === 'children') return true
@@ -390,6 +399,21 @@ export class LexicalService {
     })
 
     return markdown
+  }
+
+  // Autosave runs mid-edit (a new link starts as "https://"), so a draft keeps
+  // any well-formed Lexical document with its last good text; publish re-checks.
+  populateDraftText<T extends ContentDocument>(
+    doc: T,
+    existing?: ContentDocument,
+  ): boolean {
+    try {
+      return this.populateText(doc, existing)
+    } catch (error) {
+      if (!isLexicalState(doc.content)) throw error
+      doc.text = existing?.text ?? ''
+      return true
+    }
   }
 
   populateText<T extends ContentDocument>(

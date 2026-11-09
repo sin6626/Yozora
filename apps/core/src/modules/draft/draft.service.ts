@@ -38,7 +38,7 @@ export class DraftService {
       }
     }
 
-    this.lexicalService.populateText(dto)
+    this.lexicalService.populateDraftText(dto)
     const draft = await this.draftModel.create({
       ...dto,
       refId: dto.refId
@@ -70,7 +70,7 @@ export class DraftService {
     if (!draft) {
       throw new BizException(ErrorCodeEnum.DraftNotFound)
     }
-    this.lexicalService.populateText(dto, draft)
+    this.lexicalService.populateDraftText(dto, draft)
 
     const hasContentChange = this.draftHistoryService.hasContentChange(
       {
@@ -261,7 +261,7 @@ export class DraftService {
         draft.content,
       ),
     }
-    this.lexicalService.populateText(resolved)
+    this.lexicalService.populateDraftText(resolved)
 
     const { history } = this.draftHistoryService.pushHistoryEntry(
       {

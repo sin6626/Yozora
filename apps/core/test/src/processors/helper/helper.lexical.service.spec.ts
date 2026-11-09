@@ -303,6 +303,45 @@ describe('LexicalService', () => {
 
   // ── Custom inline nodes (TextMatch / TextFormat) ──
 
+  describe('placeholder link while editing', () => {
+    const withPlaceholderLink = () =>
+      makeEditorState([
+        paragraph(textNode('see '), {
+          children: [textNode('docs')],
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          type: 'link',
+          version: 1,
+          rel: null,
+          target: null,
+          title: null,
+          url: 'https://',
+        }),
+      ])
+
+    it('rejects it for published content and names the bad URL', () => {
+      expect(() => service.lexicalToMarkdown(withPlaceholderLink())).toThrow(
+        /link URL.*https:\/\//,
+      )
+    })
+
+    it('keeps a draft with it and its last good text', () => {
+      const doc = {
+        contentFormat: ContentFormat.Lexical,
+        content: withPlaceholderLink(),
+      }
+      service.populateDraftText(doc, { text: 'last good text' })
+      expect(doc.content).toBe(withPlaceholderLink())
+      expect((doc as { text?: string }).text).toBe('last good text')
+    })
+
+    it('still rejects a draft whose content is not a Lexical document', () => {
+      const doc = { contentFormat: ContentFormat.Lexical, content: '{"nope":1}' }
+      expect(() => service.populateDraftText(doc)).toThrow()
+    })
+  })
+
   describe('spoiler', () => {
     it('exports ||text||', () => {
       const state = makeEditorState([

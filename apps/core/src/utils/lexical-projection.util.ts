@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common'
 import { allHeadlessTransformers } from '@haklex/rich-headless'
 import { $isLinkNode } from '@lexical/link'
 import { $isListItemNode, $isListNode } from '@lexical/list'
@@ -79,13 +80,17 @@ function safeStyle(value: string) {
 }
 
 function safeUrl(value: string, purpose: 'link' | 'media') {
-  if (!value || /[\u0000-\u0020\u007f\\<>"']/.test(value))
-    throw new Error('Invalid Lexical URL')
+  const invalid = () =>
+    new BadRequestException(
+      `Invalid ${purpose} URL: ${JSON.stringify(String(value).slice(0, 100))}`,
+    )
+  if (!value || /[\u0000-\u0020\u007f\\<>"']/.test(value)) throw invalid()
   if (
     /^\/(?!\/)/.test(value) ||
     (purpose === 'link' && /^#[\w-]+$/.test(value))
   )
     return value
+  if (!URL.canParse(value)) throw invalid()
   const url = new URL(value)
   if (
     ![
@@ -96,7 +101,7 @@ function safeUrl(value: string, purpose: 'link' | 'media') {
     url.username ||
     url.password
   )
-    throw new Error('Invalid Lexical URL')
+    throw invalid()
   return value
 }
 
