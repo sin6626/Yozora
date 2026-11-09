@@ -26,6 +26,7 @@ const {
   JWT_SECRET,
   JWTSECRET,
   MX_DISABLE_TELEMETRY,
+  YOZORA_INTERNAL_KEY,
 } = process.env
 
 const ENV_JWT_SECRET = JWT_SECRET || JWTSECRET
@@ -331,6 +332,12 @@ export const DEBUG_MODE = {
 export const THROTTLE_OPTIONS = {
   ttl: seconds(Number(argv.throttle_ttl ?? THROTTLE_TTL ?? 10)),
   limit: Number(argv.throttle_limit ?? THROTTLE_LIMIT ?? 100),
+}
+
+// Shared with the Yozora frontend's server: requests carrying it (and no forwarded reader IP) skip the throttle.
+// Empty = feature off. It does not authenticate anything.
+export const YOZORA_INTERNAL = {
+  key: YOZORA_INTERNAL_KEY || '',
 }
 
 const ENCRYPT_KEY = argv.encrypt_key

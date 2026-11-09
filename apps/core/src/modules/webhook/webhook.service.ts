@@ -21,6 +21,26 @@ import { WebhookEventModel } from './webhook-event.model'
 
 const ACCEPT_EVENTS = new Set(Object.values(BusinessEvents))
 
+// Frequent events that change no cached content: don't wipe Core's public HTTP cache on these
+const NO_CACHE_CLEAR_EVENTS = new Set<string>([
+  BusinessEvents.GATEWAY_CONNECT,
+  BusinessEvents.GATEWAY_DISCONNECT,
+  BusinessEvents.VISITOR_ONLINE,
+  BusinessEvents.VISITOR_OFFLINE,
+  BusinessEvents.AUTH_FAILED,
+  BusinessEvents.ADMIN_NOTIFICATION,
+  BusinessEvents.ACTIVITY_UPDATE_PRESENCE,
+  BusinessEvents.ACTIVITY_LEAVE_PRESENCE,
+  BusinessEvents.ARTICLE_READ_COUNT_UPDATE,
+  BusinessEvents.IMAGE_REFRESH,
+  BusinessEvents.IMAGE_FETCH,
+  BusinessEvents.AI_AGENT_MESSAGE,
+  BusinessEvents.AI_AGENT_TOOL_EVENT,
+  BusinessEvents.AI_AGENT_CONFIRM_REQUEST,
+  BusinessEvents.AI_AGENT_CONFIRM_RESULT,
+  BusinessEvents.AI_AGENT_SESSION_STATE,
+])
+
 type WebhookEventSource = 'admin' | 'visitor' | 'system'
 
 function scopeToSource(scope: EventScope): WebhookEventSource {
@@ -110,6 +130,11 @@ export class WebhookService implements OnModuleInit, OnModuleDestroy {
   }
 
   async sendWebhook(event: string, rawPayload: any, scope: EventScope) {
+    // The blog refetches from Core after a change, subscribed or not (Next reads Core directly);
+    // clear Core's public HTTP cache first, otherwise it re-reads and re-caches the response from before the change.
+    // ponytail: clears every cached GET on each content event; key by event if content events become frequent.
+    if (!NO_CACHE_CLEAR_EVENTS.has(event)) await this.redisService.cleanCatch()
+
     const enabledWebHooks = await this.webhookModel
       .find({
         events: {
@@ -128,11 +153,6 @@ export class WebhookService implements OnModuleInit, OnModuleDestroy {
     })
 
     if (scopedWebhooks.length === 0) return
-
-    // Subscribers (the blog) refetch from Core right after a webhook; clear Core's public HTTP cache first,
-    // otherwise they re-read and re-cache the response from before the change.
-    // ponytail: clears every cached GET on each delivered event; key by event if events become frequent.
-    await this.redisService.cleanCatch()
 
     const payload = await this.enricher.enrichPayload(
       event as BusinessEvents,

@@ -1,13 +1,16 @@
 import { redisHelper } from '@/helper/redis-mock.helper'
+import { Get } from '@nestjs/common'
 import { APP_INTERCEPTOR } from '@nestjs/core'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import type { ReturnModelType } from '@typegoose/typegoose'
-import { apiRoutePrefix } from '~/common/decorators/api-controller.decorator'
+import { ApiController, apiRoutePrefix } from '~/common/decorators/api-controller.decorator'
+import { RedisKeys } from '~/constants/cache.constant'
 import { AnalyzeInterceptor } from '~/common/interceptors/analyze.interceptor'
 import { AnalyzeModel } from '~/modules/analyze/analyze.model'
 import { PageviewController } from '~/modules/analyze/pageview.controller'
 import { OptionModel } from '~/modules/configs/configs.model'
 import { RedisService } from '~/processors/redis/redis.service'
+import { getRedisKey } from '~/utils/redis.util'
 import { scheduleManager } from '~/utils/schedule.util'
 import { createE2EApp } from 'test/helper/create-e2e-app'
 import { vi } from 'vitest'
@@ -15,11 +18,21 @@ import { vi } from 'vitest'
 // 服务端渲染的前台（Yozora）读者看页面时浏览器不直接请求 Core，访问记录就记不到。
 // 前台每打开一页向 Core 报一次 GET /pageview?path=…&ref=…，Core 按原来的访问记录规则记一条：
 // 路径是读者看的页面、来源是页面的 document.referrer，IP 和设备取浏览器自己的；爬虫、本机照旧不记，路径不像本站页面就不记。
+@ApiController('ping')
+class PingController {
+  @Get('/')
+  ping() {
+    return { ok: 1 }
+  }
+}
+
 describe('GET /pageview', async () => {
   let app: NestFastifyApplication
   let analyzes: ReturnModelType<typeof AnalyzeModel>
+  let options: ReturnModelType<typeof OptionModel>
+  const redis = (await redisHelper).RedisService
   const proxy = createE2EApp({
-    controllers: [PageviewController],
+    controllers: [PageviewController, PingController],
     providers: [
       { provide: RedisService, useValue: (await redisHelper).RedisService },
       { provide: APP_INTERCEPTOR, useClass: AnalyzeInterceptor },
@@ -27,6 +40,7 @@ describe('GET /pageview', async () => {
     models: [AnalyzeModel, OptionModel],
     async pourData(modelMap) {
       analyzes = modelMap.get(AnalyzeModel)!.model as ReturnModelType<typeof AnalyzeModel>
+      options = modelMap.get(OptionModel)!.model as ReturnModelType<typeof OptionModel>
     },
   })
   beforeEach(() => {
@@ -62,5 +76,29 @@ describe('GET /pageview', async () => {
     await visit('', browser('203.0.113.9'))
     await settle()
     expect(await analyzes.countDocuments({ ip: { $in: ['203.0.113.8', '127.0.0.1', '203.0.113.9'] } })).toBe(0)
+  })
+
+  // Next's server requests Core for every page it builds; those are not visits. Only /pageview (sent by the
+  // reader's browser) is a visit, but every GET still counts toward the admin's "API calls" number.
+  const apiCalls = async () => (await options.findOne({ name: 'apiCallTime' }).lean())?.value || 0
+  const todayIps = () => redis.getClient().smembers(getRedisKey(RedisKeys.AccessIp))
+
+  it('an ordinary GET is counted as an API call but is not a visit', async () => {
+    const before = await apiCalls()
+    const res = await app.inject({ method: 'GET', url: `${apiRoutePrefix}/ping`, headers: browser('203.0.113.20') })
+    expect(res.statusCode).toBe(200)
+    await settle()
+    expect(await analyzes.countDocuments({ ip: '203.0.113.20' })).toBe(0)
+    expect(await todayIps()).not.toContain('203.0.113.20')
+    expect(await apiCalls()).toBe(before + 1)
+  })
+
+  it('a pageview is a visit and an API call', async () => {
+    const before = await apiCalls()
+    await visit('path=%2Fnotes%2F2', browser('203.0.113.21'))
+    await settle()
+    expect(await analyzes.countDocuments({ ip: '203.0.113.21', path: '/notes/2' })).toBe(1)
+    expect(await todayIps()).toContain('203.0.113.21')
+    expect(await apiCalls()).toBe(before + 1)
   })
 })

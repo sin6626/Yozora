@@ -71,3 +71,7 @@ export const THROTTLE_OPTIONS = {
   ttl: 10_000,
   limit: 50,
 }
+
+export const YOZORA_INTERNAL = {
+  key: process.env.YOZORA_INTERNAL_KEY || '',
+}

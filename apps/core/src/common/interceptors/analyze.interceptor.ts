@@ -35,13 +35,22 @@ export class AnalyzeInterceptor implements NestInterceptor {
     private readonly redisService: RedisService,
     @Inject(REFLECTOR) private readonly reflector: Reflector,
   ) {
-    this.queue = new TaskQueuePool(1000, this.model, async (count) => {
-      await this.options.updateOne(
-        { name: 'apiCallTime' },
-        { $inc: { value: count } },
-        { upsert: true },
-      )
-    })
+    this.queue = new TaskQueuePool(1000, this.model)
+  }
+
+  // Every non-skipped GET counts as an API call; batched so a burst of Next's server requests is one $inc
+  private pendingCalls = 0
+  private callTimer: ReturnType<typeof setTimeout> | null = null
+  private countApiCall() {
+    this.pendingCalls++
+    this.callTimer ??= setTimeout(() => {
+      const count = this.pendingCalls
+      this.pendingCalls = 0
+      this.callTimer = null
+      this.options
+        .updateOne({ name: 'apiCallTime' }, { $inc: { value: count } }, { upsert: true })
+        .catch(console.error)
+    }, 1000)
   }
 
   async intercept(
@@ -84,17 +93,17 @@ export class AnalyzeInterceptor implements NestInterceptor {
       return call$
     }
 
-    // 前台报来的页面访问（pageview.controller.ts）：路径换成读者看的页面，来源换成页面的 document.referrer；不像本站页面就不记
+    this.countApiCall()
+
+    // 访问记录只认前台浏览器报来的页面访问（pageview.controller.ts）：其他 GET 多半是 Next 服务端取数据，不是读者在看页面。
+    // 路径换成读者看的页面，来源换成页面的 document.referrer；不像本站页面就不记
     const parsed = new URL(`http://a.com${url}`)
-    let path = parsed.pathname
-    let referer = request.headers.referer || request.headers.Referer
-    if (path === '/pageview') {
-      const page = parsed.searchParams.get('path')
-      if (!page || !/^\/(?!\/)/.test(page) || page.length > 300) return call$
-      const ref = parsed.searchParams.get('ref')
-      path = page
-      referer = ref && /^https?:\/\//i.test(ref) && ref.length <= 500 ? ref : undefined
-    }
+    if (parsed.pathname !== '/pageview') return call$
+    const page = parsed.searchParams.get('path')
+    if (!page || !/^\/(?!\/)/.test(page) || page.length > 300) return call$
+    const ref = parsed.searchParams.get('ref')
+    const path = page
+    const referer = ref && /^https?:\/\//i.test(ref) && ref.length <= 500 ? ref : undefined
 
     scheduleManager.schedule(async () => {
       try {
@@ -138,7 +147,6 @@ class TaskQueuePool<T> {
   constructor(
     private readonly interval: number = 1000,
     private readonly collection: any,
-    private readonly onBatch: (count: number) => any,
   ) {}
 
   push(model: T) {
@@ -156,7 +164,6 @@ class TaskQueuePool<T> {
     if (this.pool.length === 0) return
 
     await this.collection.insertMany(this.pool)
-    await this.onBatch(this.pool.length)
     this.pool = []
   }
 }
