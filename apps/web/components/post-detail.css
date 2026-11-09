@@ -451,13 +451,55 @@
 
 /* 代码块的复制按钮：Haklex 按语言给它上色（--rr-code-accent：TypeScript 蓝、JavaScript 黄、没收录的语言灰），
    同一个按钮在不同代码块里长得不一样。统一成站内弹层同款的玻璃按钮，语言只留在右下角的图标里（e2e code-copy-button.mjs） */
-.article-rich .rr-code-copy {
+.article-rich .rr-code-copy,
+.article-body .code-copy {
   border-color: var(--glass-border);
   background: var(--glass-popup);
   color: var(--muted-foreground);
   transition: opacity 0.2s ease, color var(--duration-fast);
 }
 
-.article-rich .rr-code-copy:hover {
+.article-rich .rr-code-copy:hover,
+.article-body .code-copy:hover {
   color: var(--foreground);
+}
+
+/* 键盘也能找到它：聚焦时显示（原来只在鼠标悬停代码块时出现） */
+.article-rich .rr-code-copy:focus-visible,
+.article-body .code-copy:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Markdown 代码块（article-body.tsx 的 CodeBlock）：外框给复制按钮定位，按钮不跟着代码横向滚动；
+   按钮的位置、大小、出现方式照 Haklex 的 .rr-code-copy（右上角 0.5rem、内边距和圆角 0.375rem、悬停代码块才出现） */
+.article-body .code-frame {
+  position: relative;
+  margin-block: 1em;
+}
+
+.article-body .code-frame pre {
+  margin: 0;
+}
+
+.article-body .code-copy {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.375rem;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  opacity: 0;
+  backdrop-filter: blur(8px);
+}
+
+.article-body .code-frame:hover .code-copy {
+  opacity: 1;
 }

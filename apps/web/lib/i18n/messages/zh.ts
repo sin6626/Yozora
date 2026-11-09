@@ -236,6 +236,11 @@ const zh = {
     modified: "最后修改时间：",
     neverModified: "暂没有修改过",
   },
+  // 代码块的复制按钮（components/code-copy.tsx）
+  codeBlock: {
+    copy: "复制代码",
+    copied: "已复制",
+  },
   articleActions: {
     group: "文章操作",
     subscribe: "订阅更新",

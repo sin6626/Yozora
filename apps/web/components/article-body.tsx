@@ -4,6 +4,7 @@ import Markdown, { type Components, type ExtraProps } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { bundledLanguages, codeToHtml } from "shiki";
 import { getApiUrl } from "../lib/config";
+import CodeCopy from "./code-copy";
 import RichContent from "./rich-content";
 import "./post-detail.css";
 
@@ -23,14 +24,19 @@ async function HighlightedCode({ code, lang }: { code: string; lang: string }) {
 }
 
 // 代码块：```lang 且 Shiki 支持该语言时高亮，否则保持原样（Shiki 遇到未知语言会报错）。
-// 本身保持同步，只有需要高亮时才交给异步的 HighlightedCode（服务端组件）。
+// 本身保持同步，只有需要高亮时才交给异步的 HighlightedCode（服务端组件）。外面包一层带复制按钮的框，和富文本代码块一样。
 function CodeBlock({ node, children }: { children?: ReactNode } & ExtraProps) {
   const code = node?.children[0];
   if (code?.type !== "element" || code.tagName !== "code") return <pre>{children}</pre>;
+  const text = textOf(code).replace(/\n$/, "");
   const className = code.properties.className;
   const lang = (Array.isArray(className) ? className : []).map(String).find((name) => name.startsWith("language-"))?.slice("language-".length).toLowerCase();
-  if (!lang || !(lang in bundledLanguages)) return <pre>{children}</pre>;
-  return <HighlightedCode code={textOf(code).replace(/\n$/, "")} lang={lang} />;
+  return (
+    <div className="code-frame">
+      {lang && lang in bundledLanguages ? <HighlightedCode code={text} lang={lang} /> : <pre>{children}</pre>}
+      <CodeCopy code={text} />
+    </div>
+  );
 }
 
 // 标题锚点：给 Markdown 标题生成与 GitHub 类似的 slug（保留中文，去标点，空格变 -），同一篇里重名依次加 -1、-2。

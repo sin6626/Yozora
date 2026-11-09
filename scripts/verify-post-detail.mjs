@@ -21,7 +21,7 @@ const bodyCode = ts.transpileModule(readFileSync(new URL('../apps/web/components
 const articleBody = { exports: {} }
 vm.runInNewContext(bodyCode, {
   module: articleBody, exports: articleBody.exports,
-  require: (id) => id.endsWith('.css') ? {} : id === 'next/cache' ? { cacheLife() {} } : id === 'shiki' ? { bundledLanguages: {}, codeToHtml: async () => '' } : id === '../lib/config' ? { getApiUrl: () => 'http://api.test' } : id === './rich-content' ? { default: ({ content, apiUrl, children }) => createElement('div', { 'data-rich': content, 'data-api': apiUrl }, children) } : require(id),
+  require: (id) => id.endsWith('.css') ? {} : id === 'next/cache' ? { cacheLife() {} } : id === 'shiki' ? { bundledLanguages: {}, codeToHtml: async () => '' } : id === '../lib/config' ? { getApiUrl: () => 'http://api.test' } : id === './code-copy' ? { default: ({ code }) => createElement('button', { 'data-copy': code }) } : id === './rich-content' ? { default: ({ content, apiUrl, children }) => createElement('div', { 'data-rich': content, 'data-api': apiUrl }, children) } : require(id),
 })
 const module = { exports: {} }
 vm.runInNewContext(code, {
