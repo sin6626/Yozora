@@ -1,15 +1,14 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { getApiUrl } from "../config";
+import { coreFetch } from "../api";
 import { defaultLocale, isLanguageCode, siteLocales } from "./config";
 
 // 后台控制的 AI i18n（2026-11-05，docs/site-text-translation-plan.md）：Core 公开的两个接口，
 // 用普通 fetch 直接读、不经 SDK——SDK 会把返回的键名改成驼峰，而这里的键是界面文字条目名、中文原文、作品 id，不能动。
 // 缓存标签 i18n：Core 发 I18N_UPDATE、改了 AI 设置（OPTION_UPDATE）时 Webhook 让它失效。stale 300：根布局要用（见 AGENTS.md）。
-const timeout = Number(process.env.MIX_SPACE_TIMEOUT_MS) || 8000;
-
+// 走 lib/api.ts 的 coreFetch：内网优先、公网兜底，带内部密钥
 async function fetchCore(path: string): Promise<unknown> {
-  const response = await fetch(`${getApiUrl()}${path}`, { cache: "no-store", signal: AbortSignal.timeout(timeout) });
+  const response = await coreFetch(path);
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`Core ${path} 返回 ${response.status}`);
   return response.json();

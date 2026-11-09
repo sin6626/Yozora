@@ -81,8 +81,13 @@ const coreEnv = {
   MX_DATA_DIR: mediaRoot, DOTENV_CONFIG_PATH: '/dev/null', DOTENV_CONFIG_OVERRIDE: 'false',
   ...coreProxy(),
 }
+// 前台服务端请求 Core 时带的内部密钥：Core 对“密钥对、且没有转发读者 IP”的请求（Next 缓存重建）放行限流。
+// 同时启动 Core 和前台时每次随机生成一份传给两边；终端里设了 YOZORA_INTERNAL_KEY 就用它（--core-only 与 --web-only 分开跑时靠它对上），
+// --web-only 只沿用环境变量，没有就不带。不进 coreEnv，--print-config 不打印密钥本身
+const internalKey = process.env.YOZORA_INTERNAL_KEY || (webOnly || adminOnly ? '' : randomBytes(32).toString('hex'))
 if (process.argv.includes('--print-config')) {
-  console.log(JSON.stringify({ root, dataRoot, mediaRoot, logs, ports, database, redisDir, coreEnv, coreOnly, webOnly, adminOnly, withAdmin, resourceBudget }))
+  const internalKeySource = process.env.YOZORA_INTERNAL_KEY ? 'env' : internalKey ? 'random' : null
+  console.log(JSON.stringify({ root, dataRoot, mediaRoot, logs, ports, database, redisDir, coreEnv, coreOnly, webOnly, adminOnly, withAdmin, resourceBudget, internalKeySource }))
   process.exit(0)
 }
 let lifecycle
@@ -199,7 +204,7 @@ try {
     await start('redis', 'redis-server', ['--bind', host, '--port', String(ports.redis), '--dir', redisDir, '--appendonly', 'yes'], '.')
     await waitForPort(ports.redis)
     if (coreNoWatch && !existsSync(join(root, 'apps/core/dist/main.js'))) throw new Error('请先编译 Core，再运行无监听的隔离验证。')
-    await start('core', process.execPath, coreNoWatch ? ['dist/main.js'] : [cliPath('apps/core', '@nestjs/cli', 'nest'), 'start', '-w', '--path', 'tsconfig.json', '--'], 'apps/core', { ...coreEnv, JWT_SECRET: secret })
+    await start('core', process.execPath, coreNoWatch ? ['dist/main.js'] : [cliPath('apps/core', '@nestjs/cli', 'nest'), 'start', '-w', '--path', 'tsconfig.json', '--'], 'apps/core', { ...coreEnv, JWT_SECRET: secret, YOZORA_INTERNAL_KEY: internalKey })
     await waitForPort(ports.core)
     // 界面文字的中文原文推给 Core（后台开着 AI i18n 时据此翻译新增、改过的条目）；不等它，失败只提示
     if (!testing) execFile(process.execPath, [join(root, 'scripts/push-i18n-source.mjs')], (error, stdout, stderr) => {
@@ -208,7 +213,7 @@ try {
   }
   if (!coreOnly && !adminOnly) {
     await start('web', process.execPath, [cliPath('apps/web', 'next', 'next'), 'dev', '-H', host, '-p', String(ports.web)], 'apps/web', {
-      MIX_SPACE_API_URL: webOnly ? (process.env.MIX_SPACE_API_URL || api) : api, NEXT_TELEMETRY_DISABLED: '1',
+      MIX_SPACE_API_URL: webOnly ? (process.env.MIX_SPACE_API_URL || api) : api, YOZORA_INTERNAL_KEY: internalKey, NEXT_TELEMETRY_DISABLED: '1',
       ...(agentVerification ? { NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --max-old-space-size=1792`.trim() } : {}),
     })
     await waitForPort(ports.web)

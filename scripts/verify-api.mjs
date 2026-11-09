@@ -11,7 +11,7 @@ function load(name) {
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
   const module = { exports: {} }
   vm.runInNewContext(code, {
-    module, exports: module.exports, process, URL, AbortSignal,
+    module, exports: module.exports, process, URL, AbortSignal, Headers,
     require: (id) => id === 'server-only' ? {} : id === './config' ? load('config') : require(id),
   }, { filename: fileURLToPath(new URL(`../apps/web/lib/${name}.ts`, import.meta.url)) })
   return module.exports
