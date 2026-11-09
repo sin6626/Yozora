@@ -343,7 +343,19 @@ export class RecentlyService {
     return withRef
   }
 
-  async updateAttitude({
+  // The blog reads the thinking list from Core on every request, so clear Core's HTTP cache before replying;
+  // otherwise the page refresh right after a vote shows the counts cached before it
+  async updateAttitude(input: {
+    id: string
+    attitude: RecentlyAttitudeEnum
+    ip: string
+  }) {
+    const result = await this.saveAttitude(input)
+    await this.redisService.cleanCatch()
+    return result
+  }
+
+  private async saveAttitude({
     id,
     attitude,
     ip,

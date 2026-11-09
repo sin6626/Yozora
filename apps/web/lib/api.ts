@@ -55,12 +55,13 @@ async function viaCore<T>(url: string, method: string, send: (url: string) => Pr
   }
 }
 
-// 发给 Core 的附加请求头：内部密钥（YOZORA_INTERNAL_KEY，Core 对“密钥对且没有转发读者 IP”的请求放行限流），
-// 现取的客户端再加读者 IP
-function withHeaders(init: HeadersInit | undefined, ip: string | null) {
+// 发给 Core 的附加请求头。internal：Next 缓存重建（getApiClient、coreFetch）带内部密钥 YOZORA_INTERNAL_KEY，
+// Core 对“密钥对且没有转发读者 IP”的请求放行限流；现取客户端是替某位读者发的，永远不带密钥（拿不到读者 IP 时
+// 也不带，按 Next 自己的 IP 限流），否则访客能触发的服务端函数会被当成内部请求、绕过限流。现取客户端再加读者 IP
+function withHeaders(init: HeadersInit | undefined, ip: string | null, internal: boolean) {
   const result = new Headers(init);
   const key = process.env.YOZORA_INTERNAL_KEY;
-  if (key) result.set("x-yozora-internal-key", key);
+  if (key && internal) result.set("x-yozora-internal-key", key);
   if (ip) {
     result.set("x-real-ip", ip);
     result.set("x-forwarded-for", ip);
@@ -69,17 +70,21 @@ function withHeaders(init: HeadersInit | undefined, ip: string | null) {
   return Object.fromEntries(result);
 }
 
-// 不经 SDK 的服务端请求（lib/i18n/data.ts：SDK 会把键名改成驼峰）。path 以 / 开头；返回原始 Response，4xx/5xx 不抛错
+// 不经 SDK 的服务端请求（lib/i18n/data.ts：SDK 会把键名改成驼峰），给 Next 缓存重建用。path 以 / 开头；返回 Response，4xx/5xx 不抛错。
+// 正文在重试范围内读完再返回：内网收到响应头后正文中途断开也算网络错误，改走公网
 export function coreFetch(path: string, init: RequestInit = {}) {
   const method = init.method ?? "GET";
-  return viaCore(`${getApiUrl()}${path}`, method, (url) => fetch(url, { ...init, method, headers: withHeaders(init.headers, null), cache: "no-store", signal: AbortSignal.timeout(timeout) }));
+  return viaCore(`${getApiUrl()}${path}`, method, async (url) => {
+    const response = await fetch(url, { ...init, method, headers: withHeaders(init.headers, null, true), cache: "no-store", signal: AbortSignal.timeout(timeout) });
+    return new Response(await response.arrayBuffer(), response);
+  });
 }
 
 // lang：外文页面向 Core 要内容时带上 ?lang=en|ja，Core 会把已有的译文换进去（文章、手记的标题和正文、分类名、话题、心情、天气，
 // 来自后台的 AI 翻译和“翻译条目”）；没有译文的保持中文。用查询参数而不是 x-lang 请求头：Core 的接口缓存按地址区分。
-function adapterFor(lang: string | undefined, ip: string | null): typeof fetchAdaptor {
+function adapterFor(lang: string | undefined, ip: string | null, internal: boolean): typeof fetchAdaptor {
   type Options = Parameters<typeof fetchAdaptor.get>[1];
-  const options = (value: Options) => ({ ...value, headers: withHeaders(value?.headers, ip), cache: "no-store" as const, signal: AbortSignal.timeout(timeout) });
+  const options = (value: Options) => ({ ...value, headers: withHeaders(value?.headers, ip, internal), cache: "no-store" as const, signal: AbortSignal.timeout(timeout) });
   return {
     ...fetchAdaptor,
     get(url, value) {
@@ -93,8 +98,8 @@ function adapterFor(lang: string | undefined, ip: string | null): typeof fetchAd
   };
 }
 
-function clientFor(lang: string | undefined, ip: string | null) {
-  return createClient(adapterFor(lang && lang !== "zh" ? lang : undefined, ip))(getApiUrl(), {
+function clientFor(lang: string | undefined, ip: string | null, internal: boolean) {
+  return createClient(adapterFor(lang && lang !== "zh" ? lang : undefined, ip, internal))(getApiUrl(), {
     controllers: [ActivityController, AggregateController, CategoryController, PostController, NoteController, PageController, ProjectController, SearchController, TopicController, LinkController, MurmurController, SayController, RecentlyController, CommentController, SubscribeController, SnippetController, AIController],
     customThrowResponseError(error) {
       unstable_rethrow(error);
@@ -105,7 +110,7 @@ function clientFor(lang: string | undefined, ip: string | null) {
 
 // 给放进 Next 缓存（"use cache"）的函数用：那里读不到请求头，不带读者 IP，靠内部密钥放行 Core 的限流
 export function getApiClient(lang?: string) {
-  return clientFor(lang, null);
+  return clientFor(lang, null, true);
 }
 
 // 读者 IP：Next 只监听 127.0.0.1、只有 openresty 能访问，它写的 x-real-ip / x-forwarded-for 可信。
@@ -118,5 +123,5 @@ async function readerIp() {
 
 // 给每次请求现取的函数用（不能放进 "use cache"，会读请求头）：把读者 IP 转给 Core，限流按读者算
 export async function getLiveApiClient(lang?: string) {
-  return clientFor(lang, await readerIp());
+  return clientFor(lang, await readerIp(), false);
 }

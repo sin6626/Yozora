@@ -41,15 +41,20 @@ export class AnalyzeInterceptor implements NestInterceptor {
   // Every non-skipped GET counts as an API call; batched so a burst of Next's server requests is one $inc
   private pendingCalls = 0
   private callTimer: ReturnType<typeof setTimeout> | null = null
-  private countApiCall() {
-    this.pendingCalls++
+  // A failed write puts its batch back so the next one carries it. ponytail: if Mongo applied the $inc but the
+  // reply was lost, that batch is counted twice; acceptable for a display counter.
+  private countApiCall(count = 1) {
+    this.pendingCalls += count
     this.callTimer ??= setTimeout(() => {
-      const count = this.pendingCalls
+      const batch = this.pendingCalls
       this.pendingCalls = 0
       this.callTimer = null
       this.options
-        .updateOne({ name: 'apiCallTime' }, { $inc: { value: count } }, { upsert: true })
-        .catch(console.error)
+        .updateOne({ name: 'apiCallTime' }, { $inc: { value: batch } }, { upsert: true })
+        .catch((error) => {
+          console.error(error)
+          this.countApiCall(batch)
+        })
     }, 1000)
   }
 

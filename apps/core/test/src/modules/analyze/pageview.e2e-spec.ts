@@ -101,4 +101,19 @@ describe('GET /pageview', async () => {
     expect(await todayIps()).toContain('203.0.113.21')
     expect(await apiCalls()).toBe(before + 1)
   })
+
+  // Codex review: a failed $inc must not drop that batch; the next successful write carries it
+  it('keeps API call counts when a batch write fails and adds them to the next one', async () => {
+    const before = await apiCalls()
+    const write = vi.spyOn(options, 'updateOne').mockRejectedValueOnce(new Error('mongo down'))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    await app.inject({ method: 'GET', url: `${apiRoutePrefix}/ping`, headers: browser('203.0.113.30') })
+    await app.inject({ method: 'GET', url: `${apiRoutePrefix}/ping`, headers: browser('203.0.113.31') })
+    await settle()
+    await app.inject({ method: 'GET', url: `${apiRoutePrefix}/ping`, headers: browser('203.0.113.32') })
+    await settle()
+    await settle()
+    expect(write).toHaveBeenCalled()
+    expect(await apiCalls()).toBe(before + 3)
+  })
 })

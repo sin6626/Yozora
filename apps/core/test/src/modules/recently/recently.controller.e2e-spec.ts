@@ -14,6 +14,7 @@ import { RecentlyService } from '~/modules/recently/recently.service'
 import { DatabaseService } from '~/processors/database/database.service'
 import { EventManagerService } from '~/processors/helper/helper.event.service'
 import { RedisService } from '~/processors/redis/redis.service'
+import { vi } from 'vitest'
 
 describe('test /recently', async () => {
   let app: NestFastifyApplication
@@ -213,5 +214,29 @@ describe('test /recently', async () => {
       },
     })
     expect(res.statusCode).toBe(422)
+  })
+
+  // Yozora reads the thinking list from Core on every request (Core's HTTP cache is the only cache), so a vote
+  // must clear that cache before replying, otherwise the refresh right after shows the old counts
+  test('GET /recently/attitude/:id clears the HTTP cache before replying', async () => {
+    const redis = (await redisHelper).RedisService as unknown as { cleanCatch?: () => Promise<void> }
+    let cleared = false
+    redis.cleanCatch = vi.fn(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      cleared = true
+    })
+    try {
+      const doc = await model.create({ content: 'vote me' })
+      const res = await app.inject({
+        method: 'GET',
+        url: `${apiRoutePrefix}/recently/attitude/${doc.id}?attitude=0`,
+        headers: { 'x-forwarded-for': '203.0.113.40' },
+      })
+      expect(res.statusCode).toBe(200)
+      expect(redis.cleanCatch).toHaveBeenCalled()
+      expect(cleared).toBe(true)
+    } finally {
+      delete redis.cleanCatch
+    }
   })
 })

@@ -9,6 +9,9 @@ const ts = require('typescript')
 const source = readFileSync(new URL('../apps/web/lib/blog-data.ts', import.meta.url), 'utf8')
 const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
 const lifetimes = [], tags = [], calls = []
+let detailCalls = 0
+// React cache 替身：按参数记住第一次的结果，模拟同一次渲染里的去重
+const memo = (fn) => { const seen = new Map(); return (...args) => { const key = JSON.stringify(args); if (!seen.has(key)) seen.set(key, fn(...args)); return seen.get(key) } }
 const themeConfig = { exports: runTs('apps/web/lib/theme-config.ts', { './i18n/msg': loadI18n().msg }) }
 const noteExtras = runTs('apps/web/lib/note-extras.ts', { './safe-url': { safeUrl: (value) => value && /^https?:\/\//i.test(value) ? value : undefined } })
 const i18nConfig = runTs('apps/web/lib/i18n/config.ts')
@@ -69,13 +72,13 @@ const api = {
   page: { getList: async () => ({ data: [{ id: 'page-id', subtitle: ' about me ' }] }), getBySlug: async () => detailError ? Promise.reject(detailError) : ({ id: 'page-id', title: '关于我', subtitle: 'about me', text: 'page body', contentFormat: 'lexical', content: 'unused JSON', allowComment: true }) },
   post: {
     getList: async (...args) => { calls.push(args); return { data: [post], pagination: { total: 1 } } },
-    getPost: async () => { if (detailError) throw detailError; return post },
+    getPost: async () => { detailCalls++; if (detailError) throw detailError; return post },
   },
 }
 const module = { exports: {} }
 vm.runInNewContext(code, {
   module, exports: module.exports,
-  require: (id) => id === 'server-only' ? {} : id === './excerpt' ? { excerpt: (value) => value ?? '', readingMinutes: () => 1 } : id === './social' ? { socialLinks: () => [], socialCards: () => [] } : id === './theme-config' ? themeConfig.exports : id === './note-extras' ? noteExtras : id === './i18n/config' ? i18nConfig : id === './i18n/data' ? { getI18nBundle: async (lang) => i18nBundles[lang] ?? emptyBundle } : id === './safe-url' ? { safeUrl: (value) => value && /^https?:\/\//i.test(value) ? value : undefined } : id === './api' ? { getApiClient: () => api, getLiveApiClient: async () => api } : id === 'next/cache' ? { cacheLife: (value) => lifetimes.push(value), cacheTag: (...value) => tags.push(...value) } : require(id),
+  require: (id) => id === 'server-only' ? {} : id === './excerpt' ? { excerpt: (value) => value ?? '', readingMinutes: () => 1 } : id === './social' ? { socialLinks: () => [], socialCards: () => [] } : id === './theme-config' ? themeConfig.exports : id === './note-extras' ? noteExtras : id === './i18n/config' ? i18nConfig : id === './i18n/data' ? { getI18nBundle: async (lang) => i18nBundles[lang] ?? emptyBundle } : id === './safe-url' ? { safeUrl: (value) => value && /^https?:\/\//i.test(value) ? value : undefined } : id === './api' ? { getApiClient: () => api, getLiveApiClient: async () => api } : id === 'react' ? { cache: memo } : id === 'next/cache' ? { cacheLife: (value) => lifetimes.push(value), cacheTag: (...value) => tags.push(...value) } : require(id),
 })
 const cache = module.exports
 const navigation = await cache.getNavigationData()
@@ -195,6 +198,12 @@ assert.deepEqual((await cache.getProjects('zh')).map((item) => [item.nameLang, i
 projectList = [project]
 i18nBundles = {}
 
+// 同一次请求里元数据（不带 lang）和正文（带 lang）要同一篇文章：只向 Core 要一次
+detailCalls = 0
+await cache.getPost('technology', 'dedupe')
+await cache.getPost('technology', 'dedupe', 'en')
+assert.equal(detailCalls, 1, '元数据和正文共用一次 Core 请求（React cache 包在不带 lang 的原始请求上）')
+
 // 缓存分层（docs/architecture-cache-plan.md 的分类表）：这些函数每次现取，不能带 "use cache"；其余导出的读取函数都要带
 const dataSource = readFileSync(new URL('../apps/web/lib/blog-data.ts', import.meta.url), 'utf8')
 const live = ['getPost', 'getNote', 'getPage', 'getPosts', 'getNotes', 'getMatchedPosts', 'getMatchedNotes', 'getComments', 'getRecentActivity', 'getLinks', 'getLinkApplyOpen', 'getAllSays', 'getMurmurs', 'getRecently', 'getProjects', 'getSiteLikes', 'searchPosts', 'searchNotes']
@@ -207,6 +216,23 @@ for (const name of live) {
 for (const [name, body] of bodies) {
   if (live.includes(name) || !/^get[A-Z]/.test(name) || !/getApiClient\(/.test(body)) continue
   assert.ok(body.includes('"use cache"'), `${name} 直接请求 Core 却没有 "use cache"，要么放进 Next 缓存，要么加进现取名单`)
+}
+// 带 "use cache" 的函数里读不到请求头：不能用现取客户端、不能调用现取函数（含 corePost 这类原始请求）
+const liveCall = new RegExp(`\\b(getLiveApiClient|core(?:Post|Note|Page)|${live.join('|')})\\(`)
+for (const [name, body] of bodies) {
+  if (!body.includes('"use cache"')) continue
+  assert.ok(!liveCall.test(body), `${name} 带 "use cache"，却调用了现取的 ${body.match(liveCall)?.[1]}`)
+}
+// blog-data 以外：访客能触发的服务端函数（"use server"）一律用现取客户端，否则带着内部密钥、不带读者 IP，绕过 Core 的限流；
+// 其他地方用 getApiClient 的只能是带 "use cache" 的文件
+const { readdirSync } = await import('node:fs')
+const webRoot = new URL('../apps/web/', import.meta.url)
+const files = readdirSync(webRoot, { recursive: true }).filter((file) => /^(app|components|lib)\//.test(file) && /\.tsx?$/.test(file) && !/^lib\/(blog-data|api)\.ts$/.test(file))
+for (const file of files) {
+  const text = readFileSync(new URL(file, webRoot), 'utf8')
+  if (!/getApiClient\(/.test(text)) continue
+  assert.ok(!text.includes('"use server"'), `${file} 是服务端函数（访客能触发），要用 getLiveApiClient`)
+  assert.ok(text.includes('"use cache"'), `${file} 用了不带读者 IP 的 getApiClient，却不在 "use cache" 里`)
 }
 console.log('verify-blog-cache: ok')
 

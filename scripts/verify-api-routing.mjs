@@ -200,13 +200,30 @@ try {
     assert.equal(requests[0].headers.get('x-real-ip'), '203.0.113.5')
   }
 
-  // 内部密钥：设置了就带 x-yozora-internal-key（两个客户端和 coreFetch 都带），没设置不带
+  // 内部密钥：只有 Next 缓存重建用的 getApiClient 和 coreFetch 带；现取客户端是替读者发的，永远不带，
+  // 拿不到读者 IP 时也不带（Codex 复查：否则访客能触发的服务端函数会被 Core 当成内部请求、绕过限流）
   {
     const { api, requests } = setup({ key: 'k'.repeat(64), readerHeaders: { 'x-real-ip': '203.0.113.5' } })
     await api.getApiClient().aggregate.getAggregateData()
     await (await api.getLiveApiClient()).aggregate.getAggregateData()
     await api.coreFetch('/ai/i18n')
-    assert.deepEqual(requests.map((r) => r.headers.get('x-yozora-internal-key')), ['k'.repeat(64), 'k'.repeat(64), 'k'.repeat(64)])
+    assert.deepEqual(requests.map((r) => r.headers.get('x-yozora-internal-key')), ['k'.repeat(64), null, 'k'.repeat(64)])
+  }
+  {
+    const { api, requests } = setup({ key: 'k'.repeat(64) })
+    await (await api.getLiveApiClient()).aggregate.getAggregateData()
+    assert.equal(requests[0].headers.has('x-yozora-internal-key'), false, '没有读者 IP 的现取请求也不带密钥')
+  }
+
+  // 内网收到响应头后正文中途断开：同样改走公网、进入 60 秒熔断（Codex 复查：原来只包住了 fetch，读正文在外面）
+  {
+    const { api, requests, state } = setup()
+    state.reply = (url) => url.startsWith(internalUrl)
+      ? new Response(new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode('{"lang":')); controller.error(networkError()) } }))
+      : Response.json({ lang: 'en' })
+    assert.deepEqual(await (await api.coreFetch('/ai/i18n/en')).json(), { lang: 'en' })
+    await api.coreFetch('/ai/i18n/ja')
+    assert.deepEqual(requests.map((r) => r.url), [`${internalUrl}/ai/i18n/en`, `${publicUrl}/ai/i18n/en`, `${publicUrl}/ai/i18n/ja`])
   }
   {
     const { api, requests } = setup()
