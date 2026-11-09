@@ -29,11 +29,12 @@ export async function readEditorImage(file: File, signal?: AbortSignal, normaliz
 
 export async function readImage(file: File, signal?: AbortSignal, normalize?: NormalizeMedia) {
   signal?.throwIfAborted();
+  if (!file.size || file.size > 20 * 1024 * 1024) throw new Error('Choose a non-empty cover up to 20 MB.');
   const heif = await isHeif(file);
   if (heif) file = (await normalizeCover(file, signal, normalize)).file;
-  if (!/\.(png|jpe?g)$/i.test(file.name)) throw new Error('Choose a PNG, JPEG, HEIC or HEIF cover image.');
+  if (!/\.(png|jpe?g|webp|gif|avif|bmp)$/i.test(file.name) && !/^image\/(png|jpeg|webp|gif|avif|bmp)$/i.test(file.type)) throw new Error('Choose a supported raster cover image.');
   if (file.size > 20 * 1024 * 1024) throw new Error('Images must be smaller than 20 MB.');
-  const bitmap = await createImageBitmap(file).catch(() => { throw new Error('Could not decode the image. Choose a PNG or JPEG file.'); });
+  const bitmap = await createImageBitmap(file).catch(() => { throw new Error('This browser could not decode the cover image.'); });
   try {
     if (bitmap.width * bitmap.height > 24_000_000) throw new Error('Images must be no larger than 24 megapixels.');
     if (heif) return { blob: file, name: file.name, width: bitmap.width, height: bitmap.height, converted: true };

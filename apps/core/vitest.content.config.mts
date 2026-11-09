@@ -8,6 +8,7 @@ export default defineConfig({
     include: [
       'test/editor/content-contract.spec.ts',
       'test/editor/live-photo.spec.ts',
+      'test/editor/live-photo-formats.spec.ts',
       'test/editor/lexical-projection.spec.ts',
       'test/editor/legacy-quote.spec.ts',
       'test/src/processors/helper/helper.lexical.service.spec.ts',

@@ -1,5 +1,27 @@
+diff --git a/dist/ImageEditRenderer.d.ts b/dist/ImageEditRenderer.d.ts
+index cf3e3167e75f5f75b73ac256ab6bc4760f14f184..9bced7f2b63a1942b5c3446cc70c24ed6e06a632 100644
+--- a/dist/ImageEditRenderer.d.ts
++++ b/dist/ImageEditRenderer.d.ts
+@@ -1,3 +1,5 @@
+ import { ImageRendererProps } from '@haklex/rich-editor/renderers';
+ export declare function ImageEditRenderer(props: ImageRendererProps): import("react/jsx-runtime").JSX.Element;
+-//# sourceMappingURL=ImageEditRenderer.d.ts.map
+\ No newline at end of file
++//# sourceMappingURL=ImageEditRenderer.d.ts.map
++import type { Provider, ReactNode } from "react";
++export declare const ImageEditExtensionsProvider: Provider<{ coverAccept?: string; replaceCover?: (input: File) => Promise<{file:File; src:string}>; mediaOverlay?: ReactNode; renderToolbarActions?: (buttonClassName: string) => ReactNode; onDownload?: () => void | Promise<void>; }>;
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index 81c573d17aea1d84975d1b91e09645759333093c..976125933a7025c436cda407499c703b87cec489 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -1,3 +1,3 @@
+-export { ImageEditRenderer } from './ImageEditRenderer';
++export { ImageEditRenderer, ImageEditExtensionsProvider } from './ImageEditRenderer';
+ export { ImageRenderer } from './ImageRenderer';
+ //# sourceMappingURL=index.d.ts.map
+\ No newline at end of file
 diff --git a/dist/index.mjs b/dist/index.mjs
-index db30cad..73f628f 100644
+index db30cad426746d6b5b924ff78bbfccc30be39089..eab1237ff8e641342d35ad358e443b2bb788b2fa 100644
 --- a/dist/index.mjs
 +++ b/dist/index.mjs
 @@ -2,14 +2,16 @@ import { jsx, jsxs, Fragment } from "react/jsx-runtime";
@@ -26,7 +48,7 @@ index db30cad..73f628f 100644
    });
  }
  function useImageActions() {
-+  const { onDownload } = useContext(ImageEditExtensionsContext);
++  const { onDownload, replaceCover } = useContext(ImageEditExtensionsContext);
    const store = useStore();
    const [editor] = useLexicalComposerContext();
    const uploadImage = useImageUpload();
@@ -60,11 +82,56 @@ index db30cad..73f628f 100644
    }, [withImageNode]);
    const handleReplaceFile = useCallback(
      async (file) => {
-       if (!file || !file.type.startsWith("image/")) return;
+-      if (!file || !file.type.startsWith("image/")) return;
++      if (!file || (!replaceCover && !file.type.startsWith("image/"))) return;
        store.set(replaceLoadingAtom, true);
        store.set(replaceErrorAtom, null);
        try {
-@@ -474,6 +470,7 @@ function ReplacePanel() {
+@@ -226,7 +222,8 @@ function useImageActions() {
+           altText: nextFile.name
+         });
+         const uploader = uploadImage ?? fallbackUploader;
+-        const [result, meta] = await Promise.all([uploader(file), computeImageMeta(file)]);
++        const prepared = replaceCover ? await replaceCover(file) : null;
++        const [result, meta] = prepared ? [prepared, await computeImageMeta(prepared.file)] : await Promise.all([uploader(file), computeImageMeta(file)]);
+         withImageNode((node) => {
+           node.setSrc(result.src);
+           node.setAltText(result.altText ?? file.name);
+@@ -234,13 +231,13 @@ function useImageActions() {
+           node.setThumbhash(result.thumbhash ?? meta.thumbhash);
+         });
+         closeReplacePanel();
+-      } catch {
+-        store.set(replaceErrorAtom, "Failed to replace image");
++      } catch (error) {
++        store.set(replaceErrorAtom, replaceCover && error instanceof Error ? error.message : "Failed to replace image");
+       } finally {
+         store.set(replaceLoadingAtom, false);
+       }
+     },
+-    [closeReplacePanel, store, uploadImage, withImageNode]
++    [closeReplacePanel, store, uploadImage, withImageNode, replaceCover]
+   );
+   const handlePreviewUrl = useCallback(async () => {
+     const url = store.get(replaceUrlAtom).trim();
+@@ -382,6 +379,7 @@ const replaceModeItems = [
+   { value: "url", label: "URL" }
+ ];
+ function ReplacePanel() {
++  const { coverAccept } = useContext(ImageEditExtensionsContext);
+   const replaceMode = useAtomValue(replaceModeAtom);
+   const setReplaceMode = useSetAtom(replaceModeAtom);
+   const replaceUrl = useAtomValue(replaceUrlAtom);
+@@ -405,7 +403,7 @@ function ReplacePanel() {
+       /* @__PURE__ */ jsx(
+         "input",
+         {
+-          accept: "image/*",
++          accept: coverAccept ?? "image/*",
+           ref: fileInputRef,
+           style: { display: "none" },
+           type: "file",
+@@ -474,6 +472,7 @@ function ReplacePanel() {
    ] });
  }
  function ImageEditToolbar() {
@@ -72,7 +139,7 @@ index db30cad..73f628f 100644
    const toolbarVisible = useAtomValue(toolbarVisibleAtom);
    const metaOpen = useAtomValue(metaOpenAtom);
    const setMetaOpen = useSetAtom(metaOpenAtom);
-@@ -484,6 +481,7 @@ function ImageEditToolbar() {
+@@ -484,6 +483,7 @@ function ImageEditToolbar() {
      {
        className: `${editToolbar} ${semanticClassNames.editToolbar} ${toolbarVisible ? `${editToolbarVisible} ${semanticClassNames.editToolbarVisible}` : ""}`,
        children: [
@@ -80,7 +147,7 @@ index db30cad..73f628f 100644
          /* @__PURE__ */ jsxs(
            Popover,
            {
-@@ -624,6 +622,7 @@ function ImageEditRendererInner(props) {
+@@ -624,6 +624,7 @@ function ImageEditRendererInner(props) {
    return /* @__PURE__ */ jsx(ImageEditProvider, { props, children: /* @__PURE__ */ jsx(ImageEditContent, {}) });
  }
  function ImageEditContent() {
@@ -88,7 +155,7 @@ index db30cad..73f628f 100644
    const wrapperRef = useAtomValue(wrapperRefAtom);
    const setHovering = useSetAtom(hoveringAtom);
    const src = useAtomValue(srcAtom);
-@@ -678,6 +677,7 @@ function ImageEditContent() {
+@@ -678,6 +679,7 @@ function ImageEditContent() {
                      onLoad: () => setLoadState("loaded")
                    }
                  ),
@@ -96,7 +163,7 @@ index db30cad..73f628f 100644
                  loadState === "loading" && /* @__PURE__ */ jsx("span", { className: `${loader} ${semanticClassNames.loader}` }),
                  loadState === "error" && /* @__PURE__ */ jsx("span", { className: `${errorBadge} ${semanticClassNames.errorBadge}`, children: "Image failed to load" })
                ]
-@@ -698,6 +698,7 @@ function ImageEditContent() {
+@@ -698,6 +700,7 @@ function ImageEditContent() {
    );
  }
  export {
@@ -104,25 +171,3 @@ index db30cad..73f628f 100644
    ImageEditRenderer,
    ImageRenderer
  };
-diff --git a/dist/index.d.ts b/dist/index.d.ts
-index 81c573d..9761259 100644
---- a/dist/index.d.ts
-+++ b/dist/index.d.ts
-@@ -1,3 +1,3 @@
--export { ImageEditRenderer } from './ImageEditRenderer';
-+export { ImageEditRenderer, ImageEditExtensionsProvider } from './ImageEditRenderer';
- export { ImageRenderer } from './ImageRenderer';
- //# sourceMappingURL=index.d.ts.map
-\ No newline at end of file
-diff --git a/dist/ImageEditRenderer.d.ts b/dist/ImageEditRenderer.d.ts
-index cf3e316..9cb2a83 100644
---- a/dist/ImageEditRenderer.d.ts
-+++ b/dist/ImageEditRenderer.d.ts
-@@ -1,3 +1,5 @@
- import { ImageRendererProps } from '@haklex/rich-editor/renderers';
- export declare function ImageEditRenderer(props: ImageRendererProps): import("react/jsx-runtime").JSX.Element;
--//# sourceMappingURL=ImageEditRenderer.d.ts.map
-\ No newline at end of file
-+//# sourceMappingURL=ImageEditRenderer.d.ts.map
-+import type { Provider, ReactNode } from "react";
-+export declare const ImageEditExtensionsProvider: Provider<{ mediaOverlay?: ReactNode; renderToolbarActions?: (buttonClassName: string) => ReactNode; onDownload?: () => void | Promise<void>; }>;

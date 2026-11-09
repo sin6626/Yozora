@@ -111,6 +111,11 @@ try {
     if (message.method !== "Fetch.requestPaused") return;
     const { requestId, request } = message.params;
     const u = new URL(request.url);
+    if (u.pathname.endsWith("/files/live-photo/normalize/video")) {
+      // The standard fixture MP4 is compatible: real normalization is covered by the Core HTTP tests.
+      await send("Fetch.fulfillRequest", {requestId, responseCode:204});
+      return;
+    }
     if (request.method === "POST" && u.pathname.endsWith("/files/upload")) {
       const type = u.searchParams.get("type");
       uploads.push(type);
@@ -162,6 +167,7 @@ try {
   await send("Fetch.enable", {
     patterns: [
       { urlPattern: "*/files/upload*" },
+      { urlPattern: "*/files/live-photo/normalize/*" },
       { urlPattern: admin + "/sample-media/*" },
     ],
   });
@@ -194,10 +200,10 @@ try {
   await sleep(250);
   await wait("document.querySelector('[role=dialog] input')", "dialog");
   await setFile(
-    'input[accept="image/jpeg,image/png"]',
+    'input[aria-label="Cover image"]',
     fixture("live-cover.jpg"),
   );
-  await setFile('input[accept="video/mp4,.mp4"]', fixture("live-clip.mp4"));
+  await setFile('input[aria-label="Video clip"]', fixture("live-clip.mp4"));
   const insert = async () => {
     await evaluate(
       "[...document.querySelectorAll('[role=dialog] button')].find(b=>b.textContent==='Insert').dataset.testInsert='true'",

@@ -2,6 +2,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 
 import {
+  BadRequestException,
   Body,
   Delete,
   Get,
@@ -40,6 +41,7 @@ import {
   FileUploadDto,
   RenameFileQueryDto,
 } from './file.schema'
+import { normalizeLiveMedia, sourceLimit } from './live-photo-media'
 import { FileService } from './file.service'
 import { FileReferenceService } from './file-reference.service'
 
@@ -153,6 +155,23 @@ export class FileController {
     } catch {
       throw new CannotFindException()
     }
+  }
+
+  @Post('/live-photo/normalize/:kind')
+  @Auth()
+  @HTTPDecorators.Bypass
+  async prepareLivePhoto(@Param('kind') kind: string, @Req() req: FastifyRequest, @Res() reply: FastifyReply) {
+    if (kind !== 'image' && kind !== 'video') throw new BadRequestException('Expected image or video.')
+    const cancel = new AbortController()
+    const abort = () => cancel.abort()
+    reply.raw.once('close', abort)
+    try {
+      const bytes = await normalizeLiveMedia(kind, () => this.uploadService.getAndValidMultipartField(req, {maxFileSize:sourceLimit[kind]}),
+        AbortSignal.any([cancel.signal, AbortSignal.timeout(120_000)]))
+      reply.header('Cache-Control','no-store')
+      if (!bytes) return reply.code(204).send()
+      return reply.code(200).type(kind === 'image' ? 'image/jpeg' : 'video/mp4').send(bytes)
+    } finally { reply.raw.off('close', abort) }
   }
 
   @Post('/upload')

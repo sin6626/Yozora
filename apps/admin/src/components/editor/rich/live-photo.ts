@@ -42,11 +42,29 @@ import {
 } from '@yozora/live-photo/haklex'
 
 import { filesApi } from '~/api/files'
+import { normalizeLiveMedia } from '~/api/live-photo-media'
+
+const coverAccept =
+  'image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp,image/heic,image/heif,.heic,.heif'
+const videoAccept =
+  'video/mp4,video/quicktime,video/webm,.mp4,.m4v,.mov,.webm,.mkv,.avi'
+async function prepareCover(file: File, signal?: AbortSignal) {
+  const image = await readImage(file, signal, normalizeLiveMedia)
+  if (image.blob.size > 20 * 1024 * 1024)
+    throw Error('The prepared cover exceeds 20 MB.')
+  const jpeg = new File(
+    [image.blob],
+    file.name.replace(/\.[^.]+$/, '') + '.jpg',
+    { type: 'image/jpeg' },
+  )
+  return { file: jpeg, width: image.width, height: image.height }
+}
 
 const clipLimit = 6 * 1024 * 1024
 async function prepareClip(file: File, signal: AbortSignal) {
-  if (file.size > clipLimit) throw Error('Choose a video up to 6 MB.')
-  const clip = await readVideo(file, signal)
+  const clip = await readVideo(file, signal, normalizeLiveMedia)
+  if (clip.blob.size > clipLimit)
+    throw Error('The prepared MP4 exceeds 6 MB. Try a shorter clip.')
   return new File([clip.blob], file.name.replace(/\.[^.]+$/, '') + '.mp4', {
     type: 'video/mp4',
   })
@@ -161,6 +179,22 @@ export function EditPhoto({
           videoSrc: photo.videoSrc,
           muted,
         }),
+        coverAccept,
+        replaceCover: async (source: File) => {
+          if (job.current) throw Error('Another media operation is running.')
+          const op = new AbortController()
+          job.current = op
+          try {
+            const { file } = await prepareCover(source, op.signal)
+            const { url } = await filesApi.upload(file, 'image', op.signal)
+            op.signal.throwIfAborted()
+            if (!mediaUrl(url))
+              throw Error('The cover upload returned an invalid URL.')
+            return { file, src: url }
+          } finally {
+            job.current = null
+          }
+        },
         onDownload: download,
         renderToolbarActions: (className) => [
           h(
@@ -197,7 +231,7 @@ export function EditPhoto({
       ref: input,
       hidden: true,
       type: 'file',
-      accept: '.mp4,video/mp4',
+      accept: videoAccept,
       'aria-label': 'Replacement clip',
       onChange: (e) => {
         void replace(e.currentTarget.files?.[0])
@@ -321,15 +355,8 @@ export function LivePhotoPlugin() {
       const readyClip = await prepareClip(videoFile, signal)
       let uploaded = cachedCover.current
       if (uploaded?.file !== imageFile) {
-        const image = await readImage(imageFile, signal)
-        if (image.blob.size > 20 * 1024 * 1024)
-          throw Error('The prepared cover exceeds 20 MB.')
-        const name = imageFile.name.replace(/\.[^.]+$/, '') + '.jpg'
-        const { url } = await filesApi.upload(
-          new File([image.blob], name, { type: 'image/jpeg' }),
-          'image',
-          signal,
-        )
+        const image = await prepareCover(imageFile, signal)
+        const { url } = await filesApi.upload(image.file, 'image', signal)
         signal.throwIfAborted()
         if (!mediaUrl(url))
           throw Error('The cover upload returned an invalid URL.')
@@ -390,27 +417,29 @@ export function LivePhotoPlugin() {
       h(
         DialogDescription,
         null,
-        'Choose a cover and a short, browser-playable MP4. Press and hold the photo to play.',
+        'Choose a cover and a short clip. They are prepared as JPEG and MP4 before upload.',
       ),
       h(
         'label',
         { className: 'yz-photo-field' },
-        'Cover image · JPEG / PNG · 20 MB',
+        'Cover · JPEG, PNG, HEIC/HEIF, WebP, GIF, AVIF or BMP · 20 MB',
         h('input', {
           ref: cover,
           type: 'file',
-          accept: 'image/jpeg,image/png',
+          accept: coverAccept,
+          'aria-label': 'Cover image',
           disabled: busy,
         }),
       ),
       h(
         'label',
         { className: 'yz-photo-field' },
-        'Video clip · MP4 · 6 MB / 30s',
+        'Clip · MP4, MOV, M4V, WebM, MKV or AVI · 100 MB / 30s · output up to 6 MB',
         h('input', {
           ref: clip,
           type: 'file',
-          accept: 'video/mp4,.mp4',
+          accept: videoAccept,
+          'aria-label': 'Video clip',
           disabled: busy,
         }),
       ),
@@ -422,7 +451,7 @@ export function LivePhotoPlugin() {
         h(
           ActionButton,
           { variant: 'accent', disabled: busy, onClick: insert },
-          busy ? 'Uploading…' : 'Insert',
+          busy ? 'Preparing and uploading…' : 'Insert',
         ),
       ),
     ),
