@@ -63,6 +63,20 @@
   height: 1.125rem;
 }
 
+/* 换 App 时新旧图标叠在同一格里上下滑，格子裁掉滑出去的部分（owner-presence.tsx 的 AppSlot） */
+.brand-ticker-apps {
+  display: grid;
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  overflow: clip;
+}
+
+.brand-ticker-app {
+  display: grid;
+  grid-area: 1 / 1;
+}
+
 /* 没有图标时：写着 App 名首字的小方块；Companion 的 32×32 小图标不放大 */
 .brand-ticker-icon[data-kind="letter"],
 .presence-note-icon[data-kind="letter"] {

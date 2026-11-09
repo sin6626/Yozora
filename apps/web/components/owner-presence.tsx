@@ -1,8 +1,8 @@
 "use client";
 
 import { Popover } from "@base-ui/react/popover";
-import { motion } from "motion/react";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { useIsland } from "../lib/island-store";
 import {
   applyPresenceEvent,
@@ -95,6 +95,46 @@ function AppIcon({ app, className }: { app: PresenceApp; className: string }) {
 }
 
 // 四根音频条：在放歌时上下跳，没放歌时缩成几颗安静的点
+// 换 App 时图标“向下滚”换过去（2026-11-09 站长要求，原来是瞬间替换）：新图标从上方滑进来，旧的往下滑出去，
+// 两个叠在同一格里、格子裁掉滑出去的部分；减少动态效果时直接换（e2e presence-switch.mjs）
+// Motion 的 useReducedMotion 只在挂载时读一次，打开页面后再改系统设置不生效，这里跟着媒体查询走
+const slide = { duration: 0.42, ease: [0.65, 0, 0.35, 1] } as const;
+const appSlide = {
+  enter: (reduce: boolean) => ({ y: reduce ? 0 : "-100%" }),
+  center: { y: 0 },
+  exit: (reduce: boolean) => (reduce ? { y: 0, transition: { duration: 0 } } : { y: "100%" }),
+};
+const reduceQuery = "(prefers-reduced-motion: reduce)";
+const watchReduce = (onChange: () => void) => {
+  const query = matchMedia(reduceQuery);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+};
+function AppSlot({ app }: { app: PresenceApp | null }) {
+  const reduce = useSyncExternalStore(watchReduce, () => matchMedia(reduceQuery).matches, () => false);
+  if (!app) return null;
+  return (
+    <span className="brand-ticker-apps">
+      {/* custom 让正在滑出去的旧图标也拿到最新的“减少动态效果”（它保留的是自己最后一次渲染时的属性） */}
+      <AnimatePresence initial={false} custom={reduce}>
+        <motion.span
+          key={app.name}
+          className="brand-ticker-app"
+          data-app={app.name}
+          custom={reduce}
+          variants={appSlide}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={slide}
+        >
+          <AppIcon app={app} className="brand-ticker-icon" />
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
+
 function Bars({ playing }: { playing: boolean }) {
   return (
     <span className="presence-bars" data-playing={playing ? "" : undefined} aria-hidden="true">
@@ -232,7 +272,7 @@ export default function OwnerPresence({ apiUrl, name, owner, preview }: { apiUrl
           {live && (
             <Popover.Root open={cardOpen} onOpenChange={setCardOpen}>
               <Popover.Trigger openOnHover delay={120} closeDelay={160} className="brand-ticker-trigger" aria-label={t.label}>
-                {app && <AppIcon app={app} className="brand-ticker-icon" />}
+                <AppSlot app={app} />
                 <Bars playing={Boolean(media)} />
               </Popover.Trigger>
               <Popover.Portal>

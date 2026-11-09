@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import OwnerPresence from "@/components/owner-presence";
 import "./brand-ticker.css";
 
@@ -11,6 +11,9 @@ const openedAt = typeof window === "undefined" ? 0 : Date.now();
 const subscribe = () => () => {};
 export default function BrandTickerPreview({ avatar }: { avatar: string }) {
   const now = useSyncExternalStore(subscribe, () => openedAt, () => 0);
+  // “换个应用”：轮流换三个 App，看图标向下滚的切换动画（e2e presence-switch.mjs）
+  const switchApps = [{ name: "Google Chrome" }, { name: "Visual Studio Code" }, { name: "ghostty-nightly" }];
+  const [appIndex, setAppIndex] = useState(0);
   const samples = [
     {
       id: "both",
@@ -20,6 +23,7 @@ export default function BrandTickerPreview({ avatar }: { avatar: string }) {
     { id: "app", note: "只在用认不得的 App（Companion 的小图标），没放歌时是安静的点", preview: { app: { name: "UU远程", icon: avatar }, media: null } },
     { id: "letter", note: "认不得又没有图标时显示首字", preview: { app: { name: "ghostty-nightly" }, media: null } },
     { id: "media", note: "只在听歌", preview: { app: null, media: { title: "下一个天亮", artist: "郭静" } } },
+    { id: "switch", note: "换 App 时图标向下滚", preview: { app: switchApps[appIndex % switchApps.length], media: null } },
   ];
   return (
     <ul className="debug-brand-tickers">
@@ -31,6 +35,9 @@ export default function BrandTickerPreview({ avatar }: { avatar: string }) {
             <OwnerPresence apiUrl="" name="Sin’s Yozora" owner="Sin" preview={sample.preview} />
           </span>
           <p className="post-meta">{sample.note}</p>
+          {sample.id === "switch" && (
+            <button type="button" className="btn btn-sm debug-switch-app" onClick={() => setAppIndex((index) => index + 1)}>换个应用</button>
+          )}
         </li>
       ))}
     </ul>

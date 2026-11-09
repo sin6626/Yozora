@@ -5,6 +5,7 @@ import { getSiteContent, siteOwnerName } from "../lib/blog-data";
 import { getLocale, getT } from "../lib/i18n/server";
 import FooterSky from "./footer-sky";
 import OwnerName from "./owner-name";
+import RollText from "./roll-text";
 import { OnlineCount } from "./notifications";
 import "./site-footer.css";
 
@@ -35,11 +36,11 @@ export default async function SiteFooter() {
         </div>
         <div className="site-footer-side">
           <nav className="site-footer-links" aria-label={t.links}>
-            <Link href="/timeline">{t.timeline}</Link>
-            <Link href="/friends">{t.friends}</Link>
-            <a href="/feed.xml">RSS</a>
+            <Link href="/timeline" aria-label={t.timeline}><RollText>{t.timeline}</RollText></Link>
+            <Link href="/friends" aria-label={t.friends}><RollText>{t.friends}</RollText></Link>
+            <a href="/feed.xml" aria-label="RSS"><RollText>RSS</RollText></a>
             {/* 本站的后端是改过的 Mix Space Core（AGPLv3），AGPL 要求通过网络使用的人也能拿到对应的源码 */}
-            <a href={sourceRepo} target="_blank" rel="noopener noreferrer">{t.source}</a>
+            <a href={sourceRepo} target="_blank" rel="noopener noreferrer" aria-label={t.source}><RollText>{t.source}</RollText></a>
           </nav>
           <OnlineCount />
         </div>

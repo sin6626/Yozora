@@ -15,6 +15,7 @@ import type { SocialCard } from "../lib/social";
 import ContactCard from "./contact-card";
 import SocialTooltip, { SocialTooltipGroup } from "./social-tooltip";
 import MobileMenu from "./mobile-menu";
+import RollText from "./roll-text";
 import "./navigation-menu.css";
 
 // note：后台页面的副标题（首页面板里页面名下面那句）
@@ -68,9 +69,9 @@ function Star({ active }: { active: boolean }) {
 
 // 面板里的链接：点了就收起面板，交给 Next 的 Link 跳转
 // external：去别人的站（跃迁），在新标签页打开、不预取
-function PanelLink({ href, className, children, current, external }: { href: string; className: string; children: ReactNode; current?: boolean; external?: boolean }) {
+function PanelLink({ href, className, children, current, external, label }: { href: string; className: string; children: ReactNode; current?: boolean; external?: boolean; label?: string }) {
   return (
-    <NavigationMenu.Link className={className} active={current} closeOnClick render={external ? <Link href={href} target="_blank" rel="noopener noreferrer" prefetch={false} /> : <Link href={href} />}>
+    <NavigationMenu.Link className={className} active={current} closeOnClick aria-label={label} render={external ? <Link href={href} target="_blank" rel="noopener noreferrer" prefetch={false} /> : <Link href={href} />}>
       {children}
     </NavigationMenu.Link>
   );
@@ -95,13 +96,13 @@ function EntryList({ entries, pathname, showKind }: { entries: NavigationEntry[]
   );
 }
 
-// 底栏整行是一个链接（和上面的行一样，鼠标停在右边的说明上也算），说明保持淡色
-function PanelFooter({ href, label, aside, external }: { href: string; label: string; aside?: ReactNode; external?: boolean }) {
+// 底栏整行是一个链接（和上面的行一样，鼠标停在右边的说明上也算），说明保持淡色；左边的文字悬停时逐字翻滚（和页脚链接一样）
+function PanelFooter({ href, label, aside, external }: { href: string; label: string; aside?: string; external?: boolean }) {
   const Arrow = external ? ArrowUpRight : ArrowRight;
   return (
     <div className="nav-panel-footer">
-      <PanelLink href={href} className="nav-panel-more" external={external}>
-        <span className="nav-panel-more-label">{label}<Arrow size={14} aria-hidden="true" /></span>
+      <PanelLink href={href} className="nav-panel-more" external={external} label={aside ? `${label} ${aside}` : label}>
+        <span className="nav-panel-more-label"><RollText>{label}</RollText><Arrow size={14} aria-hidden="true" /></span>
         {aside && <span className="nav-panel-more-aside">{aside}</span>}
       </PanelLink>
     </div>

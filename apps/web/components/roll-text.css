@@ -1,0 +1,31 @@
+/* 逐字翻滚（roll-text.tsx）：整个词裁成一行高，每个字下面一行用 text-shadow 画着同一个字，
+   悬停 / 键盘聚焦时每个字上移一行，按 --i 依次晚 28ms；移开时滚回。左右放宽一点，免得斜体或字形出头被切 */
+.roll-text {
+  display: inline-block;
+  white-space: pre;
+  clip-path: inset(0 -0.2em);
+}
+
+.roll-glyph {
+  display: inline-block;
+  text-shadow: 0 1lh currentColor;
+  transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1) calc(var(--i, 0) * 28ms);
+}
+
+@media (hover: hover) {
+  :is(a, button):hover .roll-glyph {
+    transform: translateY(-1lh);
+  }
+}
+
+:is(a, button):focus-visible .roll-glyph {
+  transform: translateY(-1lh);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roll-glyph,
+  :is(a, button):is(:hover, :focus-visible) .roll-glyph {
+    transform: none;
+    transition: none;
+  }
+}
