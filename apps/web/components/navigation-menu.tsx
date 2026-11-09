@@ -7,7 +7,7 @@ import type { Messages } from "../lib/i18n/messages";
 import Link, { useLocale, useLocalePathname, useT } from "./locale-provider";
 import { htmlLang } from "../lib/i18n/config";
 import { useRouter } from "next/navigation";
-import { Fragment, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useIsland } from "../lib/island-store";
 import type { NavigationEntry, getNavigationPanels } from "../lib/blog-data";
 import { formatDate } from "../lib/date";
@@ -15,7 +15,7 @@ import type { SocialCard } from "../lib/social";
 import ContactCard from "./contact-card";
 import SocialTooltip, { SocialTooltipGroup } from "./social-tooltip";
 import MobileMenu from "./mobile-menu";
-import RollText, { RollChars } from "./roll-text";
+import RollText from "./roll-text";
 import "./navigation-menu.css";
 
 // note：后台页面的副标题（首页面板里页面名下面那句）
@@ -77,31 +77,21 @@ function PanelLink({ href, className, children, current, external, label }: { hr
   );
 }
 
-// 一条条“月·日 标题 [类型]”的近期列表。from 是第一行开始滚的时间，每行晚 35ms（只在右栏换分类时滚，见 GroupPanel）；
-// ghost 是正在滚出去的旧一层：不放链接
-const rowStep = 35;
-function EntryList({ entries, pathname, showKind, from = 0, ghost }: { entries: NavigationEntry[]; pathname: string; showKind?: boolean; from?: number; ghost?: boolean }) {
+// 一条条“月·日 标题 [类型]”的近期列表
+function EntryList({ entries, pathname, showKind }: { entries: NavigationEntry[]; pathname: string; showKind?: boolean }) {
   const t = useT().nav;
-  if (!entries.length) return <p className="nav-panel-empty"><RollChars text={t.empty} from={from} /></p>;
+  if (!entries.length) return <p className="nav-panel-empty">{t.empty}</p>;
   return (
     <ul className="nav-entries">
-      {entries.map((entry, index) => {
-        const at = from + index * rowStep;
-        const content = (
-          <>
-            <time dateTime={entry.created}><RollChars text={monthDay(entry.created)} from={at} /></time>
-            <span className="nav-entry-title"><RollChars text={entry.title} from={at + 30} /></span>
-            {showKind && <span className="nav-entry-kind"><RollChars text={entry.kind === "post" ? t.posts : t.notes} from={at + 60} /></span>}
-          </>
-        );
-        return (
-          <li key={entry.id}>
-            {ghost ? <span className="nav-entry">{content}</span> : (
-              <PanelLink href={entry.href} className="nav-entry" current={pathname === entry.href} label={entry.title}>{content}</PanelLink>
-            )}
-          </li>
-        );
-      })}
+      {entries.map((entry) => (
+        <li key={entry.id}>
+          <PanelLink href={entry.href} className="nav-entry" current={pathname === entry.href}>
+            <time dateTime={entry.created}>{monthDay(entry.created)}</time>
+            <span className="nav-entry-title">{entry.title}</span>
+            {showKind && <span className="nav-entry-kind">{entry.kind === "post" ? t.posts : t.notes}</span>}
+          </PanelLink>
+        </li>
+      ))}
     </ul>
   );
 }
@@ -222,26 +212,6 @@ function GroupPanel({ className, label, groups, fallback, pathname, footer }: {
   const t = useT().nav;
   const [active, setActive] = useState(() => Math.max(0, groups.findIndex((group) => group.recent.length)));
   const group = groups[active];
-  // 右栏换分类时逐字滚动（2026-11-09 站长要求，节奏和页脚链接的翻滚一样）：新旧两层叠在一起，旧的一层（读屏隐藏、
-  // 没有链接、不接鼠标）往上滚出去，新的一层从下面滚上来；刚打开面板不滚，滚完 1.1 秒后去掉旧层和动画标记
-  // （面板收起再打开时不会重播）。快速扫过几个分类时每次都从上一个滚向最新的（e2e panel-roll.mjs）
-  const [roll, setRoll] = useState<{ gen: number; from: number } | null>(null);
-  const choose = (index: number) => {
-    if (index === active) return;
-    setRoll({ gen: (roll?.gen ?? 0) + 1, from: active });
-    setActive(index);
-  };
-  useEffect(() => {
-    if (!roll) return;
-    const timer = setTimeout(() => setRoll(null), 1100);
-    return () => clearTimeout(timer);
-  }, [roll]);
-  const layer = (shown: Group | undefined, ghost: boolean) => (
-    <div className="nav-roll-layer" data-roll={roll ? (ghost ? "out" : "in") : undefined} aria-hidden={ghost || undefined} inert={ghost}>
-      <p className="nav-panel-label"><RollChars text={shown ? t.recentOf(shown.name) : t.recent} /></p>
-      <EntryList entries={shown?.recent ?? fallback} pathname={pathname} showKind={shown?.showKind} from={rowStep} ghost={ghost} />
-    </div>
-  );
   return (
     <div className={`nav-panel ${className}`}>
       <div className="nav-panel-body">
@@ -250,7 +220,7 @@ function GroupPanel({ className, label, groups, fallback, pathname, footer }: {
             <p className="nav-panel-label">{label}</p>
             <ul className="nav-categories">
               {groups.map((item, index) => (
-                <li key={item.href} data-highlighted={index === active ? "" : undefined} onPointerEnter={() => choose(index)} onFocus={() => choose(index)}>
+                <li key={item.href} data-highlighted={index === active ? "" : undefined} onPointerEnter={() => setActive(index)} onFocus={() => setActive(index)}>
                   <PanelLink href={item.href} className="nav-category" current={pathname === item.href}>
                     <span className="nav-category-name">
                       {/* eslint-disable-next-line @next/next/no-img-element -- 话题图标来自后台任意地址 */}
@@ -265,9 +235,8 @@ function GroupPanel({ className, label, groups, fallback, pathname, footer }: {
           </section>
         )}
         <section className="nav-panel-main">
-          {/* key 换了新的一层才会重新挂载、重新播滚入动画 */}
-          <Fragment key={roll?.gen ?? 0}>{layer(group, false)}</Fragment>
-          {roll && <Fragment key={`out-${roll.gen}`}>{layer(groups[roll.from], true)}</Fragment>}
+          <p className="nav-panel-label">{group ? t.recentOf(group.name) : t.recent}</p>
+          <EntryList entries={group?.recent ?? fallback} pathname={pathname} showKind={group?.showKind} />
         </section>
       </div>
       {footer}
