@@ -21,7 +21,7 @@ export type RealtimeAction =
   | { type: "announce"; copy: RealtimeCopy; icon: "post" | "note" | "update" | "remove" | "thinking" | "say"; title?: string; titleId?: string; text?: string; href?: string }
   // 让这篇的详情缓存失效再刷新页面（cache-actions.ts 的 refreshArticle）
   | { type: "refresh-article"; kind: ArticleKind; id: string }
-  // 当前就在这份列表上：让列表缓存失效再刷新（cache-actions.ts 的 refreshAfterWrite）
+  // 当前就在这份列表上：刷新页面（列表每次向 Core 现取）
   | { type: "refresh-list"; list: "recently" | "says" }
   // 正在看的这篇被删了：播报后跳回列表（不带语言前缀）；id 用来在等待结束时确认读者还在这篇上
   | { type: "leave"; id: string; href: string };

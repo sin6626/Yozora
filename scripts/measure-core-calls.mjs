@@ -34,9 +34,18 @@ const note = (await json("/notes?size=1")).data[0];
 const postPath = `/posts/${encodeURIComponent(post.category.slug)}/${encodeURIComponent(post.slug)}`;
 const pages = ["/", "/posts", postPath, "/notes", `/notes/${note.nid}`, "/timeline", "/murmurs", "/says", "/friends", "/projects", "/thinking", "/en", "/en/posts", `/en${postPath}`];
 
+// 页面送完后 Next 可能还在后台把剩下的请求发完，等代理 500 毫秒没有新请求再算下一页，免得记到下一页头上
+async function settle() {
+  for (let seen = -1; seen !== hits.length;) {
+    seen = hits.length;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+}
+
 async function open(path) {
   const response = await fetch(`${web}${path}`, { redirect: "manual" });
   await response.text();
+  await settle();
   return response.status;
 }
 

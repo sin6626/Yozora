@@ -9,7 +9,7 @@ import { useIsland } from "../lib/island-store";
 import { notificationSettings } from "../lib/notification-copy";
 import { localizeHref, splitLocale } from "../lib/i18n/config";
 import { realtimeActions, type ArticleKind, type RealtimeAction, type RealtimeContext } from "../lib/realtime";
-import { refreshAfterWrite, refreshArticle } from "./cache-actions";
+import { refreshArticle } from "./cache-actions";
 import { useLocale, useLocales, useT } from "./locale-provider";
 import "./notifications.css";
 
@@ -78,12 +78,11 @@ function Connection({ url, apiUrl, children }: { url: string; apiUrl: string; ch
         case "reads": return useReadCounts.setState({ [action.id]: action.count });
         case "refresh-article":
           await new Promise((resolve) => setTimeout(resolve, refreshDelay));
-          await refreshArticle(action.kind, action.id, true);
+          await refreshArticle(action.kind, action.id);
           // 等待期间读者可能已经去了别的页面，那就只让缓存失效、不刷新当前页
           return currentArticle?.id === action.id ? router.refresh() : undefined;
         case "refresh-list":
           await new Promise((resolve) => setTimeout(resolve, refreshDelay));
-          await refreshAfterWrite([action.list]);
           return router.refresh();
         case "leave":
           await new Promise((resolve) => setTimeout(resolve, leaveDelay));

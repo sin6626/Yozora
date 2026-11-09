@@ -50,9 +50,10 @@ function CommentBody({ comment, replyTo, top, form, canReply, t }: { comment: Co
   );
 }
 
-// 评论列表、表单参数和“为什么不能评论”：文末评论区与文章侧栏的评论悬浮窗（comment-chat.tsx）共用，数据走同一份缓存。
-export async function loadComments(refId: string, allowComment: boolean) {
-  const [result, { comments: settings }, providers, { comments: t }] = await Promise.all([getComments(refId), getSiteSettings(), getLoginProviders().catch((): LoginProvider[] => []), getT()]);
+// 评论列表、表单参数和“为什么不能评论”：文末评论区与文章侧栏的评论悬浮窗（comment-chat.tsx）共用，getComments 用 React cache，同一次渲染只向 Core 取一次。
+// count：已知这条下面有几条评论（思考列表每条都挂评论区，Core 的列表接口带了条数）；为 0 时不向 Core 取，免得一页 20 条各请求一次。
+export async function loadComments(refId: string, allowComment: boolean, count?: number) {
+  const [result, { comments: settings }, providers, { comments: t }] = await Promise.all([count === 0 ? { data: [], total: 0 } : getComments(refId), getSiteSettings(), getLoginProviders().catch((): LoginProvider[] => []), getT()]);
   const form: FormOptions = { apiUrl: getApiUrl(), allowGuest: settings.allowGuest, providers };
   // 关闭游客评论但启用了第三方登录时，表单里只给登录按钮；两者都没有才算无法评论。
   const closedReason = settings.disabled || !allowComment ? t.closed : !settings.allowGuest && !providers.length ? t.noGuests : null;
@@ -60,11 +61,11 @@ export async function loadComments(refId: string, allowComment: boolean) {
 }
 
 // 文章、手记、页面详情底部的评论区。allowComment 是这篇内容自己的“允许评论”开关。
-export default async function Comments({ refId, refType, allowComment }: { refId: string; refType: CommentRefType; allowComment: boolean }) {
+export default async function Comments({ refId, refType, allowComment, count }: { refId: string; refType: CommentRefType; allowComment: boolean; count?: number }) {
   const t = await getT();
   let loaded: Awaited<ReturnType<typeof loadComments>>;
   try {
-    loaded = await loadComments(refId, allowComment);
+    loaded = await loadComments(refId, allowComment, count);
   } catch (error) {
     unstable_rethrow(error);
     return <section className="comments" aria-label={t.comments.label}><p className="post-empty" role="alert">{t.comments.failed}</p></section>;

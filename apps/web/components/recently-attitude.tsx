@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
-import { refreshAfterWrite } from "./cache-actions";
 import { useT } from "./locale-provider";
 
 type Attitude = "up" | "down";
@@ -35,7 +34,6 @@ export default function RecentlyAttitude({ apiUrl, id, up, down }: { apiUrl: str
       if (next.mine) localStorage.setItem(key, next.mine);
       else localStorage.removeItem(key);
       setLocal(next);
-      await refreshAfterWrite(["recently"]);
       router.refresh();
     } finally {
       setPending(false);

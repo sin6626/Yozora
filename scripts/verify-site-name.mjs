@@ -15,7 +15,7 @@ let aggregate
 const api = { aggregate: { getAggregateData: async () => aggregate } }
 const stubs = {
   'server-only': {},
-  './api': { getApiClient: () => api },
+  './api': { getApiClient: () => api, getLiveApiClient: async () => api },
   'next/cache': { cacheLife: () => {}, cacheTag: () => {} },
   './excerpt': { excerpt: (value) => value ?? '', readingMinutes: () => 1 },
   './social': { socialLinks: () => [], socialCards: () => [] },

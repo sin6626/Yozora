@@ -75,7 +75,7 @@ const api = {
 const module = { exports: {} }
 vm.runInNewContext(code, {
   module, exports: module.exports,
-  require: (id) => id === 'server-only' ? {} : id === './excerpt' ? { excerpt: (value) => value ?? '', readingMinutes: () => 1 } : id === './social' ? { socialLinks: () => [], socialCards: () => [] } : id === './theme-config' ? themeConfig.exports : id === './note-extras' ? noteExtras : id === './i18n/config' ? i18nConfig : id === './i18n/data' ? { getI18nBundle: async (lang) => i18nBundles[lang] ?? emptyBundle } : id === './safe-url' ? { safeUrl: (value) => value && /^https?:\/\//i.test(value) ? value : undefined } : id === './api' ? { getApiClient: () => api } : id === 'next/cache' ? { cacheLife: (value) => lifetimes.push(value), cacheTag: (...value) => tags.push(...value) } : require(id),
+  require: (id) => id === 'server-only' ? {} : id === './excerpt' ? { excerpt: (value) => value ?? '', readingMinutes: () => 1 } : id === './social' ? { socialLinks: () => [], socialCards: () => [] } : id === './theme-config' ? themeConfig.exports : id === './note-extras' ? noteExtras : id === './i18n/config' ? i18nConfig : id === './i18n/data' ? { getI18nBundle: async (lang) => i18nBundles[lang] ?? emptyBundle } : id === './safe-url' ? { safeUrl: (value) => value && /^https?:\/\//i.test(value) ? value : undefined } : id === './api' ? { getApiClient: () => api, getLiveApiClient: async () => api } : id === 'next/cache' ? { cacheLife: (value) => lifetimes.push(value), cacheTag: (...value) => tags.push(...value) } : require(id),
 })
 const cache = module.exports
 const navigation = await cache.getNavigationData()
@@ -92,11 +92,10 @@ assert.equal('liked' in detail, false)
 assert.equal(JSON.stringify(detail.count), JSON.stringify({ read: 0, like: 0 }), '缺少计数时补 0')
 assert.equal('content' in detail, false, 'Markdown 文章不缓存 content')
 assert.equal(detail.text, 'body')
-assert.ok(tags.includes('blog:post:post-id'))
 assert.deepEqual(JSON.parse(JSON.stringify(detail.related)), [{ id: 'rel-b', title: '新标题 B', href: '/posts/technology/b' }, { id: 'rel-a', title: 'A', href: '/posts/technology/a' }], '关联阅读按后台顺序，只列时间线里已发布的文章')
 assert.equal(detail.copyright, false, '后台“版权注明”开关原样带到详情')
-// 6 次：导航、分类、文章列表、列表里读 AI 摘要（getArticleAi，2026-10-29 起列表摘要优先用 AI 摘要）、文章详情、详情换算关联阅读用的时间线
-assert.equal(lifetimes.length, 6)
+// 4 次：导航、分类、列表里读 AI 摘要（getArticleAi）、详情换算关联阅读用的时间线。文章列表和详情每次现取，不进 Next 缓存（2026-11-09）
+assert.equal(lifetimes.length, 4)
 assert.ok(lifetimes.every(p => p.revalidate > 0 && p.expire > p.revalidate))
 const notes = await cache.getNotes(3)
 assert.equal(calls[1][0], 3)
@@ -110,15 +109,12 @@ assert.equal(JSON.stringify(noteDetail.topic), JSON.stringify({ id: 't1', name: 
 // 后台手记 meta 的头图与横幅，解析成普通 JSON 放进详情（"use cache" 只能返回普通对象）
 assert.equal(JSON.stringify([noteDetail.cover, noteDetail.banner]), JSON.stringify(['https://img.test/cover.webp', { type: 'warning', message: '旧文' }]))
 assert.equal('meta' in noteDetail, false)
-assert.ok(tags.includes('blog:notes') && tags.includes('blog:note:note-id'))
 const projects = await cache.getProjects()
 assert.equal('text' in projects[0], false)
-assert.ok(tags.includes('blog:projects'))
 const page = await cache.getPage('about')
 assert.equal(page.text, 'page body')
 assert.equal(page.content, 'unused JSON', 'Lexical 页面缓存 content 给富文本渲染器')
 assert.equal(page.allowComment, true, '评论区需要这篇内容自己的允许评论开关')
-assert.ok(tags.includes('blog:pages') && tags.includes('blog:page:page-id'))
 const foundPosts = await cache.searchPosts('关键词')
 const foundNotes = await cache.searchNotes('关键词')
 assert.ok(calls.some(c => c[0] === 'search' && c[1] === 'post' && c[2] === '关键词') && calls.some(c => c[0] === 'search' && c[1] === 'note'))
@@ -147,8 +143,8 @@ assert.deepEqual(searchedPosts.data.map((entry) => entry.id), ['post-id'], '公�
 const topicNotes = await cache.getMatchedNotes({ topicId: 't1' }, 1)
 assert.equal(topicNotes.data[0].nid, 5)
 assert.equal((await cache.getMatchedNotes({ keyword: '近况' }, 2)).data.length, 0, '超出页数时这一页为空（列表页据此 404）')
-// 文章列表、手记列表各读一次 AI 摘要；筛选结果每次调用：getMatched* 与它读的全部条目索引各一次，索引里每条再读一次 AI 摘要
-assert.equal(lifetimes.length, 31)
+// 只剩 Next 拼出来的和站点级的：AI 摘要、全部条目索引、话题、标签、话题下的手记等；列表、详情、搜索、筛选结果本身每次现取
+assert.equal(lifetimes.length, 18)
 assert.ok(lifetimes.every(p => p.revalidate > 0 && p.expire > p.revalidate))
 post.contentFormat = 'lexical'
 assert.equal((await cache.getPost('technology', 'lexical')).content, 'unused JSON', 'Lexical 文章缓存 content 给富文本渲染器')
@@ -171,7 +167,6 @@ assert.equal((await cache.getNotesByTopic('t1', 'en')).data[0].titleLang, 'zh-CN
 assert.ok((await cache.getTimeline('en')).every((item) => item.titleLang === 'zh-CN'), '时间线条目同样标')
 console.log('PASS public cache projections, key parameters, tag coverage and lifetime constraints')
 const comments = await cache.getComments('post-id')
-assert.ok(tags.includes('blog:comments'))
 assert.deepEqual([...calls.filter(([kind]) => kind === 'comments').slice(-2).map(([, , options]) => options.page)], [1, 2], '主评论按页读完')
 assert.equal(comments.data.length, 2)
 assert.equal(comments.total, 2)
@@ -199,3 +194,19 @@ for (const lang of ['en', 'ja']) {
 assert.deepEqual((await cache.getProjects('zh')).map((item) => [item.nameLang, item.descriptionLang]), projectList.map(() => [undefined, undefined]), '中文页面不标')
 projectList = [project]
 i18nBundles = {}
+
+// 缓存分层（docs/architecture-cache-plan.md 的分类表）：这些函数每次现取，不能带 "use cache"；其余导出的读取函数都要带
+const dataSource = readFileSync(new URL('../apps/web/lib/blog-data.ts', import.meta.url), 'utf8')
+const live = ['getPost', 'getNote', 'getPage', 'getPosts', 'getNotes', 'getMatchedPosts', 'getMatchedNotes', 'getComments', 'getRecentActivity', 'getLinks', 'getLinkApplyOpen', 'getAllSays', 'getMurmurs', 'getRecently', 'getProjects', 'getSiteLikes', 'searchPosts', 'searchNotes']
+const bodies = new Map([...dataSource.matchAll(/^(?:export )?async function (\w+)\([^]*?\n\}/gm)].map(([body, name]) => [name.replace(/^load/, 'get'), body]))
+for (const name of live) {
+  assert.ok(bodies.has(name), `找不到 ${name}`)
+  assert.ok(!bodies.get(name).includes('"use cache"'), `${name} 应每次现取`)
+  assert.ok(!/getApiClient\(/.test(bodies.get(name)), `${name} 要用转发读者 IP 的 getLiveApiClient`)
+}
+for (const [name, body] of bodies) {
+  if (live.includes(name) || !/^get[A-Z]/.test(name) || !/getApiClient\(/.test(body)) continue
+  assert.ok(body.includes('"use cache"'), `${name} 直接请求 Core 却没有 "use cache"，要么放进 Next 缓存，要么加进现取名单`)
+}
+console.log('verify-blog-cache: ok')
+

@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Pin, PinOff } from "lucide-react";
-import { refreshAfterWrite } from "./cache-actions";
 import { useT } from "./locale-provider";
 import { useReaderSession } from "./reader-session";
 
@@ -27,7 +26,6 @@ export default function CommentPin({ apiUrl, id, pinned }: { apiUrl: string; id:
         body: JSON.stringify({ pin: !pinned }),
       });
       if (!response.ok) return setState("failed");
-      await refreshAfterWrite(["comments"]);
       router.refresh();
       setState("idle");
     } catch {

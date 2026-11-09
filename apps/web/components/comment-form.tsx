@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState, type FormEvent } from "react";
 import { useIsland } from "../lib/island-store";
-import { refreshAfterWrite } from "./cache-actions";
 import { LogIn } from "lucide-react";
 import { openLoginDialog } from "./account-menu";
 import EmojiPicker from "./emoji-picker";
@@ -73,8 +72,7 @@ export default function CommentForm({ apiUrl, allowGuest, providers, refId, refT
         type: "done",
         message: body.isWhispers ? t.whisperDone : t.done,
       });
-      // 列表有缓存，发完让评论与思考列表的缓存立即失效并刷新，否则看起来像没发出去（再点会被 Core 的 20 秒防重拦成 409）。
-      await refreshAfterWrite(["comments", "recently"]);
+      // 评论列表每次向 Core 现取（Core 收到新评论会清自己的接口缓存），刷新就能看到刚发的，否则看起来像没发出去（再点会被 Core 的 20 秒防重拦成 409）。
       router.refresh();
       onDone?.();
     } catch {

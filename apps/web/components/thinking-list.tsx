@@ -62,7 +62,7 @@ export default async function ThinkingList({ searchParams }: { searchParams: Pro
                     <details className="thinking-comments">
                       <summary>{t.comments(item.comments)}</summary>
                       <Suspense fallback={<p className="post-meta" role="status">{list.loadingComments}</p>}>
-                        <Comments refId={item.id} refType="Recently" allowComment={item.allowComment} />
+                        <Comments refId={item.id} refType="Recently" allowComment={item.allowComment} count={item.comments} />
                       </Suspense>
                     </details>
                   )}

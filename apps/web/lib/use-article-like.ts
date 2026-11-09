@@ -1,6 +1,5 @@
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
-import { refreshArticle } from "../components/cache-actions";
 import { useLocale, useT } from "../components/locale-provider";
 
 // 文章/手记的“喜欢”：文末的“喜欢这篇”和侧栏操作栏里的心形共用这一份状态，点了任意一个，另一个立刻跟着变。
@@ -44,10 +43,8 @@ export function useArticleLike({ apiUrl, id, type, like }: { apiUrl: string; id:
       localStorage.setItem(likedKey, "1");
       setMessage("");
       notify();
-      if (response.ok) {
-        await refreshArticle(type, id);
-        router.refresh();
-      }
+      // 正文每次向 Core 现取，刷新就拿到新的喜欢数
+      if (response.ok) router.refresh();
     } catch {
       setMessage(t.likeNetwork);
     }

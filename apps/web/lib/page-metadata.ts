@@ -7,7 +7,7 @@ import { excerpt } from "./excerpt";
 import { ogSize } from "./og";
 import { getLocale, getT } from "./i18n/server";
 
-// 详情页的 <title>、描述和分享卡片。复用页面正文同一份 "use cache" 数据，不会多请求一次 Core。
+// 详情页的 <title>、描述和分享卡片。和正文共用 getPost/getNote/getPage（React cache），同一次请求只向 Core 取一次。
 // 地址非法、内容不存在或读取失败时退回布局的默认值，错误提示和 404 由正文负责。
 export { siteDescription, siteName } from "./blog-data";
 

@@ -83,13 +83,16 @@ flowchart LR
 
 0. **先造量具**：`scripts/measure-core-calls.mjs` 在 Core 前面挂一个只计数的转发代理，前台指向它，逐页打开（首页、文章列表、文章详情、手记、时间线、碎碎念、一言、友链、作品、外文页面），打印每页、每个接口各请求了几次，以及一次 Webhook 作废后重建要发多少请求。改前改后各跑一次，用数字确认扇出和限流余量。
    **改前基线（2026-11-09，开发模式）**：缓存热了以后每页 0–2 次（只有 `/ai/i18n`）；一次 POST_UPDATE Webhook 后同时打开 9 页，5.6 秒内 89 次，全是同一个 IP，离限流 100 只差一点；大头是列表每篇各一次 `/ai/summaries/article/:id` 和 `/ai/translations/article/:id/languages`（各 19 次）。所以第 4 步的内部密钥要做，不是可选。
+   **改后（2026-11-09，生产构建 `next start`，开发模式会多渲染一遍、每个现取请求都翻倍，不能拿来量）**：缓存热了以后每页 0–5 次（首页 5：碎碎念、文章、手记、喜欢数、最近动态；详情 2：正文、评论；列表 1）；Webhook 后 9 页 5.5 秒 108 次，都是 Next 缓存重建，带内部密钥、Core 日志里 0 次限流。大头仍是列表每篇的 AI 摘要与译文语言（各 19 次），以后可以让 Core 出一个按 id 批量取的接口。实施中发现并修掉的两处：思考列表每条都挂评论区，改成现取后一页 20 次评论请求，现在 Core 列表里条数为 0 的不取；详情页 `generateMetadata` 不带 lang、正文带，React cache 按参数去重失败、一页请求两次，改为对 Core 的原始请求（corePost/coreNote/corePage）去重。站点级缓存的时长没有改长：改前实测平时每页只有 0–2 次，没有必要。
 1. **Core：内容一变就清 Redis**（`webhook.service.ts`）。`cleanCatch` 挪到“有没有订阅 Webhook”的判断之前，`ACCEPT_EVENTS` 里的事件都清，访客在线、阅读数这类高频事件不清。测试：没配 Webhook 时改文章，下一次读到新值。
 2. **Core：访问记录只认 `/pageview`**（`analyze.interceptor.ts`）。其他 GET 不再写访问记录、不计入今日 IP，但“API 调用次数”照旧数所有（没被跳过的）GET：只加计数、不写记录（站长 2026-11-09 定）。测试：普通接口 GET 不记录但计数加一，`/pageview` 记录且计数加一。
 3. **前台：内网优先、公网兜底**。新增可选变量 `MIX_SPACE_INTERNAL_API_URL`（线上 `http://mx-server:2333/api/v2`）；服务端请求（`lib/api.ts` 的适配器、`lib/i18n/data.ts`）先走它，连不上（网络错误或超时，不是 4xx/5xx）就改走 `MIX_SPACE_API_URL` 并在 60 秒内直接走公网，之后再试内网。交给浏览器的地址仍是 `MIX_SPACE_API_URL`。只对 GET 兜底。测试：内网地址不通时页面照常、只等一次。
 4. **前台：转发读者 IP**。每次请求现取的函数用带 IP 的客户端：从 openresty 写的 `x-real-ip` / `x-forwarded-for` 取读者 IP 放进请求头（Next 只监听 127.0.0.1，只有 openresty 能访问，所以这两个头可信）。放 Next 缓存的函数里不能读请求头，照旧不带 IP；如果第 0 步量出一次重建的请求数接近 100，Core 的限流对“带内部密钥、且没有转发 IP”的请求放行（新变量 `YOZORA_INTERNAL_KEY`，只放行限流，不算登录，不会多拿到草稿，Redis 缓存照常）。
 5. **前台：按下表挪缓存层**。“现取”的函数去掉 `"use cache"`，用 React `cache()` 让同一次渲染里只请求一次（详情页 `generateMetadata` 和正文共用）；站点级改成长缓存 + 一天兜底；不再用到的标签从 Webhook 对照表、`cache-actions.ts` 白名单里删掉，访客写入后只需 `router.refresh`。
 6. **验证**：第 0 步量具改后再跑一次；`pnpm verify`；相关 e2e（dev-issues、realtime-push、comment-enhance、list-filters、i18n-content、og-image、feed）；更新 AGENTS.md 与 `docs/admin-data-sources.md`。
-7. **上线（需站长同意）**：重建 Core 镜像、前台；`docker network connect core_mx-space yozora-web`，前台加 `MIX_SPACE_INTERNAL_API_URL`；回滚是换回旧镜像和旧前台版本、断开网络即可。
+7. **上线（需站长同意）**：重建 Core 镜像、前台；`docker network connect core_mx-space yozora-web`；生成一把随机 `YOZORA_INTERNAL_KEY`，同时写进 Core 的 compose 环境变量和前台 `web.env`，前台再加 `MIX_SPACE_INTERNAL_API_URL=http://mx-server:2333/api/v2`；回滚是换回旧镜像和旧前台版本、断开网络即可（两个变量不配时功能自动关闭，旧前台不受影响）。
+
+**状态（2026-11-09）**：第 0–6 步已在本地完成并提交，第 7 步未做。
 
 不放过的风险：详情页 `generateMetadata` 改为现取后，Next 16 可能报“metadata 里有未缓存数据”（10-28、10-30 的同类问题），第 5 步要用 dev-issues 检查；页面更“动态”后读取中的小火箭会多出现，内网 + Redis 命中预计很快，以第 0 步实测为准。
 
