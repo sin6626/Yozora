@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { realHref } from "../lib/address-typing";
 
 // 每打开一页（整页打开和站内跳转）向 Core 报一次访问：GET /pageview?path=<页面路径>&ref=<来源>。
 // 页面在服务器上渲染，读者的浏览器不直接请求 Core，不报的话后台“数据”里的访问记录就记不到读者看了哪页。
@@ -13,7 +14,7 @@ export default function PageView({ apiUrl }: { apiUrl: string }) {
   useEffect(() => {
     if (last.current?.path === pathname) return;
     const ref = last.current?.url ?? document.referrer;
-    last.current = { path: pathname, url: location.href };
+    last.current = { path: pathname, url: realHref() };
     const query = new URLSearchParams({ path: pathname, ...(ref && { ref }) });
     void fetch(`${apiUrl}/pageview?${query}`, { credentials: "include", keepalive: true }).catch(() => {});
   }, [apiUrl, pathname]);

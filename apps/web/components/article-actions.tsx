@@ -8,6 +8,7 @@ import { useArticleLike } from "../lib/use-article-like";
 import { useT } from "./locale-provider";
 import ArticleToc, { useTocEntries } from "./article-toc";
 import SubscribePopover from "./subscribe-popover";
+import { realHref } from "../lib/address-typing";
 import "./subscribe-popover.css";
 import "./article-actions.css";
 
@@ -116,7 +117,7 @@ function ShareButton({ title }: { title: string }) {
   const t = useT().articleActions;
   const push = useIsland((state) => state.push);
   async function share() {
-    const url = window.location.href.split("#")[0];
+    const url = realHref().split("#")[0];
     if (navigator.share) {
       try {
         await navigator.share({ title, url });

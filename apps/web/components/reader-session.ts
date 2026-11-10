@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { useT } from "./locale-provider";
+import { realHref } from "../lib/address-typing";
 
 // 读者登录状态（Core 的 Better Auth 会话）。每个访客各不相同，只能在浏览器里读，不能进服务端缓存。
 // 登录 Cookie 由 Core 下发且 HttpOnly，所有请求都要 credentials: "include" 才会带上。
@@ -79,7 +80,7 @@ const noSubscribe = () => () => {};
 
 function readLoginError() {
   if (loginError !== undefined) return loginError;
-  const url = new URL(location.href);
+  const url = new URL(realHref());
   if (url.searchParams.get("login") !== "failed") return (loginError = null);
   const code = url.searchParams.get("error") || "unknown";
   const provider = url.searchParams.get("login_provider");
@@ -105,7 +106,7 @@ export function useLoginError(source: LoginError["source"]) {
 
 // 跳到第三方授权页，完成后 Core 再把访客送回发起登录的页面（hash 给 "comments" 时回到评论区）。
 export async function signIn(apiUrl: string, provider: LoginProvider, hash?: string) {
-  const page = new URL(location.href);
+  const page = new URL(realHref());
   for (const key of loginParams) page.searchParams.delete(key);
   if (hash !== undefined) page.hash = hash;
   const callbackURL = page.href;

@@ -19,7 +19,7 @@ const browser = await openBrowser({ port: 9481 });
 // 整页打开后立刻在页面里每 100ms 采一次样，直到开场播完（data-swarm-intro="done"）
 const watch = `(async () => {
   const html = document.documentElement;
-  const rec = { states: [], hud: [], opacity: [], placeholders: [], logo: null, englishHud: null, blinkIgnored: false, sky: false, total: 0, done: 0, cursors: 0, rise: false };
+  const rec = { logoSeen: [], englishSeen: 0, states: [], hud: [], opacity: [], placeholders: [], blinkIgnored: false, sky: false, total: 0, done: 0, cursors: 0, rise: false };
   const t0 = performance.now();
   while (performance.now() - t0 < 30000) {
     const state = html.dataset.swarmIntro ?? "none";
@@ -33,9 +33,9 @@ const watch = `(async () => {
       const hud = root.querySelector(".yz-hud");
       if (hud && rec.hud.at(-1) !== hud.textContent) rec.hud.push(hud.textContent);
       const intro = root.querySelector(".intro");
-      if (intro) rec.logo = getComputedStyle(intro).display;
+      if (intro && getComputedStyle(intro).display !== "none") rec.logoSeen.push({ t: Math.round(performance.now() - t0), hud: !!root.querySelector(".yz-hud"), state, opacity: getComputedStyle(intro).opacity, gone: intro.classList.contains("gone") });
       const english = root.querySelector(".hud");
-      if (english) rec.englishHud = getComputedStyle(english).display;
+      if (english && getComputedStyle(english).display !== "none") rec.englishSeen++;
       // 丛雨三层图的占位：前层、后层叠在一起，占位要透明，否则后画的那层在出图前用一块底色挡住先画好的
       const mascots = [...document.querySelectorAll(".home-hero-mascot:not(.is-blink)")].map((img) => img.currentSrc || img.src);
       for (const m of root.querySelectorAll(".m")) {
@@ -139,8 +139,9 @@ try {
   await coveredFirst("强制播");
   assert.ok(run.states.includes("playing") && run.states.at(-1) === "done", `应从 playing 播到 done：${JSON.stringify(run.states)}`);
   assert.equal(run.rise, false, "开场期间首屏不应再播 CSS 入场");
-  assert.equal(run.logo, "none", "原版“Y”开场图标应藏起来");
-  assert.equal(run.englishHud, "none", "原版英文控制栏应藏起来");
+  // 只看采样期间有没有露出来过：机器忙时采样晚开始，那时图标元素可能已经被引擎拿掉，取不到值不算失败
+  assert.deepEqual(run.logoSeen, [], `原版“Y”开场图标不应露出来：${JSON.stringify(run.logoSeen.slice(0, 5))}`);
+  assert.equal(run.englishSeen, 0, "原版英文控制栏不应露出来");
   assert.ok(run.hud.some((text) => /\d+ 个光标/.test(text)) && run.hud.some((text) => /还剩 \d+ \/ \d+ 个元素/.test(text)), `底部应显示光标数和剩余元素：${JSON.stringify(run.hud.slice(0, 8))}`);
   assert.ok(run.hud.some((text) => text.includes("全部画完")), `画完应显示用时：${JSON.stringify(run.hud.slice(-4))}`);
   assert.ok(run.total >= 20 && run.done === run.total, `第一屏的元素都应画完：${run.done}/${run.total}`);

@@ -8,13 +8,14 @@ import { htmlLang, languageName, localeCookie, localizeHref, splitLocale, type L
 import { zh } from "../lib/i18n/messages";
 import { msg } from "../lib/i18n/msg";
 import { useLocale, useLocales, useSwitchedTemplates, useT } from "./locale-provider";
+import { realHref } from "../lib/address-typing";
 import "./language-menu.css";
 
 // 切换语言：记进 Cookie（proxy.ts 以后对不带前缀的地址都按它走，不再看浏览器语言），
 // 再整页打开同一页面的新语言地址（换语言就是换根布局，整页加载最稳）。旧的文章 ?lang= 参数不再需要，顺手去掉。
 function switchTo(locale: Locale, locales: readonly Locale[]) {
   document.cookie = `${localeCookie}=${locale}; path=/; max-age=31536000; samesite=lax`;
-  const url = new URL(location.href);
+  const url = new URL(realHref());
   url.searchParams.delete("lang");
   url.pathname = localizeHref(splitLocale(url.pathname, locales).path, locale);
   location.assign(url);

@@ -11,6 +11,7 @@ import { localizeHref, splitLocale } from "../lib/i18n/config";
 import { realtimeActions, type ArticleKind, type RealtimeAction, type RealtimeContext } from "../lib/realtime";
 import { refreshArticle } from "./cache-actions";
 import { useLocale, useLocales, useT } from "./locale-provider";
+import { realHref } from "../lib/address-typing";
 import "./notifications.css";
 
 const SocketContext = createContext<Socket | null>(null);
@@ -69,7 +70,7 @@ function Connection({ url, apiUrl, children }: { url: string; apiUrl: string; ch
     const connection = io(url, { transports: ["websocket"], autoConnect: false });
     // 消息 → 要做的事由 lib/realtime.ts 决定；播报都在页头夜航岛上
     const onMessage = (message: unknown) => {
-      const context = { path: splitLocale(location.pathname, locales.current).path, article: currentArticle };
+      const context = { path: splitLocale(new URL(realHref()).pathname, locales.current).path, article: currentArticle };
       for (const action of realtimeActions(message, context)) void run(action);
     };
     const run = async (action: RealtimeAction) => {
