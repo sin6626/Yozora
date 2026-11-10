@@ -368,3 +368,11 @@ cd /root/mx-space/core && docker compose up -d --no-deps app
 ```
 
 磁盘留给站长自己清：`/root/mx-space/core-image-20261104`、`core-image-20261105`、`core-image-ac758f0`，前台旧版本 `releases/7dd878b`、`1b5a6d4`、`2131c7a`、`81383e8`、`cf9d6bf`，以及停着的旧容器 `yozora-web-pre-live-3b895ae`。回滚要用的 `releases/3b895ae`、镜像 `live-3b895ae` 和容器 `yozora-web-pre-cache-b30be94` 先别删。
+
+## 2026-11-10 事故：服务器内存耗尽，Core 被系统杀掉
+
+上线前审查时对 beta 连续发了约 45 次页面请求、两次 `mongosh`，2GB 的服务器内存耗尽，内核 OOM 杀掉了 Core（dmesg 03:53），主站和 API 无响应、beta 502。根因是服务器本来就快满（MinIO ~290MB、Mongo ~270MB、Core ~210MB、旧 Shiro ~190MB、新前台 ~110MB、1Panel、Docker），而 `/etc/sysctl.conf` 里 `vm.swappiness = 0`，配好的 3.4GB 交换区一点没用。
+
+- 站长同意后改为 `vm.swappiness = 10`（立即生效 + 写入 `/etc/sysctl.conf`，原文件备份 `/root/backups/sysctl.conf.bak-20261110`）。回滚：`sysctl -w vm.swappiness=0` 并还原备份。
+- 恢复后（Core 自动重启）服务器内检查三个站点都是 200，负载 0.07。
+- 以后对线上做只读检查：不跑 `mongosh`（一个就上百 MB），页面请求控制在几次；切换正式站后停掉旧 Shiro 能空出约 190MB。
