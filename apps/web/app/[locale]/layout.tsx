@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { ViewTransition } from "react";
 import { Cormorant_Garamond, Geist_Mono, Noto_Sans_SC, Noto_Serif_SC, Nunito } from "next/font/google";
 import Notifications from "@/components/notifications";
 import { getApiUrl } from "@/lib/config";
@@ -14,6 +13,7 @@ import SiteHeader from "@/components/site-header";
 import Starfield from "@/components/starfield";
 import PageView from "@/components/page-view";
 import AddressTyping from "@/components/address-typing";
+import PageTransition from "@/components/page-transition";
 import OwnerPresence from "@/components/owner-presence";
 import HeaderSearch from "@/components/header-search";
 import { getOwner } from "@/lib/blog-data";
@@ -176,13 +176,13 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
             />
             {/* 视图过渡套在铺满整行的 .site-page 上，而不是宽度随页面变化的 main：
                 否则首页（全宽）和内页（48rem）之间切换时，过渡层会在两种宽度间变形，整页画面被压缩 */}
-            <ViewTransition default="page-switch">
+            <PageTransition>
               <div className="site-page">
                 <main className="site-content" id="main-content" tabIndex={-1}>
                   {children}
                 </main>
               </div>
-            </ViewTransition>
+            </PageTransition>
             <SiteFooter />
           </div>
         </Notifications>
