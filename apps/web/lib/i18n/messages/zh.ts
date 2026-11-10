@@ -494,6 +494,9 @@ const zh = {
     title: "一言",
     count: msg<[count: number]>("共 {count} 条"),
     empty: "还没有一言。",
+    // 标题下的操作提示：有鼠标时说悬停，触屏说点（say-list.tsx，按 hover 媒体查询只显示一种）
+    hintHover: "把鼠标移到星星上，读一读那一句",
+    hintTap: "点一颗星，读一读那一句",
     // 金句星图（say-sky.tsx，sky 只给读屏念）与金句卡片（say-tools.tsx）
     sky: "金句星图",
     newer: "新",

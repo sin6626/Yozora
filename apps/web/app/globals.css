@@ -890,7 +890,11 @@ a:focus-visible,
     padding: 1rem;
   }
 
-  /* 手机上分类挪到标题下方，行距收紧 */}
+  /* 页面标题和下面的正文左边对齐（正文手机上是 1rem） */
+  .page-heading {
+    padding-inline: 1rem;
+  }
+}
 
 /* 路由切换：只给中间栏做淡入上移，侧栏和整页不动 */
 ::view-transition {

@@ -57,7 +57,7 @@ try {
 
   // 整页星空：铺满屏幕宽，横屏那份；每句一颗星；没有圆盘、说明、抽一句、按人看胶囊、下面的列表
   const page = await browser.evaluate(`({
-    count: document.querySelector(".page-heading .post-meta")?.textContent,
+    count: document.querySelector(".page-heading .post-meta")?.firstChild?.textContent,
     width: innerWidth,
     old: document.querySelectorAll(".say-sky-chart, .say-sky-grid, .say-sky-intro, .say-draw-button, .say-authors, .say-toolbar").length,
     lists: document.querySelectorAll(".say-list, .say-list-trigger, .say-drawer").length,
@@ -159,7 +159,7 @@ try {
   // 旧链接：?author=、?page= 都显示这一页、不 404
   for (const query of [`author=${encodeURIComponent(all.find((say) => say.author?.trim())?.author?.trim() ?? "x")}`, "page=2"]) {
     await browser.goto(`${base}/says?${query}`, 2500);
-    assert.equal(await browser.evaluate(`document.querySelector(".page-heading .post-meta")?.textContent`), `共 ${all.length} 条`, `旧的 ?${query} 链接显示全部`);
+    assert.equal(await browser.evaluate(`document.querySelector(".page-heading .post-meta")?.firstChild?.textContent`), `共 ${all.length} 条`, `旧的 ?${query} 链接显示全部`);
   }
 
   // 金句卡片图：星旁边那句的“做成卡片”；弹窗用 Esc 关上后那句话的卡片还在

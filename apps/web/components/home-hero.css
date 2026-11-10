@@ -972,6 +972,16 @@ html:has(.starfield[data-fallback]) .home-hero {
   border-radius: 0.75rem;
 }
 
+/* 有浅色版的图标：深色主题显示 -dark，浅色主题显示 -light（tech-stack.tsx 的 StackIcon） */
+.stack-track .stack-icon-light,
+:root[data-theme="light"] .stack-track .stack-icon-dark {
+  display: none;
+}
+
+:root[data-theme="light"] .stack-track .stack-icon-light {
+  display: block;
+}
+
 /* 后台填了没装的图标时，用名字首字占位，大小与图标方块一致 */
 .stack-letter {
   display: grid;

@@ -25,6 +25,10 @@ export default function IconifyIcon({ icon, size = 18, className }: { icon: Icon
   const data = getIconData(sets[prefix], name);
   if (!data) return null;
   const { attributes, body } = iconToSVG(data, { height: size });
+  // 渐变等 id 加上图标名前缀：同一页里不同图标（比如技术栈同一个图标的 -dark/-light 两份）的 id 不会撞，
+  // 否则 url(#a) 会指向被 display: none 藏起来那份里的渐变，画出来是空的
+  const scope = icon.replace(/[^a-z0-9]+/gi, "-");
+  const scoped = body.replace(/\bid="([^"]+)"/g, `id="${scope}-$1"`).replace(/(url\(#|href="#)([^)"]+)/g, `$1${scope}-$2`);
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -32,9 +36,10 @@ export default function IconifyIcon({ icon, size = 18, className }: { icon: Icon
       width={attributes.width}
       height={attributes.height}
       className={className}
+      data-icon={icon}
       aria-hidden="true"
       focusable="false"
-      dangerouslySetInnerHTML={{ __html: body }}
+      dangerouslySetInnerHTML={{ __html: scoped }}
     />
   );
 }

@@ -27,7 +27,15 @@ export default async function SayList() {
     <>
       <header className="page-heading">
         <h1>{t.title}</h1>
-        <p className="post-meta">{t.count(says.length)}</p>
+        <p className="post-meta">
+          {t.count(says.length)}
+          {says.length > 0 && (
+            <>
+              <span className="says-hint" data-input="hover">{t.hintHover}</span>
+              <span className="says-hint" data-input="touch">{t.hintTap}</span>
+            </>
+          )}
+        </p>
       </header>
       {says.length ? (
         <SaySky layouts={{ wide: skyLayout(says, skyFrames.wide), tall: skyLayout(says, skyFrames.tall) }} says={says} site={site}>

@@ -183,16 +183,12 @@
   font-size: var(--text-sm);
 }
 
-/* 文章过期提示（post-outdated.tsx）：一行淡色小字，月光色沙漏，淡淡的月光底，不抢正文 */
+/* 文章过期提示（post-outdated.tsx）：一行淡色小字 + 月光色沙漏，不加框和底色——下面紧跟 AI 摘要的框和正文里的引用，再加一个框就是三种盒子摞在一起 */
 .post-outdated {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
-  margin-bottom: var(--space-6);
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: color-mix(in oklab, var(--moonlight) 6%, transparent);
+  margin-bottom: var(--space-4);
   color: var(--muted-foreground);
   font-size: var(--text-sm);
   line-height: var(--leading-relaxed);
@@ -502,4 +498,10 @@
 
 .article-body .code-frame:hover .code-copy {
   opacity: 1;
+}
+
+/* 富文本里的“原生 CodeNode”代码块（rich-code-block）Haklex 没给内边距，字贴着边框；和 Shiki 代码卡片的文字缩进对齐 */
+.article-rich pre.rich-code-block {
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
 }

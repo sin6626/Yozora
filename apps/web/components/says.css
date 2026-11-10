@@ -609,3 +609,24 @@
     opacity: 0;
   }
 }
+
+/* 标题下的操作提示（say-list.tsx）：接在“共 N 条”后面，有鼠标说悬停、触屏说点 */
+/* .post-meta 是 flex，左边已有 gap，点只在右边留同样的距离 */
+.says-hint::before {
+  content: "·";
+  margin-inline-end: var(--space-3);
+}
+
+.says-hint[data-input="touch"] {
+  display: none;
+}
+
+@media (hover: none) {
+  .says-hint[data-input="hover"] {
+    display: none;
+  }
+
+  .says-hint[data-input="touch"] {
+    display: inline;
+  }
+}
