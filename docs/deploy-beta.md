@@ -376,3 +376,32 @@ cd /root/mx-space/core && docker compose up -d --no-deps app
 - 站长同意后改为 `vm.swappiness = 10`（立即生效 + 写入 `/etc/sysctl.conf`，原文件备份 `/root/backups/sysctl.conf.bak-20261110`）。回滚：`sysctl -w vm.swappiness=0` 并还原备份。
 - 恢复后（Core 自动重启）服务器内检查三个站点都是 200，负载 0.07。
 - 以后对线上做只读检查：不跑 `mongosh`（一个就上百 MB），页面请求控制在几次；切换正式站后停掉旧 Shiro 能空出约 190MB。
+
+## 2026-11-10 已做：审查修复、草稿占位链接、实况图转换上线（cb463a3）+ 图床换到 R2
+
+站长说“去部署吧”后执行，Core、后台、beta 前台三样都换（含 b30be94 之后的 18 个提交：草稿自动保存不再因占位链接 400、实况图 HEIC/MOV 转换接口、上线前审查的界面修复、Markdown 代码块语言图标与复制按钮、页脚 Mix Space 署名，以及另一个会话的首屏光标蜂群入场和站内跳转地址栏打字效果）。
+
+- 备份：服务器 `/root/backups/yozora-cb463a3/`（`mongo.archive.gz` 39 个集合，`gzip -t` 与 `mongorestore --dryRun` 通过；`compose-before.yml`；`web.env.before`；`yozora-web-inspect.json`；`core-main.sha256`；切换脚本 `switch-core.sh`、`switch-web.sh` 与日志）。坑：第一次在双引号里写 `nohup sh -c '…$B…'`，`$B` 被本机展开成空，备份文件落在服务器根目录，已挪进备份目录；以后远程脚本先 scp 成文件再执行。
+- **Core**：`/root/mx-space/core-image-cb463a3/`（以上一版 out 为 `--copy-dest` 只传差异），镜像 `yozora/mx-server:cb463a3`，入口 `main.mjs` SHA-256 `a41a1542…` 与本机一致；停机约 17 秒，healthy，日志无错误。服务器没有 ffmpeg，实况图 HEIC/MOV 转换接口线上不可用（只影响这一个功能）。
+- **后台**：数据目录 `admin/` 换成 cb463a3 构建（`index.html` SHA-256 `14b539ff…`），上一版改名 `admin-before-cb463a3`；`/proxy/qaqdmin` 200。
+- **前台**：`releases/cb463a3`（包 75MB，rsync 中途断过一次，`--partial` 续传后哈希一致），启动参数与上一版相同（加入 `core_mx-space` 网络、`BETA_SHARE_URLS`）。第一次切换脚本用 `curl … | grep -q` 检查 `data-dpl-id`，`grep -q` 提前退出让 curl 报 23，`pipefail` 把它当失败，自动回滚到 b30be94（中断约 1 分钟）；改成先存变量再比较后重跑，停机约 4 秒。服务器本机首页、/en、文章列表、Markdown 文章、手记、一言、RSS、robots、分享图都是 200；容器约 292MB / 400MB。
+- 已知（不是这次引入的）：前台日志每次渲染都有 “encountered the unstable value `Date.now()` while prerendering”，旧版 b30be94 的容器里也有 169 条，来自 `lib/api.ts` 判断内网是否可用的计时；页面照常 200。待修。
+- **图床**：线上后台“图床设置”已由站长改成 R2（端点、Bucket `blog-images`、Region `auto`、两个密钥）；`/opt/1panel/www/sites/s3.sin6626.me/proxy/r2-redirect.conf` 让浏览器打开旧地址 `/mx-images/…` 时 301 到 `https://img.sin6626.me/…`，带签名的 S3 请求照旧给 MinIO（`openresty -t` 通过后 reload，公网旧地址实测一次跳转后 200）。切换前再跑一次 `mc mirror`，MinIO 没有新文件。**部署完成时线上“自定义域名 (CDN)”仍是空的**，要填 `https://img.sin6626.me`，否则新上传的图片地址是 R2 的 API 地址、打不开。
+
+回滚：
+
+```bash
+# 前台：先核对 current 仍是 cb463a3
+W=/root/mx-space/yozora-web
+docker stop yozora-web && docker rename yozora-web yozora-web-cb463a3-stopped
+ln -sfn $W/releases/b30be94 $W/current && docker rename yozora-web-pre-cb463a3 yozora-web && docker start yozora-web
+# Core（约 20 秒）
+cp -p /root/backups/yozora-cb463a3/compose-before.yml /root/mx-space/core/docker-compose.yml
+cd /root/mx-space/core && docker compose up -d --no-deps app
+# 后台
+D=/root/mx-space/core/data/mx-space; mv $D/admin $D/admin-yozora-cb463a3 && mv $D/admin-before-cb463a3 $D/admin
+# 图床旧地址跳转
+rm /opt/1panel/www/sites/s3.sin6626.me/proxy/r2-redirect.conf && docker exec 1Panel-openresty-LH5o openresty -s reload
+```
+
+磁盘留给站长自己清：上传用的 `/root/mx-space/yozora-admin-cb463a3.tgz`、`/root/mx-space/yozora-web/yozora-web-cb463a3.tgz`，以及前几节列的旧版本。回滚要用的 `releases/b30be94`、镜像 `cache-b30be94`、容器 `yozora-web-pre-cb463a3`、目录 `admin-before-cb463a3` 先别删。
