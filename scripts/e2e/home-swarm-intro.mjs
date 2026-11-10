@@ -1,0 +1,148 @@
+// 浏览器回归测试：首页蜂群开场（home-swarm-intro.tsx，2026-11-10 站长定）。
+// ① /?swarm 强制播：第一屏先被盖住，CSS 入场不播；光标把第一屏画出来，底部中文进度条（光标数、还剩几个元素）；
+//    没有原版的“Y”开场图标和英文控制栏；丛雨的闭眼帧不交给光标画，图片占位是透明的（三层图不会被灰块挡住）；
+//    1 倍速在 25 秒内画完，蜂群图层慢慢淡出（中途能采到半透明），播完遮罩、夜空快照、蜂群图层都拿掉，真实页面完全不透明；
+// ② 站内跳走再回首页：不播蜂群，照常播 CSS 入场；
+// ③ 判断脚本：从外面打开（无来源、navigate）才播；同一标签页第二次、刷新、减少动态效果都不播；Esc 跳过后真实页面在；
+//    无头浏览器的 navigator.webdriver 是 true（其他 e2e 因此不会被开场挡住），这一段用注入脚本把它改成 false 来测。
+// 需要先运行 pnpm dev（默认 http://127.0.0.1:2323，可用 WEB_URL 覆盖）。用法：node scripts/e2e/home-swarm-intro.mjs
+import assert from "node:assert/strict";
+import { openBrowser, sleep } from "../headless-browser.mjs";
+import { clickNav } from "./helpers.mjs";
+
+const base = process.env.WEB_URL ?? "http://127.0.0.1:2323";
+const browser = await openBrowser({ port: 9481 });
+
+// 整页打开后立刻在页面里每 100ms 采一次样，直到开场播完（data-swarm-intro="done"）
+const watch = `(async () => {
+  const html = document.documentElement;
+  const rec = { states: [], hud: [], opacity: [], placeholders: [], logo: null, englishHud: null, blinkIgnored: false, sky: false, total: 0, done: 0, cursors: 0, rise: false };
+  const t0 = performance.now();
+  while (performance.now() - t0 < 30000) {
+    const state = html.dataset.swarmIntro ?? "none";
+    if (rec.states.at(-1) !== state) rec.states.push(state);
+    const description = document.querySelector(".home-hero-description");
+    if (description?.getAnimations().some((a) => a.animationName === "home-hero-rise")) rec.rise = true;
+    const p = window.SwarmCursors?.progress?.();
+    if (p) { rec.total = Math.max(rec.total, p.total); rec.done = Math.max(rec.done, p.done); rec.cursors = Math.max(rec.cursors, p.cursors); }
+    const root = window.SwarmCursors?.root?.();
+    if (root) {
+      const hud = root.querySelector(".yz-hud");
+      if (hud && rec.hud.at(-1) !== hud.textContent) rec.hud.push(hud.textContent);
+      const intro = root.querySelector(".intro");
+      if (intro) rec.logo = getComputedStyle(intro).display;
+      const english = root.querySelector(".hud");
+      if (english) rec.englishHud = getComputedStyle(english).display;
+      // 丛雨三层图的占位：前层、后层叠在一起，占位要透明，否则后画的那层在出图前用一块底色挡住先画好的
+      const mascots = [...document.querySelectorAll(".home-hero-mascot:not(.is-blink)")].map((img) => img.currentSrc || img.src);
+      for (const m of root.querySelectorAll(".m")) {
+        const src = m.querySelector("img.md, img")?.src;
+        if (src && mascots.includes(src)) rec.placeholders.push(getComputedStyle(m).backgroundColor);
+      }
+    }
+    const host = document.querySelector("swarm-rebuild");
+    if (host) rec.opacity.push(Number(getComputedStyle(host).opacity));
+    if (document.querySelector(".home-hero-mascot.is-blink")?.hasAttribute("data-swarm-ignore")) rec.blinkIgnored = true;
+    if (document.querySelector(".swarm-sky")) rec.sky = true;
+    if (state === "done" || state === "none" && rec.states.length > 1) break;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  rec.seconds = (performance.now() - t0) / 1000;
+  rec.placeholders = [...new Set(rec.placeholders)];
+  return rec;
+})()`;
+
+const after = () => browser.evaluate(`(() => {
+  const title = document.querySelector(".home-hero-title > span");
+  return {
+    state: document.documentElement.dataset.swarmIntro ?? "none",
+    host: !!document.querySelector("swarm-rebuild"),
+    cover: !!document.querySelector(".swarm-cover"),
+    sky: !!document.querySelector(".swarm-sky"),
+    ignored: document.querySelectorAll("[data-swarm-ignore]").length,
+    opacity: getComputedStyle(title).opacity,
+    rise: document.querySelector(".home-hero-description").getAnimations().some((a) => a.animationName === "home-hero-rise"),
+    // 伪元素遮罩（脚本接手前的那层）不能还留着
+    pseudo: getComputedStyle(document.body, "::after").content,
+  };
+})()`);
+
+const stateNow = () => browser.evaluate(`document.documentElement.dataset.swarmIntro ?? "none"`);
+const jsErrors = () => browser.errors.filter((e) => !/Download the React DevTools|\\[HMR\\]|\\[Fast Refresh\\]/.test(e));
+
+try {
+  await browser.setViewport(1920, 991);
+
+  // ① 强制播一次
+  await browser.goto(`${base}/?swarm`, 0);
+  const run = await browser.evaluate(watch);
+  assert.ok(run.states.includes("playing") && run.states.at(-1) === "done", `应从 playing 播到 done：${JSON.stringify(run.states)}`);
+  assert.equal(run.rise, false, "开场期间首屏不应再播 CSS 入场");
+  assert.equal(run.logo, "none", "原版“Y”开场图标应藏起来");
+  assert.equal(run.englishHud, "none", "原版英文控制栏应藏起来");
+  assert.ok(run.hud.some((text) => /\d+ 个光标/.test(text)) && run.hud.some((text) => /还剩 \d+ \/ \d+ 个元素/.test(text)), `底部应显示光标数和剩余元素：${JSON.stringify(run.hud.slice(0, 8))}`);
+  assert.ok(run.hud.some((text) => text.includes("全部画完")), `画完应显示用时：${JSON.stringify(run.hud.slice(-4))}`);
+  assert.ok(run.total >= 20 && run.done === run.total, `第一屏的元素都应画完：${run.done}/${run.total}`);
+  assert.ok(run.cursors >= 10, `应有一群光标：${run.cursors}`);
+  assert.ok(run.blinkIgnored, "丛雨的闭眼帧不应交给光标画");
+  assert.ok(run.placeholders.length > 0 && run.placeholders.every((bg) => bg === "rgba(0, 0, 0, 0)"), `图片占位应透明（否则叠层图被灰块挡住）：${JSON.stringify(run.placeholders)}`);
+  assert.ok(run.sky, "开场期间应有夜空快照");
+  assert.ok(run.seconds < 25, `1 倍速第一屏应在 25 秒内画完：${run.seconds.toFixed(1)}s`);
+  assert.ok(run.opacity.some((value) => value > 0.05 && value < 0.95), `蜂群图层应慢慢淡出，而不是一下消失：${JSON.stringify(run.opacity.slice(-25))}`);
+
+  await sleep(1500);
+  const done = await after();
+  assert.deepEqual(
+    { state: done.state, host: done.host, cover: done.cover, sky: done.sky, ignored: done.ignored, opacity: done.opacity, rise: done.rise },
+    { state: "done", host: false, cover: false, sky: false, ignored: 0, opacity: "1", rise: false },
+    `播完后应只剩真实页面：${JSON.stringify(done)}`,
+  );
+  assert.equal(done.pseudo, "none", "伪元素遮罩不应留着");
+
+  // ② 站内跳走再回来：不播蜂群，照常播入场
+  assert.equal(await browser.evaluate(clickNav("/timeline")), "/timeline");
+  assert.equal(await browser.evaluate(clickNav("/", 200)), "/");
+  const back = await after();
+  assert.equal(back.state, "none", "站内跳回首页不应播蜂群");
+  assert.equal(back.host, false);
+  assert.ok(back.rise, "站内跳回首页应播 CSS 入场");
+
+  assert.deepEqual(jsErrors(), [], "不应有页面报错");
+
+  // ③ 判断脚本：把 navigator.webdriver 改成 false，像普通读者那样打开
+  await browser.send("Page.addScriptToEvaluateOnNewDocument", { source: `Object.defineProperty(Navigator.prototype, "webdriver", { get: () => false })` });
+  const pointer = await browser.evaluate(`matchMedia("(hover: hover) and (pointer: fine)").matches`);
+  assert.ok(pointer, "无头浏览器应当是有鼠标的桌面环境，否则下面测不到");
+  await browser.evaluate("sessionStorage.clear()");
+
+  await browser.goto(`${base}/`, 300);
+  assert.ok(["pending", "playing"].includes(await stateNow()), "从外面打开首页应准备播");
+  await sleep(1500);
+  await browser.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+  await browser.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+  await sleep(1200);
+  const skipped = await after();
+  assert.deepEqual({ state: skipped.state, host: skipped.host, cover: skipped.cover, opacity: skipped.opacity }, { state: "done", host: false, cover: false, opacity: "1" }, `Esc 跳过后应露出真实页面：${JSON.stringify(skipped)}`);
+
+  await browser.goto(`${base}/`, 300);
+  assert.equal(await stateNow(), "none", "同一标签页第二次打开不应再播");
+
+  await browser.evaluate("sessionStorage.clear()");
+  await browser.send("Page.reload");
+  await sleep(1500);
+  assert.equal(await stateNow(), "none", "刷新不应播");
+
+  await browser.evaluate("sessionStorage.clear()");
+  await browser.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+  await browser.goto(`${base}/`, 300);
+  assert.equal(await stateNow(), "none", "减少动态效果时不应播");
+  await browser.send("Emulation.setEmulatedMedia", { features: [] });
+
+  await browser.evaluate("sessionStorage.clear()");
+  await browser.goto(`${base}/posts`, 300);
+  assert.equal(await stateNow(), "none", "别的页面不应播");
+
+  console.log(`PASS 首页蜂群开场：强制播 ${run.seconds.toFixed(1)}s 画完 ${run.total} 个元素、${run.cursors} 个光标，进度条、透明占位、慢慢淡出；站内跳回、第二次、刷新、减少动态效果、别的页面都不播；Esc 跳过`);
+} finally {
+  await browser.close();
+}

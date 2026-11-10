@@ -134,6 +134,43 @@ html:has(.starfield[data-fallback]) .home-hero {
   }
 }
 
+/* 蜂群开场（home-swarm-intro.tsx）：从外面直接打开首页时，<head> 里的脚本在绘制前标上 data-swarm-intro，
+   第一屏先被夜色盖住、CSS 入场不播，由光标把它画出来；开场播完（done）也不再补播入场。
+   脚本没跑起来时伪元素遮罩 5 秒后自己淡掉，不会一直空白。 */
+html[data-swarm-intro] :is(.home-hero-title > span, .home-hero-title > strong, .home-hero-title .home-hero-name, .home-hero-description, .home-hero-socials, .home-portrait, .home-hero-bottom) {
+  animation: none;
+}
+
+html[data-swarm-intro="pending"] body:has(.home-hero)::after,
+.swarm-cover {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2147483600;
+  background: var(--background);
+  pointer-events: none;
+}
+
+html[data-swarm-intro="pending"] body:has(.home-hero)::after {
+  animation: swarm-cover-timeout 0.4s ease 5s forwards;
+}
+
+@keyframes swarm-cover-timeout {
+  to { opacity: 0; visibility: hidden; }
+}
+
+/* 夜空快照：WebGL 画布读不出来，开场期间用它当夜空交给光标画，播完淡掉露出真的画布 */
+.swarm-sky {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+
 /* 首页下半部分“滚到才出现”的上浮淡入在 reveal.css（列表页共用） */
 
 .home-hero-star {

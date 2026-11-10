@@ -448,10 +448,18 @@ export default function Starfield() {
     // 主题或配色变了，天空和页面底色跟着变（换的那一下整页在做 0.6 秒的视图过渡，新旧天空跟着一起渐变）
     const themeObserver = new MutationObserver(() => requestAnimationFrame(() => { setPalette(); setPage(); drawn = ""; wake(); }));
     themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-palette"] });
+    // 首页蜂群开场要一张当前夜空的照片（components/home-swarm-intro.tsx）：WebGL 画面合成后就被清掉，只能画完这一帧立刻取
+    const snapshot = (event: Event) => {
+      drawn = "";
+      draw(performance.now());
+      (event as CustomEvent<(url: string) => void>).detail?.(canvas.toDataURL("image/jpeg", 0.9));
+    };
+    window.addEventListener("yozora:sky-snapshot", snapshot);
     resize();
     wake();
 
     return () => {
+      window.removeEventListener("yozora:sky-snapshot", snapshot);
       cancelAnimationFrame(frame);
       clearTimeout(timer);
       resizeObserver.disconnect();

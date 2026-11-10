@@ -113,6 +113,16 @@ const zh = {
   hero: {
     avatarAlt: msg<[name: string]>("{name} 的头像"),
   },
+  // 从外链进入首页时的蜂群开场（components/home-swarm-intro.tsx）：底部那条进度
+  swarm: {
+    gathering: msg<[count: number]>("{count} 个光标正在聚集"),
+    scanning: "正在看清这一页…",
+    cursors: msg<[count: number, working: number]>("{count} 个光标 · {working} 个在画"),
+    total: msg<[total: number]>("共 {total} 个元素要画"),
+    left: msg<[left: number, total: number]>("还剩 {left} / {total} 个元素"),
+    done: msg<[seconds: string]>("全部画完 · 用时 {seconds} 秒"),
+    skip: "Esc 跳过",
+  },
   home: {
     all: "全部",
     loadFailed: msg<[title: string]>("{title}读取失败，请稍后刷新。"),
