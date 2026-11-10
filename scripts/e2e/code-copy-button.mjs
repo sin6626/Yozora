@@ -4,6 +4,8 @@
 //    嵌套文档预览里的代码块 Haklex 设了 pointer-events: none，不能悬停，跳过。
 // ② Markdown 文章的代码块原来没有复制按钮（article-body.tsx）。现在有，颜色、大小、离右上角的距离和富文本的一样，
 //    点了真的把代码写进剪贴板、按钮读屏文字变成“已复制”。用本地 Markdown 文章 zod（一段 TypeScript、一段没写语言）。
+// ③ Markdown 代码块原来不显示语言（2026-11-10 站长截图）。现在写了语言的右下角有和富文本同一个语言图标（Haklex 的 LanguageIcon），
+//    位置、大小、透明度一样（zod 的四段都写了 typescript）。
 // 需要先运行 pnpm dev（默认 http://127.0.0.1:2323，可用 WEB_URL 覆盖）。
 import assert from "node:assert/strict";
 import { openBrowser, sleep } from "../headless-browser.mjs";
@@ -62,6 +64,16 @@ try {
     rich[theme] = looks[0];
   }
 
+  // 语言图标：每个富文本代码块右下角，按语言记下图标和位置
+  const langOf = (frame, marker) => `[...document.querySelectorAll(${JSON.stringify(frame)})].filter((f) => f.checkVisibility() && getComputedStyle(f).pointerEvents !== "none").map((f) => {
+    const mark = f.querySelector(${JSON.stringify(marker)});
+    if (!mark) return { code: f.querySelector("pre")?.textContent.slice(0, 30), mark: null };
+    const c = f.getBoundingClientRect(), m = mark.getBoundingClientRect(), svg = mark.querySelector("svg");
+    return { mark: svg?.innerHTML ?? mark.textContent, box: [Math.round(c.right - m.right), Math.round(c.bottom - m.bottom), Math.round(m.width), Math.round(m.height), getComputedStyle(mark).opacity].join(" ") };
+  })`;
+  const richLangs = await browser.evaluate(langOf(".article-rich .rr-code-card", ".rr-code-lang"));
+  assert.ok(richLangs.length > 0 && richLangs.every((l) => l.mark), "富文本代码块都有语言图标");
+
   await browser.goto(`${base}/posts/study%26think/zod`);
   await settle(".article-body pre");
   await sleep(2000);
@@ -75,6 +87,16 @@ try {
       assert.equal(l.look, rich[theme].look, `Markdown 与富文本的复制按钮颜色不一样（${theme}）`);
       assert.equal(l.box, rich[theme].box, `Markdown 与富文本的复制按钮大小或位置不一样（${theme}）：${l.box} / ${rich[theme].box}`);
     }
+  }
+
+  const mdLangs = await browser.evaluate(langOf(".article-body .code-frame", ".code-lang"));
+  const labelled = mdLangs.filter((l) => l.mark);
+  assert.ok(labelled.length >= 1, `写了语言的 Markdown 代码块要在右下角显示语言（${JSON.stringify(mdLangs.map((l) => l.code))}）`);
+  const richTs = richLangs.find((l) => /0288d1/i.test(l.mark));
+  assert.ok(richTs, "富文本对照文章里有 TypeScript 代码块");
+  for (const l of labelled) {
+    assert.equal(l.mark, richTs.mark, "Markdown 的 TypeScript 图标和富文本的同一个");
+    assert.equal(l.box, richTs.box, `语言图标的位置、大小、透明度和富文本一样：${l.box} / ${richTs.box}`);
   }
 
   // 点第一个代码块的按钮：剪贴板里是这段代码，读屏文字变成“已复制”
@@ -91,7 +113,7 @@ try {
   assert.equal(after.clipboard, target.code.replace(/\n$/, ""), "复制到剪贴板的是这段代码");
   assert.equal(after.label, "已复制", "复制后按钮读屏文字变成“已复制”");
 
-  console.log("PASS 富文本三种语言的复制按钮一致；Markdown 代码块有同款复制按钮，点了复制成功");
+  console.log("PASS 富文本三种语言的复制按钮一致；Markdown 代码块有同款复制按钮，点了复制成功；写了语言的 Markdown 代码块右下角有和富文本同款的语言图标");
 } finally {
   browser.close();
 }

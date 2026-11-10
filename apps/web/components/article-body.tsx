@@ -2,6 +2,7 @@ import { cacheLife } from "next/cache";
 import type { ReactNode } from "react";
 import Markdown, { type Components, type ExtraProps } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { LanguageIcon } from "@haklex/rich-renderer-codeblock/icons";
 import { bundledLanguages, codeToHtml } from "shiki";
 import { getApiUrl } from "../lib/config";
 import CodeCopy from "./code-copy";
@@ -24,7 +25,8 @@ async function HighlightedCode({ code, lang }: { code: string; lang: string }) {
 }
 
 // 代码块：```lang 且 Shiki 支持该语言时高亮，否则保持原样（Shiki 遇到未知语言会报错）。
-// 本身保持同步，只有需要高亮时才交给异步的 HighlightedCode（服务端组件）。外面包一层带复制按钮的框，和富文本代码块一样。
+// 本身保持同步，只有需要高亮时才交给异步的 HighlightedCode（服务端组件）。外面包一层带复制按钮的框，和富文本代码块一样；
+// 写了语言的右下角放 Haklex 富文本同一个语言图标（material-icon-theme，认不得的语言是通用代码图标），没写语言的不放。
 function CodeBlock({ node, children }: { children?: ReactNode } & ExtraProps) {
   const code = node?.children[0];
   if (code?.type !== "element" || code.tagName !== "code") return <pre>{children}</pre>;
@@ -35,6 +37,11 @@ function CodeBlock({ node, children }: { children?: ReactNode } & ExtraProps) {
     <div className="code-frame">
       {lang && lang in bundledLanguages ? <HighlightedCode code={text} lang={lang} /> : <pre>{children}</pre>}
       <CodeCopy code={text} />
+      {lang && lang !== "text" && (
+        <div className="code-lang" aria-hidden="true">
+          <LanguageIcon language={lang} size={14} className="code-lang-icon" />
+        </div>
+      )}
     </div>
   );
 }

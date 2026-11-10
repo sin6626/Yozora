@@ -9,10 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@yozora/live-photo": "workspace:*",
     "@base-ui/react": "^1.9.0",
     "@excalidraw/excalidraw": "0.18.1",
     "@haklex/rich-kit-shiro": "0.0.85",
+    "@haklex/rich-renderer-codeblock": "0.0.85",
     "@iconify-json/logos": "^1.2.18",
     "@iconify-json/mingcute": "^1.2.8",
     "@iconify-json/simple-icons": "^1.2.101",
@@ -21,6 +21,7 @@
     "@iconify/utils": "3.1.0",
     "@lexical/react": "0.41.0",
     "@mx-space/api-client": "workspace:*",
+    "@yozora/live-photo": "workspace:*",
     "lexical": "0.41.0",
     "lucide-react": "0.574.0",
     "lxgw-wenkai-webfont": "1.7.0",
