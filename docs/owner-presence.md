@@ -36,8 +36,8 @@ node scripts/install-ps-function.mjs
 
 App 图标由 Companion 传到图床（Destinations → Application Icon Hosting），和后台“设置 → 存储 → 图床设置”用同一个 S3：
 
-- Bucket `mx-images`，Region `auto`，Access Key / Secret Key 从后台图床设置复制（站长自己填）
-- Advanced：S3 Endpoint `https://s3.sin6626.me`，Object Path `app-icons`，Public URL Prefix `https://s3.sin6626.me/mx-images`
+- Bucket `blog-images`，Region `auto`，Access Key / Secret Key 用站长建的 R2 令牌（站长自己填）
+- Advanced：S3 Endpoint `https://0465a84ddda4391f76e6230e4953407c.r2.cloudflarestorage.com`（Cloudflare R2），Object Path `app-icons`，Public URL Prefix `https://img.sin6626.me`；Bucket `blog-images`，Access/Secret Key 用站长建的 R2 令牌（2026-11-10 从 MinIO 换到 R2，原来是 `https://s3.sin6626.me` + `mx-images`）
 - 保存后打开 Enabled 再保存，用 Upload Test Icon… 验证公开地址能访问
 
 Companion 传的图标是 32×32 的 PNG（它读 macOS 图标时用的默认尺寸，改不了），放大会糊。所以常见 App 改用离线图标集里的矢量标志：`apps/web/lib/app-icons.ts` 是“App 名 → 图标”对照表（Chrome、Edge、Safari、VS Code、Cursor、Claude、微信、QQ、网易云音乐等 30 多个，中英文名都列），`/api/app-icon/<key>`（`app/api/app-icon/[key]/route.ts`）在服务端把标志画到 macOS 风格的圆角白底上，返回 SVG（地址带版本号，缓存一年）。认不得的 App 仍用 Companion 的小图标，按原大小放在玻璃底上，不拉大；都没有时显示首字。新 App 在对照表里加一行即可。Core 每小时的孤儿图片清理只删通过 Core 上传、有记录的文件，Companion 直接传的图标不会被删。
