@@ -69,6 +69,7 @@
 }
 
 .site-footer-about .site-footer-sign,
+.site-footer-credit,
 .site-footer-icp,
 .site-footer-side .site-online {
   color: var(--muted-foreground);
@@ -119,5 +120,26 @@
 @media (max-width: 639px) {
   .site-footer-icp {
     justify-self: center;
+  }
+}
+
+/* “基于 Innei 的 Mix Space 构建”：和落款同样的小号淡字，两个名字是链接，悬停变强调色 */
+.site-footer-credit {
+  margin: 0;
+  letter-spacing: 0.04em;
+}
+
+.site-footer-credit a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-underline-offset: 0.2em;
+  transition: color var(--duration-fast), text-decoration-color var(--duration-fast);
+}
+
+@media (hover: hover) {
+  .site-footer-credit a:hover {
+    color: var(--primary);
+    text-decoration-color: currentColor;
   }
 }

@@ -3,6 +3,7 @@ import Link from "./locale-provider";
 import { Suspense } from "react";
 import { getSiteContent, siteOwnerName } from "../lib/blog-data";
 import { getLocale, getT } from "../lib/i18n/server";
+import { rich } from "../lib/i18n/rich";
 import FooterSky from "./footer-sky";
 import OwnerName from "./owner-name";
 import RollText from "./roll-text";
@@ -30,6 +31,13 @@ export default async function SiteFooter() {
           )}
           <p className="site-footer-sign">
             © 2026 <Suspense fallback={siteOwnerName}><OwnerName /></Suspense> · Made with <Heart size={12} aria-label="love" /> under the stars
+          </p>
+          {/* 本站基于 Innei 的 Mix Space（Core、后台）构建，两个名字各链到 GitHub（站长 2026-11-10 要求写明） */}
+          <p className="site-footer-credit">
+            {rich(t.credit, {
+              author: <a href="https://github.com/Innei" target="_blank" rel="noopener noreferrer">Innei</a>,
+              project: <a href="https://github.com/mx-space" target="_blank" rel="noopener noreferrer">Mix Space</a>,
+            })}
           </p>
           {/* 备案号按审核要求原样写中文，外文页面也不翻译，标上语言 */}
           {footer.icp && <a className="site-footer-icp" href={footer.icp.href} target="_blank" rel="noopener noreferrer" lang="zh-CN">{footer.icp.label}</a>}

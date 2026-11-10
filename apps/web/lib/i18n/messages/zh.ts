@@ -101,6 +101,8 @@ const zh = {
     timeline: "时间线",
     friends: "友链",
     source: "源码",
+    // {author} 换成链到 Innei GitHub 的名字，{project} 换成链到 Mix Space 的名字
+    credit: "基于 {author} 的 {project} 构建",
     online: msg<[count: number]>("此刻有 {count} 人在这里"),
     // {since} 是 Intl 按语言写的年月（2023年3月 / March 2023）
     sky: msg<[since: string]>("从 {since}到今天，每天刷题和写代码的星星"),

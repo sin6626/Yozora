@@ -21,6 +21,11 @@ try {
     hero: document.querySelector(".home-hero-name")?.textContent.trim(),
     sign: document.querySelector(".site-footer-sign")?.textContent.trim(),
     source: document.querySelector('.site-footer-links a[href="https://github.com/sin6626/Yozora"]')?.target,
+    credit: (() => {
+      const line = document.querySelector(".site-footer-credit");
+      const link = (href) => { const a = line?.querySelector(\`a[href="\${href}"]\`); return a && [a.textContent.trim(), a.target, a.rel.includes("noopener")].join(" "); };
+      return line && { text: line.textContent.replace(/\\s+/g, " ").trim(), innei: link("https://github.com/Innei"), mixSpace: link("https://github.com/mx-space"), visible: line.checkVisibility() };
+    })(),
     title: document.title,
   })`);
   assert.equal(home.brand, expected, "页头站名");
@@ -28,6 +33,8 @@ try {
   assert.equal(home.hero, owner, "首屏问候里的名字");
   assert.ok(home.sign?.startsWith(`© 2026 ${owner} ·`), `页脚落款：${home.sign}`);
   assert.equal(home.source, "_blank", "页脚要有源码链接（AGPL 要求能拿到改过的 Core 源码），新标签页打开");
+  // 2026-11-10 站长要求：页脚写明本站基于 Innei 的 Mix Space 构建，两个名字各链到 GitHub
+  assert.deepEqual(home.credit, { text: "基于 Innei 的 Mix Space 构建", innei: "Innei _blank true", mixSpace: "Mix Space _blank true", visible: true }, `页脚 Mix Space 署名：${JSON.stringify(home.credit)}`);
 
   await browser.goto(`${base}/posts`, 4500);
   const title = await browser.evaluate("document.title");
