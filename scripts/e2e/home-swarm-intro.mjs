@@ -3,10 +3,13 @@
 //    没有原版的“Y”开场图标和英文控制栏；丛雨的闭眼帧不交给光标画，图片占位是透明的（三层图不会被灰块挡住）；
 //    1 倍速在 25 秒内画完，蜂群图层慢慢淡出（中途能采到半透明），播完遮罩、夜空快照、蜂群图层都拿掉，真实页面完全不透明；
 // ② 站内跳走再回首页：不播蜂群，照常播 CSS 入场；
-// ③ 判断脚本：从外面打开（无来源、navigate）才播；同一标签页第二次、刷新、减少动态效果都不播；Esc 跳过后真实页面在；
+// ③ 判断脚本：从外面打开（无来源、navigate）和刷新都播（刷新不管这个标签页播没播过）；同一标签页第二次从外面进、减少动态效果、别的页面不播；Esc 跳过后真实页面在；
+// ④ 光标图层出现之前，屏幕上每一帧都是一片夜色：页头和首屏插进页面的那一刻已经盖住；流式内容进来时 React 播换页过渡，
+//    带名字的页头和正文层会被抬到遮罩上面画（导航栏和首屏先露出来），所以按真实画面的像素检查，不只看样式；
 //    无头浏览器的 navigator.webdriver 是 true（其他 e2e 因此不会被开场挡住），这一段用注入脚本把它改成 false 来测。
 // 需要先运行 pnpm dev（默认 http://127.0.0.1:2323，可用 WEB_URL 覆盖）。用法：node scripts/e2e/home-swarm-intro.mjs
 import assert from "node:assert/strict";
+import sharp from "sharp";
 import { openBrowser, sleep } from "../headless-browser.mjs";
 import { clickNav } from "./helpers.mjs";
 
@@ -73,9 +76,67 @@ const jsErrors = () => browser.errors.filter((e) => !/Download the React DevTool
 try {
   await browser.setViewport(1920, 991);
 
+  // ④ 页头和首屏第一次插进页面时，记下那一刻有没有被盖住（在页面所有脚本之前注入）
+  await browser.send("Page.addScriptToEvaluateOnNewDocument", { source: `{
+    window.__firstSeen = {};
+    new MutationObserver(() => {
+      for (const name of ["site-header", "home-hero"]) {
+        if (window.__firstSeen[name] || !document.querySelector("." + name) || !document.body) continue;
+        const cover = getComputedStyle(document.body, "::after");
+        window.__firstSeen[name] = { mark: document.documentElement.dataset.swarmIntro ?? "none", covered: cover.content !== "none" && cover.position === "fixed" && cover.opacity === "1" };
+      }
+    }).observe(document, { childList: true, subtree: true });
+  }` });
+  // 录屏：从开始导航到光标图层插进页面（页面里记下的时刻）之间的每一帧，最亮的像素都不能超过夜色（没有文字、导航栏）
+  await browser.send("Page.addScriptToEvaluateOnNewDocument", { source: `new MutationObserver((list, observer) => {
+    if (!document.querySelector("swarm-rebuild")) return;
+    window.__swarmAt = performance.timeOrigin + performance.now();
+    observer.disconnect();
+  }).observe(document, { childList: true, subtree: true })` });
+  const darkUntilSwarm = async (url, label) => {
+    const frames = [];
+    const onFrame = (m) => {
+      if (m.method !== "Page.screencastFrame") return;
+      frames.push({ at: m.params.metadata.timestamp * 1000, data: m.params.data });
+      browser.send("Page.screencastFrameAck", { sessionId: m.params.sessionId });
+    };
+    await browser.evaluate("window.__swarmAt = null").catch(() => {});
+    browser.listeners.push(onFrame);
+    await browser.send("Page.startScreencast", { format: "png", maxWidth: 960, maxHeight: 496 });
+    if (url) await browser.goto(url, 0); else { await browser.send("Page.reload"); }
+    let swarmAt = null;
+    for (let i = 0; i < 100 && !swarmAt; i++) { await sleep(100); swarmAt = await browser.evaluate("window.__swarmAt ?? null").catch(() => null); }
+    await browser.send("Page.stopScreencast");
+    browser.listeners.splice(browser.listeners.indexOf(onFrame), 1);
+    assert.ok(swarmAt, `${label}：光标图层应出现`);
+    // 新页面第一次绘制之前的帧还是上一页（about:blank 或刷新前的页面），不算
+    const paintAt = await browser.evaluate(`performance.timeOrigin + (performance.getEntriesByName("first-paint")[0]?.startTime ?? 0)`);
+    let checked = 0;
+    for (const frame of frames.filter((f) => f.at >= paintAt && f.at < swarmAt)) {
+      // 左下角开发模式的 Next 标志不算页面内容，底部 50px 不看
+      const image = sharp(Buffer.from(frame.data, "base64"));
+      const { width, height } = await image.metadata();
+      const cropped = await image.extract({ left: 0, top: 0, width, height: height - 50 }).toBuffer(); // stats() 不认 extract，要先出图
+      const { channels } = await sharp(cropped).stats();
+      const brightest = Math.max(...channels.slice(0, 3).map((c) => c.max));
+      if (brightest >= 70 && process.env.SWARM_FRAME_DIR) (await import("node:fs")).writeFileSync(`${process.env.SWARM_FRAME_DIR}/leak-${Math.round(frame.at - frames[0].at)}.png`, Buffer.from(frame.data, "base64"));
+      assert.ok(brightest < 70, `${label}：光标开始画之前第 ${Math.round(frame.at - frames[0].at)}ms 的画面露出了页面（最亮 ${brightest}）`);
+      checked++;
+    }
+    assert.ok(checked >= 3, `${label}：应采到光标开始前的几帧：${checked}/${frames.length}`);
+    return checked;
+  };
+  const coveredFirst = async (label) => {
+    const seen = await browser.evaluate("window.__firstSeen");
+    for (const name of ["site-header", "home-hero"]) assert.deepEqual(seen[name], { mark: "pending", covered: true }, `${label}：${name} 出现的那一刻整页应已被夜色盖住：${JSON.stringify(seen)}`);
+  };
+
   // ① 强制播一次
-  await browser.goto(`${base}/?swarm`, 0);
+  await browser.send("Page.navigate", { url: "about:blank" });
+  await sleep(300);
+  const darkFrames = await darkUntilSwarm(`${base}/?swarm`, "强制播");
   const run = await browser.evaluate(watch);
+  await coveredFirst("强制播");
   assert.ok(run.states.includes("playing") && run.states.at(-1) === "done", `应从 playing 播到 done：${JSON.stringify(run.states)}`);
   assert.equal(run.rise, false, "开场期间首屏不应再播 CSS 入场");
   assert.equal(run.logo, "none", "原版“Y”开场图标应藏起来");
@@ -117,6 +178,7 @@ try {
 
   await browser.goto(`${base}/`, 300);
   assert.ok(["pending", "playing"].includes(await stateNow()), "从外面打开首页应准备播");
+  await coveredFirst("从外面打开");
   await sleep(1500);
   await browser.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
   await browser.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
@@ -127,10 +189,12 @@ try {
   await browser.goto(`${base}/`, 300);
   assert.equal(await stateNow(), "none", "同一标签页第二次打开不应再播");
 
-  await browser.evaluate("sessionStorage.clear()");
-  await browser.send("Page.reload");
-  await sleep(1500);
-  assert.equal(await stateNow(), "none", "刷新不应播");
+  // 刷新：这个标签页已经播过（sessionStorage 有标记）也要播
+  assert.equal(await browser.evaluate(`sessionStorage.getItem("swarm-intro")`), "1");
+  await darkUntilSwarm(null, "刷新");
+  await coveredFirst("刷新");
+  const replay = await browser.evaluate(watch);
+  assert.equal(replay.states.at(-1), "done", `刷新后应播完：${JSON.stringify(replay.states)}`);
 
   await browser.evaluate("sessionStorage.clear()");
   await browser.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
@@ -142,7 +206,7 @@ try {
   await browser.goto(`${base}/posts`, 300);
   assert.equal(await stateNow(), "none", "别的页面不应播");
 
-  console.log(`PASS 首页蜂群开场：强制播 ${run.seconds.toFixed(1)}s 画完 ${run.total} 个元素、${run.cursors} 个光标，进度条、透明占位、慢慢淡出；站内跳回、第二次、刷新、减少动态效果、别的页面都不播；Esc 跳过`);
+  console.log(`PASS 首页蜂群开场：光标开始前 ${darkFrames} 帧都是夜色；强制播 ${run.seconds.toFixed(1)}s 画完 ${run.total} 个元素、${run.cursors} 个光标，进度条、透明占位、慢慢淡出；刷新也播、页头和首屏出现时已盖住；站内跳回、第二次从外面进、减少动态效果、别的页面不播；Esc 跳过`);
 } finally {
   await browser.close();
 }

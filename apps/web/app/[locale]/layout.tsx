@@ -18,7 +18,7 @@ import HeaderSearch from "@/components/header-search";
 import { getOwner } from "@/lib/blog-data";
 import { shareImage } from "@/lib/page-metadata";
 import { LocaleProvider } from "@/components/locale-provider";
-import { htmlLang, ogLocale, type Locale } from "@/lib/i18n/config";
+import { defaultLocale, htmlLang, ogLocale, type Locale } from "@/lib/i18n/config";
 import { getI18nBundle, getSiteLocales } from "@/lib/i18n/data";
 import { zh } from "@/lib/i18n/messages";
 import { usable } from "@/lib/i18n/msg";
@@ -72,10 +72,14 @@ const notoSerif = Noto_Serif_SC({
 // 地址带 ?palette=night / galaxy / ink 时等于替访客选了一次（测试和对比截图用）。
 const themeScript = `try{var t=localStorage.getItem("theme"),d=document.documentElement;if(t==="light")d.dataset.theme="light";var q=new URLSearchParams(location.search).get("palette");if(q==="night")localStorage.removeItem("palette");else if(q==="ink"||q==="galaxy")localStorage.setItem("palette",q);var p=localStorage.getItem("palette");if(p==="ink"||p==="galaxy")d.dataset.palette=p}catch(e){}`;
 
-// 蜂群开场（components/home-swarm-intro.tsx）：只在“从别的网站来、或直接打开首页”的那一次整页加载里播，
-// 刷新、前进后退、站内跳回首页都不播；一个浏览器会话只播一次；减少动态效果、触屏、自动化浏览器不播。
-// 在绘制前标上 data-swarm-intro="pending"，首页第一屏先用夜色盖住，免得先看到页面再被抹掉。地址带 ?swarm 时强制播（测试用）
-const swarmIntroScript = `try{var d=document.documentElement,f=new URLSearchParams(location.search).has("swarm"),n=performance.getEntriesByType("navigation")[0],r=document.referrer,o=!r||new URL(r).origin!==location.origin;if(/^\\/(?:[a-z]{2,3}\\/?)?$/.test(location.pathname)&&(f||(n&&n.type==="navigate"&&o&&!navigator.webdriver&&!sessionStorage.getItem("swarm-intro")&&!matchMedia("(prefers-reduced-motion: reduce)").matches&&matchMedia("(hover: hover) and (pointer: fine)").matches)))d.dataset.swarmIntro="pending"}catch(e){}`;
+// 蜂群开场（components/home-swarm-intro.tsx）：整页打开这个语言的首页时播——从别的网站来或直接打开（这个标签页第一次），以及刷新（每次都播，
+// 站长要读者容易看到）；前进后退、站内跳回首页不播（站内跳转不重新加载文档，这段脚本根本不跑）；减少动态效果、触屏、自动化浏览器不播。
+// 在绘制前标上 data-swarm-intro="pending"，下面的 swarmCoverStyle 立刻用夜色盖住整页（含导航栏），免得先看到页面再被抹掉。地址带 ?swarm 时强制播（测试用）
+const swarmIntroScript = (home: string) => `try{var d=document.documentElement,p=location.pathname.replace(/(.)\\/$/,"$1"),f=new URLSearchParams(location.search).has("swarm"),n=performance.getEntriesByType("navigation")[0],t=n&&n.type,r=document.referrer,o=!r||new URL(r).origin!==location.origin;if(p===${JSON.stringify(home)}&&(f||(!navigator.webdriver&&!matchMedia("(prefers-reduced-motion: reduce)").matches&&matchMedia("(hover: hover) and (pointer: fine)").matches&&(t==="reload"||t==="navigate"&&o&&!sessionStorage.getItem("swarm-intro")))))d.dataset.swarmIntro="pending"}catch(e){}`;
+// 遮罩：脚本没跑起来时 5 秒后自己淡掉，不会一直空白；接手后组件换成 .swarm-cover（home-hero.css）。
+// 开场期间去掉所有视图过渡名字：流式内容进来时 React 会播换页过渡，带名字的页头（site-header）和正文层被抬到最上层画，
+// 盖不住，导航栏和首屏会先露出来；没有名字时整页是一张画面，遮罩也在里面。播完（done）恢复，离开首页照常有换页动画。
+const swarmCoverStyle = `html[data-swarm-intro="pending"] body::after{content:"";position:fixed;inset:0;z-index:2147483600;background:var(--background);pointer-events:none;animation:swarm-cover-timeout .4s ease 5s forwards}@keyframes swarm-cover-timeout{to{opacity:0;visibility:hidden}}html:is([data-swarm-intro="pending"],[data-swarm-intro="playing"]) *{view-transition-name:none!important}`;
 
 // 首页标题像 Shiro 一样是“站名 - 描述”，子页面套用模板“文章 - 站名”；站名、描述都取后台 SEO 设置（外文页面描述用译文）；
 // metadataBase 取后台“网站地址”，让分享链接、RSS 自动发现等相对地址变成完整网址；读取失败时省略。
@@ -146,7 +150,8 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
         <meta name="darkreader-lock" />
         {/* 绘制前读取已保存的主题，避免刷新时先闪一下系统主题。 */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        <script dangerouslySetInnerHTML={{ __html: swarmIntroScript }} />
+        <style dangerouslySetInnerHTML={{ __html: swarmCoverStyle }} />
+        <script dangerouslySetInnerHTML={{ __html: swarmIntroScript(locale === defaultLocale ? "/" : `/${locale}`) }} />
       </head>
       <body>
         <LocaleProvider locale={locale} {...state}>

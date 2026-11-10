@@ -5,7 +5,7 @@ import { htmlLang } from "../lib/i18n/config";
 import type { Messages } from "../lib/i18n/messages";
 import { useLocale, useT } from "./locale-provider";
 
-// 首页蜂群开场（2026-11-10 站长定）：从别的网站来、或直接打开首页的那一次，第一屏先盖成空白夜色，
+// 首页蜂群开场（2026-11-10 站长定）：从别的网站来、直接打开或刷新首页时，第一屏先盖成空白夜色，
 // 一群光标聚过来把第一屏（连同夜空）一笔一笔画出来，画完光标慢慢散开、整层淡出，露出真实页面。站内跳回首页照旧播 CSS 入场。
 // 播不播由根布局 <head> 里的 swarmIntroScript 在绘制前决定（标上 html[data-swarm-intro="pending"]），这里只负责播。
 // 动画引擎是 public/swarm-cursors.js（Joel Califa 的 Swarm 效果，经 Swarm Rebuild 改成网页脚本，文件头有署名和我们改过的地方），
