@@ -409,3 +409,34 @@ rm /opt/1panel/www/sites/s3.sin6626.me/proxy/r2-redirect.conf && docker exec 1Pa
 ## Core 镜像的 Dockerfile（2026-11-11 起）
 
 以后构建线上 Core 镜像用仓库里的 `scripts/deploy/core-image.Dockerfile`（复制到服务器构建目录、改名 Dockerfile），不再手写两行。它比原来多一层 `apk add --no-cache ffmpeg`：实况图上传时 Core 用 ffprobe/ffmpeg 把 HEIC 转 JPG（超过 2400 万像素直接拒）、把 HEVC/MOV 转 H.264 MP4，都是单线程。在 2GB 服务器上转一次占约 150–190MB、几秒钟（本机 3 秒 1920×1440 HEVC 视频约 184MB、1200 万像素 HEIC 约 148MB），建议 MinIO 停掉、多出约 290MB 后再上线这一版。镜像多约 124MB；基础镜像 `innei/mx-server:running-20261102` 上 `apk add ffmpeg` 实测得到 ffmpeg 8.0.1。
+
+## 2026-11-11 已做：图床全部搬到 R2、停 MinIO、Core 带 ffmpeg 上线（eb1d17e）
+
+站长说“去把 MinIO 停了、全部迁移、部署到线上”后执行。
+
+- 备份：服务器 `/root/backups/yozora-r2-eb1d17e/`（`mongo.archive.gz` 39 个集合 2.0MB，`gzip -t` 与 `mongorestore --dryRun` 通过；`compose-before.yml`、`web.env.before`、`r2-redirect.conf.before`、`root.conf.before`、`minio-inspect.json`、`minio-restart-policy.before`（原为 always）；切换脚本与日志）。
+- 线上图床“自定义域名 (CDN)”由 Agent 经后台接口只改这一项为 `https://img.sin6626.me`（PATCH 只合并给出的字段，密钥不动），读回确认端点、桶、密钥都在。之前没有图片用到 R2 内部地址。
+- 最后一次 `mc mirror` MinIO → R2：没有新文件（MinIO 122 个，R2 124 个＝多了站长的测试图和 Companion 测试图标）。
+- 改库：`scripts/deploy/rewrite-image-host.mjs`（默认只读统计，`--apply` 才写；经 SSH 隧道连 Mongo 容器）把所有集合里的 `https://s3.sin6626.me/mx-images/` 换成 `https://img.sin6626.me/`：124 条文档、1235 处（文章 5、手记 9、页面 1、草稿 14、AI 译文 42、碎碎念 1、片段 1、个人资料 1、file_references 50；file_references 的 s3ObjectKey 不变）。日志类集合（webhook_events、serverless_logs、analyzes）不改。复查剩 0 处。隧道中途断过，脚本只改仍含旧地址的文档，重跑安全。
+- **Core**：`yozora/mx-server:eb1d17e`，第一次用仓库里的 `scripts/deploy/core-image.Dockerfile`（多一层 ffmpeg 8.0.1，镜像 911MB，上一版 730MB），入口哈希一致，停机约 17 秒；随后清 Redis 的 `mx-api-cache:*`、`mx:snippet_cache*`、`mx:translation_entry_dict*`。公网 API 只返回 img 地址。
+- **前台**：`releases/eb1d17e`，停机约 8 秒；首页、英文首页、文章列表、Markdown 文章、手记、碎碎念、RSS 都是 200，页面里 img 地址若干、s3 地址 0；`Date.now()` 报错 0 条（上一版每次渲染都有）。容器约 271MB / 400MB。后台没变，没换。
+- **MinIO 已停**：`docker update --restart=no` 后 `docker stop 1Panel-minio-PM6Q`，容器和数据目录 `/opt/1panel/apps/minio/minio/data` 都保留。服务器可用内存从约 117MB 变成约 397MB（free 列）。
+- **s3.sin6626.me 只做跳转**：`proxy/r2-redirect.conf` 改为 `/mx-images/` 下一律 301 到 `https://img.sin6626.me/…`（不再区分签名请求，MinIO 已停）。`root.conf` 没动（其他路径反代到已停的 MinIO，会 502，没人用）。旧 Shiro 首页还有两处 s3 地址来自它自己的页面缓存，会自行刷新，期间靠跳转。
+
+回滚：
+
+```bash
+B=/root/backups/yozora-r2-eb1d17e
+# MinIO 与旧的跳转规则
+docker update --restart=always 1Panel-minio-PM6Q && docker start 1Panel-minio-PM6Q
+cp -p $B/r2-redirect.conf.before /opt/1panel/www/sites/s3.sin6626.me/proxy/r2-redirect.conf && docker exec 1Panel-openresty-LH5o openresty -s reload
+# 前台：先核对 current 仍是 eb1d17e
+W=/root/mx-space/yozora-web
+docker stop yozora-web && docker rename yozora-web yozora-web-eb1d17e-stopped
+ln -sfn $W/releases/cb463a3 $W/current && docker rename yozora-web-pre-eb1d17e yozora-web && docker start yozora-web
+# Core（约 20 秒）
+cp -p $B/compose-before.yml /root/mx-space/core/docker-compose.yml && cd /root/mx-space/core && docker compose up -d --no-deps app
+# 库里的地址：新地址经 Cloudflare 能直接打开，一般不用回滚；真要回滚用 $B/mongo.archive.gz（会丢掉之后的新内容，先导出再说）
+```
+
+磁盘（剩 5.7G）：上传用的 `/root/mx-space/core-image-eb1d17e/`、`yozora-web/yozora-web-eb1d17e.tgz`，以及前几节列的旧版本，留给站长自己清。回滚要用的 `releases/cb463a3`、镜像 `cb463a3`、容器 `yozora-web-pre-eb1d17e` 先别删。MinIO 稳定一段时间后可以在 1Panel 里卸载（数据目录先另存）。
