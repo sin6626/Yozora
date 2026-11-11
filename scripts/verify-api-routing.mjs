@@ -19,7 +19,7 @@ function load(name, stubs) {
   const module = { exports: {} }
   vm.runInNewContext(code, {
     module, exports: module.exports, process, URL, AbortSignal, Headers, Response, Promise,
-    Date: stubs.Date, fetch: (...args) => globalThis.fetch(...args),
+    Date: stubs.Date, performance: stubs.performance, fetch: (...args) => globalThis.fetch(...args),
     require: (id) => id === 'server-only' ? {} : id === './config' ? load('config', stubs) : id in stubs.modules ? stubs.modules[id] : require(id),
   }, { filename: fileURLToPath(file) })
   return module.exports
@@ -33,9 +33,11 @@ function setup({ internal = internalUrl, key, readerHeaders = {} } = {}) {
   else delete process.env.MIX_SPACE_INTERNAL_API_URL
   if (key) process.env.YOZORA_INTERNAL_KEY = key
   else delete process.env.YOZORA_INTERNAL_KEY
+  // 计时用 performance.now()（clock 控制）。Date.now() 照 Next 预渲染时的样子直接报错：服务端读当前时间会让
+  // Next 在每次渲染时记一条 “encountered the unstable value Date.now() while prerendering”（2026-11-10 线上日志刷屏）
   const clock = { now: 1_000_000 }
   const FakeDate = class extends Date {}
-  FakeDate.now = () => clock.now
+  FakeDate.now = () => { throw new Error('Next.js encountered the unstable value `Date.now()` while prerendering.') }
   const net = {
     result: 'connect', probes: [],
     connect(options) {
@@ -55,6 +57,7 @@ function setup({ internal = internalUrl, key, readerHeaders = {} } = {}) {
   }
   const api = load('api', {
     Date: FakeDate,
+    performance: { now: () => clock.now },
     modules: { 'node:net': net, 'next/headers': { headers: async () => new Headers(readerHeaders) } },
   })
   return { api, clock, net, requests, state }

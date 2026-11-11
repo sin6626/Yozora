@@ -13,6 +13,7 @@ const timeout = Number(process.env.MIX_SPACE_TIMEOUT_MS) || 8000;
 // 服务端请求先走 Docker 内网；每 60 秒用 TCP 连一次内网（最多等 1.5 秒）确认连得上，连不上就这 60 秒都走公网，页面不用每次等 8 秒。
 // GET 走内网遇到网络错误或超时（不是 HTTP 4xx/5xx），这一次改走公网重发，同样 60 秒内不再试内网。
 // 非 GET 不重发（可能已经写进去了），直接走内网，失败就报错。检查：scripts/verify-api-routing.mjs
+// 计时用 performance.now()：服务端渲染时读 Date.now()，Next 每次渲染都记一条 “unstable value Date.now() while prerendering”
 const retryAfter = 60_000;
 const connectTimeout = 1500;
 let probe: { until: number; ok: Promise<boolean> } | null = null;
@@ -29,11 +30,11 @@ function reachable(url: URL) {
 }
 
 function markDown() {
-  probe = { until: Date.now() + retryAfter, ok: Promise.resolve(false) };
+  probe = { until: performance.now() + retryAfter, ok: Promise.resolve(false) };
 }
 
 async function usableInternal(internal: string) {
-  if (!probe || Date.now() >= probe.until) probe = { until: Date.now() + retryAfter, ok: reachable(new URL(internal)) };
+  if (!probe || performance.now() >= probe.until) probe = { until: performance.now() + retryAfter, ok: reachable(new URL(internal)) };
   return probe.ok;
 }
 
