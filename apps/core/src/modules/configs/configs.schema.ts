@@ -125,11 +125,11 @@ export const BackupOptionsSchema = section('备份', {
   enable: field.toggle(z.boolean().optional(), '开启自动备份', {
     description: '填写以下 S3 信息，将同时上传备份到 S3',
   }),
-  endpoint: field.plain(z.string().optional(), 'S3 服务端点'),
-  secretId: field.halfGrid(z.string().optional(), 'SecretId'),
-  secretKey: field.passwordHalfGrid(z.string().optional(), 'SecretKey'),
-  bucket: field.halfGrid(z.string().optional(), 'Bucket'),
-  region: field.halfGrid(z.string().optional(), '地域 Region'),
+  endpoint: field.plain(z.string().trim().optional(), 'S3 服务端点'),
+  secretId: field.halfGrid(z.string().trim().optional(), 'SecretId'),
+  secretKey: field.passwordHalfGrid(z.string().trim().optional(), 'SecretKey'),
+  bucket: field.halfGrid(z.string().trim().optional(), 'Bucket'),
+  region: field.halfGrid(z.string().trim().optional(), '地域 Region'),
 })
 export class BackupOptionsDto extends createZodDto(BackupOptionsSchema) {}
 export type BackupOptionsConfig = z.infer<typeof BackupOptionsSchema>
@@ -137,11 +137,11 @@ export type BackupOptionsConfig = z.infer<typeof BackupOptionsSchema>
 // ==================== Image Storage Options ====================
 export const ImageStorageOptionsSchema = section('图床设置', {
   enable: field.toggle(z.boolean().optional(), '开启 S3 图床'),
-  endpoint: field.plain(z.string().optional(), 'S3 服务端点'),
-  secretId: field.halfGrid(z.string().optional(), 'Access Key ID'),
-  secretKey: field.passwordHalfGrid(z.string().optional(), 'Secret Access Key'),
-  bucket: field.halfGrid(z.string().optional(), 'Bucket'),
-  region: field.halfGrid(z.string().optional(), 'Region').default('auto'),
+  endpoint: field.plain(z.string().trim().optional(), 'S3 服务端点'),
+  secretId: field.halfGrid(z.string().trim().optional(), 'Access Key ID'),
+  secretKey: field.passwordHalfGrid(z.string().trim().optional(), 'Secret Access Key'),
+  bucket: field.halfGrid(z.string().trim().optional(), 'Bucket'),
+  region: field.halfGrid(z.string().trim().optional(), 'Region').default('auto'),
   customDomain: field.plain(
     z.url().optional().or(z.literal('')),
     '自定义域名 (CDN)',

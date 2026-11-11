@@ -113,6 +113,28 @@ describe('Test ConfigsService', () => {
     ).rejects.toThrow(BizException)
   })
 
+  // A key copied from the Cloudflare dashboard came with a trailing space; R2 rejected every upload
+  it.each(['imageStorageOptions', 'backupOptions'] as const)(
+    'trims pasted whitespace from %s connection fields',
+    async (key) => {
+      await service.patchAndValid(key, {
+        endpoint: ' https://acc.r2.cloudflarestorage.com ',
+        secretId: '0123456789abcdef0123456789abcdef ',
+        secretKey: '\tsecret\n',
+        bucket: ' blog-images',
+        region: 'auto ',
+      } as any)
+      const saved = await service.get(key)
+      expect(saved).toMatchObject({
+        endpoint: 'https://acc.r2.cloudflarestorage.com',
+        secretId: '0123456789abcdef0123456789abcdef',
+        secretKey: 'secret',
+        bucket: 'blog-images',
+        region: 'auto',
+      })
+    },
+  )
+
   it('should validate resend provider requirements', async () => {
     // Resend without apiKey should fail
     await expect(
