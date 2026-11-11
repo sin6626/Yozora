@@ -2,14 +2,19 @@
 // 默认只读统计；加 --apply 才写库。每个集合逐条深度遍历所有字符串字段（Lexical 正文是 JSON 字符串，地址在里面，直接按子串换），
 // 只改含旧地址的文档。file_references 的 fileUrl 跟正文一起换，s3ObjectKey 不变（R2 里路径和原来一样）。
 // 用法：先开隧道 ssh -N -L 127.0.0.1:27099:<mongo 容器 IP>:27017 root@服务器，再
-//   node scripts/deploy/rewrite-image-host.mjs [--apply] [--uri mongodb://127.0.0.1:27099/mx-space]
+//   node scripts/deploy/rewrite-image-host.mjs [--apply] [--uri mongodb://127.0.0.1:27099/mx-space] [--backup 文件]
+// --backup：写库前把每条要改的原文档按 EJSON 一行一条追加进这个文件（权限 600），没有 mongodump 时用它回滚。
 // 也统计（不改）R2 内部地址 r2.cloudflarestorage.com：后台图床“自定义域名”空着时上传的图会是这种打不开的地址。
+import { appendFileSync, chmodSync, existsSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 
-const { MongoClient } = createRequire(new URL("../../apps/core/package.json", import.meta.url))("mongodb");
+const { MongoClient, BSON } = createRequire(new URL("../../apps/core/package.json", import.meta.url))("mongodb");
 const args = process.argv.slice(2);
 const apply = args.includes("--apply");
 const uri = args.includes("--uri") ? args[args.indexOf("--uri") + 1] : "mongodb://127.0.0.1:27099/mx-space";
+const backup = args.includes("--backup") ? args[args.indexOf("--backup") + 1] : null;
+if (backup && !existsSync(backup)) writeFileSync(backup, "", { mode: 0o600 });
+if (backup) chmodSync(backup, 0o600);
 const from = "https://s3.sin6626.me/mx-images/";
 const to = "https://img.sin6626.me/";
 const internal = "r2.cloudflarestorage.com";
@@ -56,6 +61,7 @@ for (const { name } of await db.listCollections({}, { nameOnly: true }).toArray(
     hits += n;
     changedDocs++;
     if (apply) {
+      if (backup) appendFileSync(backup, BSON.EJSON.stringify({ collection: name, doc }, { relaxed: false }) + "\n");
       const next = rewrite(doc);
       const res = await col.replaceOne({ _id: doc._id }, next);
       if (res.matchedCount !== 1) throw new Error(`${name} ${doc._id} 没有写进去`);
