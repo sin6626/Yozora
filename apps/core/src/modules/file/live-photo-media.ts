@@ -13,7 +13,6 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common'
 import type { MultipartFile } from '@fastify/multipart'
-import sharp from 'sharp'
 
 const run = promisify(execFile)
 const MB = 1024 * 1024
@@ -73,7 +72,7 @@ async function probe(
         '-v',
         'error',
         '-threads',
-        '2',
+        '1',
         ...demux,
         '-show_streams',
         '-show_format',
@@ -137,6 +136,18 @@ function inspect(info: Probe) {
     ) && info.streams.length === (a ? 2 : 1)
   return { duration, videoOK, audioOK, mp4 }
 }
+const heifDemux = [
+  '-max_pixels',
+  String(24_000_000),
+  '-protocol_whitelist',
+  'file',
+  '-enable_drefs',
+  '0',
+  '-use_absolute_path',
+  '0',
+  '-f',
+  'mov',
+]
 const mp4Demux = [
   '-max_pixels',
   String(4096 * 2160),
@@ -169,50 +180,35 @@ async function convert(
       !/hei[cfsx]|he[vx][cxs]|mif1|msf1/.test(head.toString('ascii', 8))
     )
       throw new BadRequestException('Choose a HEIC or HEIF image.')
-    if (process.platform === 'darwin') {
-      const meta = await tool(
-        'sips',
-        ['-g', 'format', '-g', 'pixelWidth', '-g', 'pixelHeight', input],
-        signal,
-      )
-      const w = Number(/pixelWidth:\s*(\d+)/.exec(meta)?.[1]),
-        h = Number(/pixelHeight:\s*(\d+)/.exec(meta)?.[1])
-      if (
-        !/format:\s*hei[cf]\b/i.test(meta) ||
-        !(w * h > 0 && w * h <= 24_000_000)
-      )
-        throw new BadRequestException(
-          'Choose a valid HEIC/HEIF up to 24 megapixels.',
-        )
+    // 只靠 ffmpeg/ffprobe（Core 镜像自带，scripts/deploy/core-image.Dockerfile）：macOS 的 sips 服务器上没有，
+    // sharp 预编译的 libvips 不带 HEVC 解码。iPhone 的 HEIC 是 512×512 分块拼成的，ffprobe 的 Tile Grid 给出整张尺寸，
+    // 解码前先按整张算像素，超过 2400 万直接拒（4800 万像素原图解码要 600MB 左右，2GB 的服务器扛不住）。单线程省内存。
+    const info = JSON.parse(
       await tool(
-        'sips',
-        [
-          '-s',
-          'format',
-          'jpeg',
-          '-s',
-          'formatOptions',
-          '92',
-          input,
-          '--out',
-          output,
-        ],
+        'ffprobe',
+        ['-v', 'error', '-threads', '1', ...heifDemux, '-show_streams', '-show_stream_groups', '-of', 'json', input],
         signal,
-      )
-    } else {
-      try {
-        await sharp(input, { limitInputPixels: 24_000_000 })
-          .timeout({ seconds: 25 })
-          .rotate()
-          .flatten({ background: 'white' })
-          .jpeg({ quality: 92 })
-          .toFile(output)
-      } catch {
-        throw new BadRequestException(
-          'HEIF decoding requires libvips with libheif/HEVC support on this Core host, and an image up to 24 megapixels.',
-        )
-      }
+      ),
+    ) as {
+      streams?: { codec_type?: string; width?: number; height?: number }[]
+      stream_groups?: { components?: { width?: number; height?: number }[] }[]
     }
+    const pixels = Math.max(
+      0,
+      ...[
+        ...(info.stream_groups ?? []).flatMap((g) => g.components ?? []),
+        ...(info.streams ?? []).filter((s) => s.codec_type === 'video'),
+      ].map((c) => (c.width ?? 0) * (c.height ?? 0)),
+    )
+    if (!(pixels > 0 && pixels <= 24_000_000))
+      throw new BadRequestException(
+        'Choose a valid HEIC/HEIF up to 24 megapixels.',
+      )
+    await tool(
+      'ffmpeg',
+      ['-nostdin', '-v', 'error', '-threads', '1', ...heifDemux, '-i', input, '-frames:v', '1', '-q:v', '2', '-f', 'image2', '-c:v', 'mjpeg', output],
+      signal,
+    )
     return true
   }
   const demux = ['ftyp', 'wide', 'free', 'moov', 'mdat'].includes(atom)
@@ -258,7 +254,7 @@ async function convert(
       '-v',
       'error',
       '-threads',
-      '2',
+      '1',
       ...demux,
       '-i',
       input,
@@ -276,7 +272,7 @@ async function convert(
             '-c:v',
             'libx264',
             '-threads:v',
-            '2',
+            '1',
             '-preset',
             'veryfast',
             '-pix_fmt',

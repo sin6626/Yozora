@@ -6,6 +6,7 @@ import {
   writeFileSync,
   unlinkSync,
   existsSync,
+  symlinkSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -165,27 +166,67 @@ it.skipIf(!tools()).each([
   )
   expect(res.rawPayload.toString('ascii', 4, 8)).toBe('ftyp')
 })
-it.skipIf(process.platform !== 'darwin')(
-  'returns a JPEG from a real HEIC file and leaves the source unchanged',
+// The Core image only ships ffmpeg/ffprobe (scripts/deploy/core-image.Dockerfile): no macOS sips, and sharp's
+// prebuilt libvips has no HEVC decoder. HEIC fixtures are made with sips, so these run on macOS with ffmpeg installed.
+const sips = () => {
+  try {
+    execFileSync('sips', ['--help'], { stdio: 'ignore' })
+    return true
+  } catch {
+    return false
+  }
+}
+async function onlyFFmpeg<T>(task: () => Promise<T>) {
+  const bin = mkdtempSync(join(tmpdir(), 'yozora-ffmpeg-only-'))
+  for (const name of ['ffmpeg', 'ffprobe'])
+    symlinkSync(execFileSync('which', [name]).toString().trim(), join(bin, name))
+  const path = process.env.PATH
+  process.env.PATH = bin
+  try {
+    return await task()
+  } finally {
+    process.env.PATH = path
+    for (const name of ['ffmpeg', 'ffprobe']) unlinkSync(join(bin, name))
+    rmdirSync(bin)
+  }
+}
+function heicOf(width: number, height: number) {
+  const jpg = join(temp, 'source.jpg')
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', `testsrc2=size=${width}x${height}`, '-frames:v', '1', '-q:v', '3', jpg])
+  execFileSync('sips', ['-s', 'format', 'heic', jpg, '--out', heic], { stdio: 'ignore' })
+  unlinkSync(jpg)
+  return readFileSync(heic)
+}
+it.skipIf(!tools() || !sips())(
+  'returns a full-size JPEG from a tiled HEIC with only ffmpeg on the host and leaves the source unchanged',
   async () => {
-    const source = process.env.LIVE_PHOTO_HEIC ?? heic
-    if (source === heic)
-      execFileSync('sips', [
-        '-s',
-        'format',
-        'heic',
-        new URL('live-cover.jpg', workspace).pathname,
-        '--out',
-        heic,
-      ])
-    const bytes = readFileSync(source),
-      res = await submit('image', bytes)
+    const bytes = process.env.LIVE_PHOTO_HEIC
+      ? readFileSync(process.env.LIVE_PHOTO_HEIC)
+      : heicOf(1600, 1200)
+    const res = await onlyFFmpeg(() => submit('image', bytes))
     expect(
       res.statusCode,
       res.statusCode === 200 ? undefined : res.payload.slice(0, 200),
     ).toBe(200)
     expect(res.headers['content-type']).toContain('image/jpeg')
     expect([...res.rawPayload.subarray(0, 3)]).toEqual([255, 216, 255])
-    expect(readFileSync(source).equals(bytes)).toBe(true)
+    if (!process.env.LIVE_PHOTO_HEIC) {
+      writeFileSync(output, res.rawPayload)
+      const [jpeg] = JSON.parse(
+        execFileSync('ffprobe', ['-v', 'error', '-show_streams', '-of', 'json', output]).toString(),
+      ).streams
+      expect([jpeg.width, jpeg.height]).toEqual([1600, 1200])
+    }
   },
+  30_000,
+)
+it.skipIf(!tools() || !sips())(
+  'rejects a HEIC over 24 megapixels before decoding it',
+  async () => {
+    const bytes = heicOf(6000, 4096)
+    const res = await onlyFFmpeg(() => submit('image', bytes))
+    expect(res.statusCode).toBe(400)
+    expect(res.payload).toContain('24 megapixels')
+  },
+  30_000,
 )

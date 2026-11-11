@@ -405,3 +405,7 @@ rm /opt/1panel/www/sites/s3.sin6626.me/proxy/r2-redirect.conf && docker exec 1Pa
 ```
 
 磁盘留给站长自己清：上传用的 `/root/mx-space/yozora-admin-cb463a3.tgz`、`/root/mx-space/yozora-web/yozora-web-cb463a3.tgz`，以及前几节列的旧版本。回滚要用的 `releases/b30be94`、镜像 `cache-b30be94`、容器 `yozora-web-pre-cb463a3`、目录 `admin-before-cb463a3` 先别删。
+
+## Core 镜像的 Dockerfile（2026-11-11 起）
+
+以后构建线上 Core 镜像用仓库里的 `scripts/deploy/core-image.Dockerfile`（复制到服务器构建目录、改名 Dockerfile），不再手写两行。它比原来多一层 `apk add --no-cache ffmpeg`：实况图上传时 Core 用 ffprobe/ffmpeg 把 HEIC 转 JPG（超过 2400 万像素直接拒）、把 HEVC/MOV 转 H.264 MP4，都是单线程。在 2GB 服务器上转一次占约 150–190MB、几秒钟（本机 3 秒 1920×1440 HEVC 视频约 184MB、1200 万像素 HEIC 约 148MB），建议 MinIO 停掉、多出约 290MB 后再上线这一版。镜像多约 124MB；基础镜像 `innei/mx-server:running-20261102` 上 `apk add ffmpeg` 实测得到 ffmpeg 8.0.1。
