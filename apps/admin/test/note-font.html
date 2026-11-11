@@ -1,17 +1,29 @@
 <!doctype html>
-<!-- e2e 夹具：scripts/e2e/admin-note-font.mjs 用它检查手记编辑器的思源宋体（只在后台开发服务器里打开，不会被打包） -->
+<!-- e2e 夹具：scripts/e2e/admin-note-font.mjs 用它检查手记编辑器的思源宋体和加粗（只在后台开发服务器里打开，不会被打包） -->
 <html><body style="margin:24px;background:#181818">
 <div id="note"></div><div id="article"></div>
+<div id="bold"></div>
 <script type="module">
 import '@haklex/rich-kit-shiro/style.css'
 import '/src/components/editor/rich/note-serif-font.ts'
-import { noteVariant, articleVariant } from '@haklex/rich-editor'
+import { noteVariant, articleVariant, editorTheme } from '@haklex/rich-editor'
 const line = '330 块钱，一天不到就打了水漂。可也正是这 330 块，让我用上了今年最惊艳我的 AI 工具 Grok Heavy。'
 for (const [id, cls, label] of [['note', noteVariant, '手记主题'], ['article', articleVariant, '文章主题']]) {
   const el = document.getElementById(id)
   el.className = `rich-editor ${cls}`
   el.style.cssText = 'color:#eee;font-size:18px;margin:12px 0'
   el.textContent = `${label}：${line}`
+}
+// 同一句话按正文和编辑器的“加粗”各排一行，测试截图比较两行的笔画有多少
+const sample = '而且早在大二下的时候我就问过班主任能不能请假'
+for (const [name, cls] of [['note', noteVariant], ['article', articleVariant]]) {
+  const box = document.createElement('div')
+  box.className = `rich-editor ${cls}`
+  box.style.cssText = '--rc-text:#eee;color:#eee;margin:12px 0'
+  box.innerHTML = `<div class="rich-editor__content"><p class="${editorTheme.paragraph}"><span id="${name}-regular" data-lexical-text="true"></span></p><p class="${editorTheme.paragraph}"><span id="${name}-bold" class="${editorTheme.text.bold}" data-lexical-text="true"></span></p></div>`
+  box.querySelector(`#${name}-regular`).textContent = sample
+  box.querySelector(`#${name}-bold`).textContent = sample
+  document.getElementById('bold').append(box)
 }
 await document.fonts.ready
 window.__result = {

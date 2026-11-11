@@ -212,6 +212,17 @@
   --rc-font-family-serif: var(--font-serif);
 }
 
+/* 手记的加粗用黑体：宋体正文里的强调按中文排版习惯用黑体，思源宋体自己加粗笔画还是细，和正文分不太出来（后台编辑器同样如此）。
+   富文本沿用 Haklex 手记主题的 600，只把字体换成主题自带的无衬线字体栈；Markdown 换成站点正文的无衬线字体 */
+.note-detail .article-rich .rich-text-bold {
+  font-family: var(--rc-font-family-sans);
+}
+
+.article-body-note :is(strong, b) {
+  font-family: var(--font-latin), "PingFang SC", var(--font-cjk-sans), "Microsoft YaHei", sans-serif;
+  font-weight: 600;
+}
+
 /* Haklex 富文本自带一套颜色（强调色是蓝色），而且主题类直接定义在渲染器根元素上，
    必须在同一元素上覆盖，链接、引用条、强调色才会跟随站点配色方案。 */
 .article-rich .rich-content {

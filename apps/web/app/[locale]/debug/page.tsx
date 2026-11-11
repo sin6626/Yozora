@@ -56,6 +56,16 @@ const sampleMurmurs = [
   { id: "m5", content: "跨年的那一天会写上年份。[MDN](https://developer.mozilla.org)", created: "2025-12-31T15:00:00Z", modified: null },
 ];
 
+// 富文本加粗示例（不读库）：第一段有首字下沉，所以对比的两行放在第二、三段，同一句话一行正文、一行加粗
+const boldSample = "而且早在大二下的时候我就问过班主任能不能请假";
+const lexicalText = (text: string, format = 0) => ({ detail: 0, format, mode: "normal", style: "", text, type: "text", version: 1 });
+const lexicalParagraph = (children: object[]) => ({ children, direction: "ltr", format: "", indent: 0, type: "paragraph", version: 1, textFormat: 0, textStyle: "" });
+const sampleBoldLexical = JSON.stringify({ root: { children: [
+  lexicalParagraph([lexicalText("首段会有首字下沉，下面两段比较正文和加粗。")]),
+  lexicalParagraph([lexicalText(boldSample)]),
+  lexicalParagraph([lexicalText(boldSample, 1)]),
+], direction: "ltr", format: "", indent: 0, type: "root", version: 1 } });
+
 const sampleMarkdown = `## 二级标题
 
 正文段落，包含[链接](/posts)和行内代码 \`revalidateTag\`。
@@ -300,6 +310,13 @@ export default function DebugPage() {
             <h2>文章正文</h2>
             <p className="post-meta">直接使用详情页的 article-body（Markdown + Shiki 高亮）；Lexical 富文本见任意 Lexical 文章</p>
             <ArticleBody text={sampleMarkdown} emptyText="" />
+          </li>
+          <li id="debug-rich-bold">
+            <h2>富文本加粗</h2>
+            <p className="post-meta">article-body：手记富文本、手记 Markdown（正文思源宋体，加粗换黑体）、文章富文本各一份，第三段是加粗；手记的加粗要和文章一样明显（e2e rich-bold.mjs）</p>
+            <div className="note-detail" data-sample="note"><ArticleBody text={boldSample} contentFormat="lexical" content={sampleBoldLexical} emptyText="" variant="note" /></div>
+            <div className="note-detail" data-sample="note-markdown"><ArticleBody text={`Markdown 手记，下面两段比较正文和加粗。\n\n${boldSample}\n\n**${boldSample}**`} emptyText="" variant="note" /></div>
+            <div data-sample="article"><ArticleBody text={boldSample} contentFormat="lexical" content={sampleBoldLexical} emptyText="" /></div>
           </li>
           <li>
             <h2>页面切换动画</h2>
