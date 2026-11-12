@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "@/components/locale-provider";
 import { notFound } from "next/navigation";
@@ -314,9 +315,12 @@ export default function DebugPage() {
           <li id="debug-rich-bold">
             <h2>富文本加粗</h2>
             <p className="post-meta">article-body：手记富文本、手记 Markdown（正文思源宋体，加粗换黑体）、文章富文本各一份，第三段是加粗；手记的加粗要和文章一样明显（e2e rich-bold.mjs）</p>
-            <div className="note-detail" data-sample="note"><ArticleBody text={boldSample} contentFormat="lexical" content={sampleBoldLexical} emptyText="" variant="note" /></div>
-            <div className="note-detail" data-sample="note-markdown"><ArticleBody text={`Markdown 手记，下面两段比较正文和加粗。\n\n${boldSample}\n\n**${boldSample}**`} emptyText="" variant="note" /></div>
-            <div data-sample="article"><ArticleBody text={boldSample} contentFormat="lexical" content={sampleBoldLexical} emptyText="" /></div>
+            {/* 富文本渲染器在浏览器里生成随机 id，要包在 Suspense 里，否则整页静态的 /debug 预渲染时报 Math.random() */}
+            <Suspense>
+              <div className="note-detail" data-sample="note"><ArticleBody text={boldSample} contentFormat="lexical" content={sampleBoldLexical} emptyText="" variant="note" /></div>
+              <div className="note-detail" data-sample="note-markdown"><ArticleBody text={`Markdown 手记，下面两段比较正文和加粗。\n\n${boldSample}\n\n**${boldSample}**`} emptyText="" variant="note" /></div>
+              <div data-sample="article"><ArticleBody text={boldSample} contentFormat="lexical" content={sampleBoldLexical} emptyText="" /></div>
+            </Suspense>
           </li>
           <li>
             <h2>页面切换动画</h2>
