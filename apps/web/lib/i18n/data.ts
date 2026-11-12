@@ -6,6 +6,10 @@ import { defaultLocale, isLanguageCode, siteLocales } from "./config";
 // 后台控制的 AI i18n（2026-11-05，docs/site-text-translation-plan.md）：Core 公开的两个接口，
 // 用普通 fetch 直接读、不经 SDK——SDK 会把返回的键名改成驼峰，而这里的键是界面文字条目名、中文原文、作品 id，不能动。
 // 缓存标签 i18n：Core 发 I18N_UPDATE、改了 AI 设置（OPTION_UPDATE）时 Webhook 让它失效。stale 300：根布局要用（见 AGENTS.md）。
+// revalidate 必须等于 expire：根布局在 Suspense 外读这两份缓存，开发期 Next 校验静态外壳时会把“已过 revalidate、没过 expire”的条目
+// 当成未命中、当场重取 Core，报 “encountered uncached data during prerendering or a navigation”（检查：scripts/verify-i18n.mjs）。
+const lifetime = { stale: 300, revalidate: 3600, expire: 3600 };
+
 // 走 lib/api.ts 的 coreFetch：内网优先、公网兜底，带内部密钥
 async function fetchCore(path: string): Promise<unknown> {
   const response = await coreFetch(path);
@@ -19,7 +23,7 @@ const strings = (value: unknown) => Object.fromEntries(isObject(value) ? Object.
 
 async function loadLanguages() {
   "use cache";
-  cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
+  cacheLife(lifetime);
   cacheTag("i18n");
   const data = await fetchCore("/ai/i18n");
   return siteLocales(isObject(data) && data.enabled === true && Array.isArray(data.languages) ? data.languages : []);
@@ -42,7 +46,7 @@ const empty: I18nBundle = { messages: {}, site: {}, projects: {} };
 
 async function loadBundle(lang: string): Promise<I18nBundle> {
   "use cache";
-  cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
+  cacheLife(lifetime);
   cacheTag("i18n");
   const data = await fetchCore(`/ai/i18n/${lang}`);
   if (!isObject(data)) return empty;
