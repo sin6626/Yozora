@@ -1,5 +1,6 @@
 "use client";
 
+import { ThumbsDown, ThumbsUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { useT } from "./locale-provider";
@@ -7,7 +8,7 @@ import { useT } from "./locale-provider";
 type Attitude = "up" | "down";
 const noSubscribe = () => () => {};
 
-// 思考（Core 的“动态”）的赞/踩。直接从浏览器请求 Core（按访客 IP 记录）：
+// 思考（Core 的“动态”）的赞/踩：两个小图标，票数为 0 时只有图标。直接从浏览器请求 Core（按访客 IP 记录）：
 // 再点同一个是取消，点另一个是改投；Core 返回 1 表示已投、-1 表示已取消。上次的选择记在本地，只用于按钮高亮。
 // 投票后先就地更新，再让列表缓存失效并刷新，拿到服务端的真实票数后丢掉本地推算（列表缓存里的旧票数不能在本地再加减，否则会出现负数）。
 export default function RecentlyAttitude({ apiUrl, id, up, down }: { apiUrl: string; id: string; up: number; down: number }) {
@@ -42,8 +43,12 @@ export default function RecentlyAttitude({ apiUrl, id, up, down }: { apiUrl: str
 
   return (
     <>
-      <button className="toggle-chip" type="button" aria-pressed={current.mine === "up"} disabled={pending} onClick={() => vote("up")}>{t.up} {current.up}</button>
-      <button className="toggle-chip" type="button" aria-pressed={current.mine === "down"} disabled={pending} onClick={() => vote("down")}>{t.down} {current.down}</button>
+      <button className="thinking-action" type="button" aria-label={`${t.up} ${current.up}`} aria-pressed={current.mine === "up"} disabled={pending} onClick={() => vote("up")}>
+        <ThumbsUp size={15} aria-hidden="true" />{current.up > 0 && current.up}
+      </button>
+      <button className="thinking-action" type="button" aria-label={`${t.down} ${current.down}`} aria-pressed={current.mine === "down"} disabled={pending} onClick={() => vote("down")}>
+        <ThumbsDown size={15} aria-hidden="true" />{current.down > 0 && current.down}
+      </button>
     </>
   );
 }

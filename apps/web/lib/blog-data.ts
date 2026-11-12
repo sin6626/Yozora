@@ -11,6 +11,7 @@ import { parseNoteMeta } from "./note-extras";
 import { excerpt, readingMinutes } from "./excerpt";
 import { socialCards, socialLinks } from "./social";
 import { parseSiteContent, siteTranslation } from "./theme-config";
+import { parseQuote } from "./thinking";
 import { isLanguageCode, type Locale } from "./i18n/config";
 import { getI18nBundle } from "./i18n/data";
 
@@ -541,6 +542,7 @@ export async function getRecently(before?: string) {
       content: item.content,
       created: item.created,
       ref: ref(item.refType, item.ref),
+      quote: parseQuote(item.type, item.metadata),
       up: item.up ?? 0,
       down: item.down ?? 0,
       comments: (item as { comments?: number }).comments ?? 0,

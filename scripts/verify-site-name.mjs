@@ -24,6 +24,7 @@ const stubs = {
   './i18n/data': { getI18nBundle: async () => ({ messages: {}, site: {}, projects: {} }) },
   './safe-url': { safeUrl: (value) => value },
   './note-extras': { parseNoteMeta: () => ({ cover: null, banner: null }) },
+  './thinking': { parseQuote: () => null },
 }
 const module = { exports: {} }
 vm.runInNewContext(code, { module, exports: module.exports, require: (id) => stubs[id] ?? require(id), URL, console })

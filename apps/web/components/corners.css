@@ -395,30 +395,6 @@ a.entry-tag:focus-visible {
   color: var(--primary);
 }
 
-/* 思考（速记）：一张张完整显示的小卡片 */
-.thinking-list {
-  display: grid;
-  gap: var(--space-4);
-}
-
-.thinking-card {
-  padding: var(--space-4) var(--space-6);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  box-shadow: var(--shadow-soft);
-  overflow-wrap: anywhere;
-}
-
-.thinking-card .article-body {
-  font-size: var(--text-base);
-}
-
-.thinking-meta {
-  align-items: center;
-  margin-top: var(--space-3);
-}
-
 /* 友链：圆形头像的小卡片，两列 */
 .friend-section + .friend-section {
   margin-top: var(--space-12);

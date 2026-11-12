@@ -284,22 +284,6 @@
   margin-left: calc(-1 * var(--space-3));
 }
 
-/* 碎碎念每条的评论默认收起（thinking-list.tsx） */
-.thinking-comments {
-  margin-top: var(--space-2);
-  font-size: var(--text-sm);
-}
-
-.thinking-comments summary {
-  width: fit-content;
-  color: var(--muted-foreground);
-  cursor: pointer;
-}
-
-.thinking-comments .comments {
-  margin-top: var(--space-3);
-}
-
 /* 友链页底部的申请区（friend-list.tsx） */
 .link-apply {
   margin-top: var(--space-12);

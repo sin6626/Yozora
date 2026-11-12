@@ -12,7 +12,6 @@ import { MurmurStream } from "@/components/murmur-list";
 import NoteUnlock from "@/components/note-unlock";
 import { NoteBanner, NoteCover } from "@/components/note-extras";
 import "@/components/post-detail.css";
-import RecentlyAttitude from "@/components/recently-attitude";
 import SubscribeForm from "@/components/subscribe-form";
 import { getApiUrl } from "@/lib/config";
 import SocialIconsPreview from "./social-icons";
@@ -29,6 +28,7 @@ import StyleGuide from "./style-guide";
 import IslandButtons from "./island-buttons";
 import BrandTickerPreview from "./brand-ticker";
 import SaySkyPreview from "./say-sky-preview";
+import ThinkingPreview from "./thinking-preview";
 import ToastButtons from "./toast-buttons";
 
 // 评论悬浮窗的示例消息（不读库）
@@ -204,8 +204,11 @@ export default function DebugPage() {
             <p className="post-list-content" role="alert">友链读取失败。<Link href="/debug">重试</Link></p>
             <p className="post-empty">还没有友链。</p>
             <p className="post-empty">还没有一言。</p>
-            <p className="post-empty">还没有思考。</p>
-            <p className="post-meta">recently-attitude.tsx 的赞/踩（真实组件，点击会请求 Core）：<RecentlyAttitude apiUrl={getApiUrl()} id="000000000000000000000000" up={3} down={1} /></p>
+          </li>
+          <li id="debug-thinking">
+            <h2>思考</h2>
+            <p className="post-meta">thinking-list.tsx 的 ThinkingLog（示例数据，不读库）：星座线上每条一颗月光色小星，看法用文楷，引用的书、题目、仓库、网页、音乐、影视、论文和站内文章像票根挂在下面；赞、踩、评论是小图标，点评论展开评论区。最后是空列表</p>
+            <ThinkingPreview />
           </li>
           <li id="debug-say-sky">
             <h2>金句星图</h2>
