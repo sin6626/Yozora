@@ -1,4 +1,4 @@
-import Link from "./locale-provider";
+import { Pagination } from "./list-filters";
 import { notFound, unstable_rethrow } from "next/navigation";
 import { getMurmurs, getOwner } from "../lib/blog-data";
 import { formatDate, formatTime } from "../lib/date";
@@ -70,7 +70,7 @@ export async function MurmurStream({ items, avatar, name }: { items: Murmur[]; a
 }
 
 export default async function MurmurList({ searchParams }: { searchParams: Promise<{ page?: string | string[] }> }) {
-  const { murmurs: t, list } = await getT();
+  const { murmurs: t } = await getT();
   const { page: rawPage = "1" } = await searchParams;
   if (typeof rawPage !== "string" || !/^[1-9]\d*$/.test(rawPage)) notFound();
   const page = Number(rawPage);
@@ -95,13 +95,7 @@ export default async function MurmurList({ searchParams }: { searchParams: Promi
       </header>
       <div className="post-list-content">
         {data.length ? <MurmurStream items={data} avatar={owner?.avatar} name={owner?.name ?? "Sin"} /> : <p className="post-empty">{t.empty}</p>}
-        {pagination.totalPage > 1 && (
-          <nav className="post-pagination" aria-label={list.pagination(t.title)}>
-            {pagination.hasPrevPage ? <Link href={pageHref(page - 1)} rel="prev">{t.newer}</Link> : <span />}
-            <span>{list.page(page, pagination.totalPage)}</span>
-            {pagination.hasNextPage ? <Link href={pageHref(page + 1)} rel="next">{t.older}</Link> : <span />}
-          </nav>
-        )}
+        <Pagination label={t.title} page={page} totalPage={pagination.totalPage} href={pageHref} prevText={t.newer} nextText={t.older} />
       </div>
     </>
   );

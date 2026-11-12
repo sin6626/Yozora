@@ -24,7 +24,8 @@ export default async function PostCopyright({ title, author, link, modified, lic
     ? new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : locale, { dateStyle: "long", timeStyle: "short", timeZone: "Asia/Shanghai" }).format(new Date(modified))
     : t.neverModified;
   let shown = link;
-  try { shown = decodeURI(link); } catch {}
+  // 显示给人看：decodeURI 不解码 & 这类保留字符（分类 study&think 会显示成 study%26think），复制的仍是原链接
+  try { shown = decodeURIComponent(link); } catch {}
   return (
     <section id="copyright" className="post-copyright" aria-label={t.label}>
       <p>{t.title}{title}</p>

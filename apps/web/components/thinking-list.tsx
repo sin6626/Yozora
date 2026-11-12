@@ -1,4 +1,4 @@
-import Link from "./locale-provider";
+import { PageNav } from "./list-filters";
 import { notFound, unstable_rethrow } from "next/navigation";
 import { getCategories, getRecently } from "../lib/blog-data";
 import { formatDate } from "../lib/date";
@@ -67,7 +67,7 @@ export async function ThinkingLog({ items, categories }: { items: ThinkingItem[]
 
 export default async function ThinkingList({ searchParams }: { searchParams: Promise<{ before?: string | string[] }> }) {
   const { before } = await searchParams;
-  const { thinking: t, list } = await getT();
+  const { thinking: t } = await getT();
   if (before !== undefined && (typeof before !== "string" || !/^[a-f\d]{24}$/i.test(before))) notFound();
   let result: Awaited<ReturnType<typeof getRecently>>;
   let categories: Awaited<ReturnType<typeof getCategories>>;
@@ -89,10 +89,11 @@ export default async function ThinkingList({ searchParams }: { searchParams: Pro
       <div className="post-list-content">
         <ThinkingLog items={result.data} categories={categories} />
         {(before || (result.hasMore && last)) && (
-          <nav className="post-pagination" aria-label={list.pagination(t.title)}>
-            {before ? <Link href="/thinking">{t.latest}</Link> : <span />}
-            {result.hasMore && last ? <Link href={`/thinking?before=${last.id}`} rel="next">{t.earlier}</Link> : <span />}
-          </nav>
+          <PageNav
+            label={t.title}
+            prev={before ? { href: "/thinking", text: t.latest } : undefined}
+            next={result.hasMore && last ? { href: `/thinking?before=${last.id}`, text: t.earlier, rel: "next" } : undefined}
+          />
         )}
       </div>
     </>

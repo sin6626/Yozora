@@ -40,9 +40,11 @@ try {
   assert.deepEqual(await tips(), [], '移开后提示收起')
 
   // 名片（微信、QQ）：在竖线后面；点 QQ 弹出卡片（二维码 + 号码 + 复制），点外面关闭；导航面板只有直达链接
+  // 直达链接、名片各成一组（.home-hero-social-group），竖线是名片组开头的 ::before
   const cards = await b.evaluate(`(() => {
-    const items = [...document.querySelectorAll('#debug-social-cards .home-hero-socials > li')]
-    return items.map((li) => li.classList.contains('home-hero-socials-divider') ? '|' : li.querySelector('a, button').getAttribute('aria-label').split('：')[0])
+    const names = (group) => [...group.querySelectorAll(':scope > li')].map((li) => li.querySelector('a, button').getAttribute('aria-label').split('：')[0])
+    return [...document.querySelectorAll('#debug-social-cards .home-hero-social-group')].flatMap((group, index) =>
+      index > 0 && getComputedStyle(group, '::before').content !== 'none' ? ['|', ...names(group)] : names(group))
   })()`)
   assert.deepEqual(cards, ['GitHub', '哔哩哔哩', '微博', '|', '微信', 'QQ', 'Discord', '赞赏'], '直达链接在前，竖线，名片在后')
   // 名片也有悬停提示；点开卡片时提示收起

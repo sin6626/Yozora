@@ -88,15 +88,15 @@ export default function LinkApplyForm({ apiUrl }: { apiUrl: string }) {
           onBlur: (event) => setAvatar(event.currentTarget.value.trim()),
         })}
         {field("email", t.email, { wide: true, optional: true, type: "email", maxLength: 50, placeholder: t.emailPlaceholder, autoComplete: "email" })}
-      </div>
-      <div className="link-apply-actions">
-        {(status.type === "done" || status.type === "error") && (
-          <p className={status.type === "error" ? "link-apply-status is-error" : "link-apply-status is-done"} role={status.type === "error" ? "alert" : "status"}>{status.message}</p>
-        )}
-        <button className="btn btn-primary" type="submit" disabled={status.type === "sending"}>
-          <Send size={15} aria-hidden="true" />
-          {status.type === "sending" ? t.sending : t.submit}
-        </button>
+        <div className="link-apply-actions">
+          {(status.type === "done" || status.type === "error") && (
+            <p className={status.type === "error" ? "link-apply-status is-error" : "link-apply-status is-done"} role={status.type === "error" ? "alert" : "status"}>{status.message}</p>
+          )}
+          <button className="btn btn-primary" type="submit" disabled={status.type === "sending"}>
+            <Send size={15} aria-hidden="true" />
+            {status.type === "sending" ? t.sending : t.submit}
+          </button>
+        </div>
       </div>
     </form>
   );

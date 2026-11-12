@@ -1,7 +1,8 @@
 diff --git a/dist/index.mjs b/dist/index.mjs
+index 34c25407f29b280b220c49cf5ece50569cd3f231..7d729e994ff866f6d8ac0613b8b8affcb38fade1 100644
 --- a/dist/index.mjs
 +++ b/dist/index.mjs
-@@ -3,7 +3,7 @@
+@@ -3,7 +3,7 @@ import { semanticClassNames, sharedStyles, RendererWrapper, RubyRenderer, getTag
  import { PortalThemeProvider } from "@haklex/rich-style-token";
  import { createHeadlessEditor } from "@lexical/headless";
  import { $getRoot } from "lexical";
@@ -10,7 +11,7 @@ diff --git a/dist/index.mjs b/dist/index.mjs
  import { Link } from "lucide-react";
  function HtmlComment({ text }) {
    const anchorRef = useRef(null);
-@@ -46,35 +46,18 @@
+@@ -46,35 +46,18 @@ const headingClassNames = {
  function textToSlug(text) {
    return text.toLowerCase().trim().replaceAll(/[^\s\w\u3000-\u9FFF\uAC00-\uD7AF\uFF00-\uFFEF-]/g, "").replaceAll(/[\s_]+/g, "-").replaceAll(/^-+|-+$/g, "");
  }
@@ -49,7 +50,7 @@ diff --git a/dist/index.mjs b/dist/index.mjs
        return /* @__PURE__ */ jsxs(Tag, { className: headingClassNames[Tag], id: slug || void 0, children: [
          slug && /* @__PURE__ */ jsx("a", { className: shared$1("headingAnchor"), href: `#${slug}`, tabIndex: 0, children: /* @__PURE__ */ jsx(Link, { "aria-hidden": true, size: 14, strokeWidth: 2 }) }),
          children
-@@ -128,7 +111,7 @@
+@@ -128,7 +111,7 @@ function renderBuiltinNode(node, key, children, headingSlugs, textContent) {
        return /* @__PURE__ */ jsx("hr", { className: shared$1("hr") }, key);
      }
      case "table": {
@@ -58,7 +59,7 @@ diff --git a/dist/index.mjs b/dist/index.mjs
      }
      case "tablerow": {
        return /* @__PURE__ */ jsx("tr", { children }, key);
-@@ -136,7 +119,7 @@
+@@ -136,7 +119,7 @@ function renderBuiltinNode(node, key, children, headingSlugs, textContent) {
      case "tablecell": {
        const CellTag = node.headerState ? "th" : "td";
        const cls = node.headerState ? tableHead : tableCell;
@@ -67,7 +68,7 @@ diff --git a/dist/index.mjs b/dist/index.mjs
      }
      case "details": {
        const summary = node.summary || "";
-@@ -337,7 +320,36 @@
+@@ -337,7 +320,36 @@ function applyBlockId(element, blockId, nodeKey) {
    }
    return /* @__PURE__ */ jsx("div", { className: "rich-block-anchor", "data-block-id": blockId, children: element }, `${nodeKey}-block-anchor`);
  }
@@ -105,7 +106,7 @@ diff --git a/dist/index.mjs b/dist/index.mjs
    const nodeKey = node.getKey ? node.getKey() : key;
    if (typeof node.decorate === "function") {
      try {
-@@ -365,24 +377,25 @@
+@@ -365,24 +377,25 @@ function renderTree(node, editor, editorConfig, headingSlugs, key, blockId, buil
            headingSlugs,
            `${nodeKey}-${i}`,
            void 0,
@@ -136,7 +137,7 @@ diff --git a/dist/index.mjs b/dist/index.mjs
    const editor = createHeadlessEditor({
      nodes,
      theme: editorTheme,
-@@ -394,12 +407,12 @@
+@@ -394,12 +407,12 @@ function renderEditorToReact(value, nodes, builtinNodeOverrides) {
    const editorConfig = { namespace: "ssr", theme: editorTheme };
    const editorState = editor.parseEditorState(value);
    editor.setEditorState(editorState);
@@ -150,7 +151,7 @@ diff --git a/dist/index.mjs b/dist/index.mjs
      const children = root.getChildren().map(
        (child, i) => renderTree(
          child,
-@@ -408,7 +421,8 @@
+@@ -408,7 +421,8 @@ function renderEditorToReact(value, nodes, builtinNodeOverrides) {
          headingSlugs,
          `ssr-${i}`,
          rawRootChildren?.[i]?.$?.blockId,
@@ -160,7 +161,7 @@ diff --git a/dist/index.mjs b/dist/index.mjs
        )
      );
      content = /* @__PURE__ */ jsx(Fragment, { children });
-@@ -432,7 +446,6 @@
+@@ -432,7 +446,6 @@ function renderEditorToReact(value, nodes, builtinNodeOverrides) {
      const nestedRawChildren = state.root?.children;
      nestedState.read(() => {
        const root = $getRoot();
@@ -168,7 +169,7 @@ diff --git a/dist/index.mjs b/dist/index.mjs
        const ch = root.getChildren().map(
          (child, i) => renderTree(
            child,
-@@ -441,14 +454,15 @@
+@@ -441,14 +454,15 @@ function renderEditorToReact(value, nodes, builtinNodeOverrides) {
            headingSlugs,
            `nested-${i}`,
            nestedRawChildren?.[i]?.$?.blockId,
@@ -186,7 +187,7 @@ diff --git a/dist/index.mjs b/dist/index.mjs
  }
  function RichRenderer({
    value,
-@@ -464,10 +478,11 @@
+@@ -464,10 +478,11 @@ function RichRenderer({
  }) {
    const variantClass = getVariantClass(variant);
    const outerRenderNestedContent = useOptionalNestedContentRenderer();
@@ -201,7 +202,7 @@ diff --git a/dist/index.mjs b/dist/index.mjs
    const classes = ["rich-content", variantClass, className].filter(Boolean).join(" ");
    return /* @__PURE__ */ jsx(PortalThemeProvider, { className: variantClass, theme, children: /* @__PURE__ */ jsx(ColorSchemeProvider, { colorScheme: theme, children: /* @__PURE__ */ jsx(RendererConfigProvider, { config: rendererConfig, mode: "renderer", variant, children: /* @__PURE__ */ jsx(
      FootnoteDefinitionsProvider,
-@@ -482,7 +497,7 @@
+@@ -482,7 +497,7 @@ function RichRenderer({
            "data-rich-nested": nested ? "true" : void 0,
            "data-theme": theme,
            style,
@@ -210,3 +211,17 @@ diff --git a/dist/index.mjs b/dist/index.mjs
          }
        ) })
      }
+diff --git a/package.json b/package.json
+index b0f9d6077313993672dcaf1a6934743b891bb61f..04066a59838d99109fcb392b934bcac4485e4d2b 100644
+--- a/package.json
++++ b/package.json
+@@ -13,7 +13,8 @@
+     ".": {
+       "import": "./dist/index.mjs",
+       "types": "./dist/index.d.ts"
+-    }
++    },
++    "./style.css": "./dist/rich-static-renderer.css"
+   },
+   "main": "./dist/index.mjs",
+   "files": [

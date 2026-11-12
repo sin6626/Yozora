@@ -16,7 +16,7 @@ export default function PostOutdated({ modified, created }: { modified: string |
   return (
     <p className="post-outdated" role="note">
       <Hourglass size={14} aria-hidden="true" />
-      <span>{t.outdated(days)}</span>
+      <span>{modified ? t.outdated(days) : t.outdatedCreated(days)}</span>
     </p>
   );
 }

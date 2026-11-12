@@ -490,6 +490,11 @@
   margin: 0;
 }
 
+/* 右下角的语言图标占离底边 12–26px 那一段，最后一行写满时会压在字上：带图标的代码块底部多留一点 */
+.article-body .code-frame:has(.code-lang) pre {
+  padding-bottom: 2.25rem;
+}
+
 .article-body .code-copy {
   position: absolute;
   top: 0.5rem;
@@ -536,4 +541,10 @@
 .article-rich pre.rich-code-block {
   padding: 1rem 1.25rem;
   overflow-x: auto;
+}
+
+/* 富文本表格里作者设了底色的单元格（编辑器给的都是 #dbeafe、#fef3c7 这类浅色）：深色主题下字也换成深色，
+   否则浅色字压在浅色底上看不见 */
+:root[data-theme="dark"] .article-rich :is(td, th)[style*="background-color"] {
+  color: var(--background);
 }

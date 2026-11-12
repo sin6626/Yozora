@@ -13,6 +13,7 @@
     "@excalidraw/excalidraw": "0.18.1",
     "@haklex/rich-kit-shiro": "0.0.85",
     "@haklex/rich-renderer-codeblock": "0.0.85",
+    "@haklex/rich-static-renderer": "0.0.85",
     "@iconify-json/logos": "^1.2.18",
     "@iconify-json/mingcute": "^1.2.8",
     "@iconify-json/simple-icons": "^1.2.101",

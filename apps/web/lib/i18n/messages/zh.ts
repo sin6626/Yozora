@@ -322,6 +322,8 @@ const zh = {
     noBody: "这篇文章暂时没有可展示的正文。",
     // 最后修改超过 60 天的文章正文前的提示（components/post-outdated.tsx）
     outdated: msg<[days: number]>("这篇文章最后修改于 {days} 天前，其中的内容可能已经过时。"),
+    // 没修改过的文章按发布时间算（版权块写着“暂没有修改过”，这里不能说“最后修改于”）
+    outdatedCreated: msg<[days: number]>("这篇文章发布于 {days} 天前，其中的内容可能已经过时。"),
     categoryDescription: msg<[name: string]>("分类“{name}”下的文章。"),
   },
   notes: {
@@ -538,7 +540,7 @@ const zh = {
     stars: msg<[count: string]>("{count} 颗星"),
     difficulty: msg<[level: string]>("难度：{level}"),
     latest: "回到最新",
-    earlier: "更早",
+    earlier: "更早的",
     up: "赞",
     down: "踩",
   },

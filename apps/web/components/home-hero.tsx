@@ -40,23 +40,31 @@ export function HeroSocialList({ socials, contacts = [] }: { socials: SocialLink
   const brand = (item: SocialLink | SocialCard) => ({ "data-dark": item.dark ? "" : undefined, style: { "--brand": item.color } as CSSProperties });
   return (
     <SocialTooltipGroup>
-      <ul className="home-hero-socials">
-        {socials.map((social) => (
-          <li key={social.href} {...brand(social)}>
-            <SocialTooltip label={social.label}>
-              <a href={social.href} target="_blank" rel="noopener noreferrer" aria-label={social.label}>
-                <SocialIcon icon={social.icon} label={social.label} />
-              </a>
-            </SocialTooltip>
-          </li>
-        ))}
-        {socials.length > 0 && contacts.length > 0 && <li className="home-hero-socials-divider" aria-hidden="true" />}
-        {contacts.map((card) => (
-          <li key={card.key} {...brand(card)}>
-            <ContactCard card={card} icon={<SocialIcon icon={card.icon} label={card.label} />} tooltip />
-          </li>
-        ))}
-      </ul>
+      {/* 直达链接、名片（微信、QQ…）各成一组：手机上放不下时整组换到下一行，不会把一组拆在两行（竖线是名片组开头的线） */}
+      <div className="home-hero-socials">
+        {socials.length > 0 && (
+          <ul className="home-hero-social-group">
+            {socials.map((social) => (
+              <li key={social.href} {...brand(social)}>
+                <SocialTooltip label={social.label}>
+                  <a href={social.href} target="_blank" rel="noopener noreferrer" aria-label={social.label}>
+                    <SocialIcon icon={social.icon} label={social.label} />
+                  </a>
+                </SocialTooltip>
+              </li>
+            ))}
+          </ul>
+        )}
+        {contacts.length > 0 && (
+          <ul className="home-hero-social-group is-cards">
+            {contacts.map((card) => (
+              <li key={card.key} {...brand(card)}>
+                <ContactCard card={card} icon={<SocialIcon icon={card.icon} label={card.label} />} tooltip />
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </SocialTooltipGroup>
   );
 }

@@ -82,14 +82,14 @@ export default function SaySky({ layouts, says, site, children }: { layouts: Rec
     <section ref={fieldRef} className="say-field" aria-label={t.sky}>
       {/* 浅色主题的“星图图版”（says.css）：双线图框、四边刻度尺和刻度数、圆锥投影的赤纬圈与赤经线、左下“新—旧”星等图例、右下题签。熄灯时不显示 */}
       <div className="say-plate" aria-hidden="true">
-        <svg className="say-plate-grid" viewBox="0 0 1600 760" preserveAspectRatio="xMidYMid slice">
-          {[1180, 1330, 1480, 1630].map((radius) => <circle key={radius} cx={800} cy={-950} r={radius} />)}
-          {[-36, -24, -12, 0, 12, 24, 36].map((angle) => {
-            const turn = (angle * Math.PI) / 180;
-            return <line key={angle} x1={800} y1={-950} x2={Math.round(800 + 2900 * Math.sin(turn))} y2={Math.round(-950 + 2900 * Math.cos(turn))} />;
-          })}
-        </svg>
         <div className="say-plate-frame">
+          <svg className="say-plate-grid" viewBox="0 0 1600 760" preserveAspectRatio="xMidYMid slice">
+            {[1180, 1330, 1480, 1630].map((radius) => <circle key={radius} cx={800} cy={-950} r={radius} />)}
+            {[-36, -24, -12, 0, 12, 24, 36].map((angle) => {
+              const turn = (angle * Math.PI) / 180;
+              return <line key={angle} x1={800} y1={-950} x2={Math.round(800 + 2900 * Math.sin(turn))} y2={Math.round(-950 + 2900 * Math.cos(turn))} />;
+            })}
+          </svg>
           <span className="say-plate-ruler is-top">{["0ʰ", "2ʰ", "4ʰ", "6ʰ", "8ʰ", "10ʰ", "12ʰ"].map((mark) => <i key={mark}>{mark}</i>)}</span>
           <span className="say-plate-ruler is-left">{["+60°", "+45°", "+30°", "+15°", "0°"].map((mark) => <i key={mark}>{mark}</i>)}</span>
           <span className="say-plate-legend">

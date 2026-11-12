@@ -19,7 +19,12 @@ function headings() {
   const main = document.querySelector("main");
   if (!main) return [];
   // Next 会把上一个页面隐藏保留在 DOM 里，只取当前可见的标题。
-  return [...main.querySelectorAll<HTMLHeadingElement>(headingSelector)].filter((heading) => heading.id && heading.checkVisibility());
+  // 嵌在正文里的组件可能自带只给读屏的标题（白板 Excalidraw 的 “Canvas actions” 被裁成 1×1 像素），checkVisibility 挡不住，按大小排除
+  return [...main.querySelectorAll<HTMLHeadingElement>(headingSelector)].filter((heading) => {
+    if (!heading.id || !heading.checkVisibility()) return false;
+    const { width, height } = heading.getBoundingClientRect();
+    return width > 1 && height > 1;
+  });
 }
 
 function getEntries() {

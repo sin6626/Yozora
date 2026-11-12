@@ -15,6 +15,9 @@ import { normalizeEditorState } from "../lib/lexical-normalize";
 import { TweetEmbed } from "./tweet";
 import { useResolvedTheme } from "./use-resolved-theme";
 import "@haklex/rich-kit-shiro/style-renderer.css";
+// Haklex 0.0.85 的 rich-kit-shiro/style-renderer.css 漏打包了静态渲染器自己的样式（表格的内边距、宽度、隔行底色），
+// 表格单元格会贴在一起；包里没导出这份 CSS，patches/@haklex__rich-static-renderer@0.0.85.patch 补了 ./style.css 导出
+import "@haklex/rich-static-renderer/style.css";
 import "@excalidraw/excalidraw/index.css";
 
 // 链接卡片用节点里保存的静态信息渲染，不依赖历史 source 插件识别。

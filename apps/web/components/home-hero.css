@@ -311,8 +311,19 @@ html[data-swarm-intro] :is(.home-hero-title > span, .home-hero-title > strong, .
   color: var(--brand);
 }
 
-/* 直达链接和名片（微信、QQ）之间的竖线 */
-.home-hero-socials-divider {
+.home-hero-social-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.home-hero-social-group.is-cards {
+  flex-wrap: nowrap;
+}
+
+/* 直达链接和名片（微信、QQ）之间的竖线：名片组开头的一条线，跟着名片组走 */
+.home-hero-social-group + .is-cards::before {
+  content: "";
   align-self: center;
   width: 1px;
   height: 1.25rem;

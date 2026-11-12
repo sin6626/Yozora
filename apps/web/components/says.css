@@ -187,6 +187,7 @@
   pointer-events: none;
 }
 
+/* 经纬线画在图框里（say-sky.tsx 里 svg 是 .say-plate-frame 的第一个子元素），不会画到框外 */
 .say-plate-grid {
   position: absolute;
   inset: 0;

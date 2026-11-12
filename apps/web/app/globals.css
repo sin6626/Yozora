@@ -635,12 +635,22 @@ a:focus-visible,
   color: var(--muted-foreground);
 }
 
+/* 三栏：往前 | 页码 | 往后，没有的那边是空格子，页码永远在正中（list-filters.tsx 的 PageNav） */
 .post-pagination {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   margin-top: var(--space-8);
   color: var(--muted-foreground);
   font-size: var(--text-sm);
+}
+
+.post-pagination > :first-child {
+  justify-self: start;
+}
+
+.post-pagination > :last-child {
+  justify-self: end;
 }
 
 .post-pagination a {
@@ -800,11 +810,11 @@ a:focus-visible,
   transition: background-color var(--duration-base);
 }
 
-/* 每条前的小星：文章紫色、手记月光色，悬停时亮起 */
+/* 每条前的小星：文章紫色、手记月光色，悬停时亮起。对齐标题第一行（上内边距 + 半个行高）：标题换行时不落到整条中间 */
 .timeline-node {
   --node: var(--primary);
   position: absolute;
-  top: 50%;
+  top: calc(0.5625rem + 0.5lh);
   left: var(--node-x);
   width: 5px;
   height: 5px;
@@ -1002,6 +1012,8 @@ svg.empty-state-code {
 .empty-state p:not(.empty-state-code) {
   max-width: 28rem;
   color: var(--muted-foreground);
+  /* 居中的一两行短句：几行一样长，别让最后一行只剩“了。”这样两个字 */
+  text-wrap: balance;
 }
 
 .empty-state-actions {

@@ -196,6 +196,15 @@ a.entry-tag:focus-visible {
   border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
 }
 
+/* 手机上内容只留 16px 边距，条目往外伸 16px（悬停底色铺满）会让卡片的边框贴着屏幕边：卡片收进 8px，内边距同样减 8px，标题仍和普通条目对齐 */
+@media (max-width: 639px) {
+  .entry.is-featured {
+    margin-inline: calc(-1 * var(--space-2));
+    /* 减掉卡片自己那 1px 边框，标题和普通条目对齐到同一个像素 */
+    padding-inline: calc(var(--space-2) - 1px);
+  }
+}
+
 .entry-label {
   display: inline-flex;
   align-items: center;
@@ -203,6 +212,10 @@ a.entry-tag:focus-visible {
   margin: 0 0 calc(-1 * var(--space-1));
   color: var(--entry-light);
   font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+}
+
+.entry-label:is(:lang(zh), :lang(ja)) {
   letter-spacing: 0.24em;
 }
 
@@ -512,17 +525,19 @@ a.entry-tag:focus-visible {
   font-size: var(--text-sm);
 }
 
+/* 两栏各三行（标签、名片、信息或表单），用 subgrid 共用同一套行：两张名片在同一行，介绍换行时也一样高 */
 .link-apply-exchange {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-8) var(--space-12);
-  align-items: start;
+  grid-template-rows: repeat(3, auto);
+  gap: var(--space-4) var(--space-12);
 }
 
 .link-apply-side {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
+  display: grid;
+  grid-row: span 3;
+  grid-template-rows: subgrid;
+  align-content: start;
   min-width: 0;
 }
 
@@ -530,6 +545,10 @@ a.entry-tag:focus-visible {
   margin-bottom: calc(var(--space-2) * -1);
   color: var(--muted-foreground);
   font-size: var(--text-xs);
+  letter-spacing: 0.02em;
+}
+
+.link-apply-label:is(:lang(zh), :lang(ja)) {
   letter-spacing: 0.08em;
 }
 
@@ -549,18 +568,22 @@ a.entry-tag:focus-visible {
   pointer-events: none;
 }
 
-/* 本站信息：名称、地址、头像、介绍，一行一个，值太长就省略（悬停看全），右边是复制 */
+/* 本站信息：名称、地址、头像、介绍，一行一个，值太长就省略（悬停看全），右边是复制。
+   标签列按最长的标签定宽（subgrid），英文 “One-line intro” 也不换行，各行的值左边对齐 */
 .link-apply-info {
   display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-content: start;
+  column-gap: var(--space-4);
   margin: 0;
   font-size: var(--text-sm);
 }
 
 .link-apply-info > div {
   display: grid;
-  grid-template-columns: 5.5rem minmax(0, 1fr);
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: center;
-  gap: var(--space-3);
   min-height: 2.25rem;
 }
 
@@ -640,6 +663,7 @@ a.entry-tag:focus-visible {
 }
 
 .link-apply-actions {
+  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -669,6 +693,10 @@ a.entry-tag:focus-visible {
 @media (max-width: 639px) {
   .link-apply-exchange {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .link-apply-form {
+    margin-top: var(--space-4);
   }
 
   .link-apply-mine .friend-card::after {
