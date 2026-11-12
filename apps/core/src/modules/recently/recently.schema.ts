@@ -83,8 +83,10 @@ export const CodeMetaSchema = z.object({
 
 // --- Shared optional fields ---
 
+// 引用的站内文章、手记、页面的 id。refId 是旧名字，也认；refType 由 Core 按 id 查出来，客户端传的不用
 const refFields = {
-  ref: zMongoId.optional(),
+  ref: zMongoId.nullish(),
+  refId: zMongoId.nullish(),
   refType: z.string().optional(),
 }
 

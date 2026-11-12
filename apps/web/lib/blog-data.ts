@@ -534,7 +534,7 @@ export async function getRecently(before?: string) {
     const doc = typeof value === "object" && value ? value as Record<string, unknown> : null;
     if (!doc || typeof doc.title !== "string") return null;
     const text = (key: string) => typeof doc[key] === "string" ? doc[key] as string : undefined;
-    return { type: String(refType), title: doc.title, slug: text("slug"), nid: typeof doc.nid === "number" ? doc.nid : undefined, categoryId: text("category") };
+    return { type: String(refType), title: doc.title, slug: text("slug"), nid: typeof doc.nid === "number" ? doc.nid : undefined, categoryId: text("categoryId") ?? text("category") };
   };
   return {
     data: data.map((item) => ({

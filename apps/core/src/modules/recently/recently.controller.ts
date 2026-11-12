@@ -3,6 +3,7 @@ import { Body, Delete, Get, Param, Post, Put, Query } from '@nestjs/common'
 import { ApiController } from '~/common/decorators/api-controller.decorator'
 import { Auth } from '~/common/decorators/auth.decorator'
 import { HTTPDecorators } from '~/common/decorators/http.decorator'
+import { IsAuthenticated } from '~/common/decorators/role.decorator'
 import type { IpRecord } from '~/common/decorators/ip.decorator'
 import { IpLocation } from '~/common/decorators/ip.decorator'
 import { BizException } from '~/common/exceptions/biz.exception'
@@ -23,13 +24,17 @@ export class RecentlyController {
     return await this.recentlyService.getLatestOne()
   }
 
+  // 登录的站长能看到引用了未公开内容的标题；访客只看到公开的引用
   @Get('/all')
-  getAll() {
-    return this.recentlyService.getAll()
+  getAll(@IsAuthenticated() isAuthenticated: boolean) {
+    return this.recentlyService.getAll(isAuthenticated)
   }
 
   @Get('/')
-  async getList(@Query() query: OffsetDto) {
+  async getList(
+    @Query() query: OffsetDto,
+    @IsAuthenticated() isAuthenticated: boolean,
+  ) {
     const { before, after, size } = query
 
     if (before && after) {
@@ -39,12 +44,20 @@ export class RecentlyController {
       )
     }
 
-    return await this.recentlyService.getOffset({ before, after, size })
+    return await this.recentlyService.getOffset({
+      before,
+      after,
+      size,
+      includeHidden: isAuthenticated,
+    })
   }
 
   @Get('/:id')
-  async getOne(@Param() { id }: MongoIdDto) {
-    return await this.recentlyService.getOne(id)
+  async getOne(
+    @Param() { id }: MongoIdDto,
+    @IsAuthenticated() isAuthenticated: boolean,
+  ) {
+    return await this.recentlyService.getOne(id, isAuthenticated)
   }
 
   @Post('/')

@@ -1,6 +1,5 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
 import { mongo } from 'mongoose'
-import pluralize from 'pluralize'
 
 import { BizException } from '~/common/exceptions/biz.exception'
 import { CannotFindException } from '~/common/exceptions/cant-find.exception'
@@ -18,10 +17,26 @@ import { scheduleManager } from '~/utils/schedule.util'
 import { CommentState } from '../comment/comment.model'
 import { CommentService } from '../comment/comment.service'
 import { ConfigsService } from '../configs/configs.service'
+import { isNoteVisibleToVisitors } from '../note/note-visibility.util'
 import { RecentlyModel } from './recently.model'
 import { RecentlyAttitudeEnum } from './recently.schema'
 
 const { ObjectId } = mongo
+
+// 库里存集合名（posts / notes / pages），返回给前台和后台的是 SDK 约定的 Post / Note / Page；两种写法读的时候都认
+type RefKind = CollectionRefTypes.Post | CollectionRefTypes.Note | CollectionRefTypes.Page
+const refKindOf = (value: unknown): RefKind | undefined =>
+  (({ Post: CollectionRefTypes.Post, Note: CollectionRefTypes.Note, Page: CollectionRefTypes.Page }) as Record<string, RefKind>)[value as string] ??
+  ([CollectionRefTypes.Post, CollectionRefTypes.Note, CollectionRefTypes.Page] as string[]).find((kind) => kind === value) as RefKind | undefined
+const refTypeName: Record<RefKind, string> = {
+  [CollectionRefTypes.Post]: 'Post',
+  [CollectionRefTypes.Note]: 'Note',
+  [CollectionRefTypes.Page]: 'Page',
+}
+const refIdOf = (ref: unknown) => {
+  const id = (ref as { _id?: unknown } | null)?._id ?? ref
+  return id ? String(id) : null
+}
 
 @Injectable()
 export class RecentlyService {
@@ -70,17 +85,15 @@ export class RecentlyService {
     ] as const
   }
 
-  async getAll() {
+  async getAll(includeHidden = false) {
     const result = (await this.model.aggregate([
       ...this.commentCountPipeline,
     ])) as RecentlyModel[]
 
-    await this.populateRef(result)
-
-    return result
+    return this.attachRefs(result, includeHidden)
   }
 
-  async getOne(id: string) {
+  async getOne(id: string, includeHidden = false) {
     const result = (await this.model.aggregate([
       ...this.commentCountPipeline,
       {
@@ -90,71 +103,98 @@ export class RecentlyService {
       },
     ])) as RecentlyModel[]
 
-    await this.populateRef(result)
-
-    return result[0] || null
+    return (await this.attachRefs(result, includeHidden))[0] || null
   }
-  // 直接读集合会绕过模型的 select: false，访客接口不能带出正文和手记密码。
-  async populateRef(result: RecentlyModel[], omit = ['text', 'content', 'password']) {
-    const refMap: Record<
-      Exclude<CollectionRefTypes, CollectionRefTypes.Recently>,
-      string[]
-    > = {
-      [CollectionRefTypes.Post]: [],
-      [CollectionRefTypes.Page]: [],
-      [CollectionRefTypes.Note]: [],
+  // 思考引用的站内文章、手记、页面：只取标题和拼链接要用的字段，永远不带正文、摘要、密码、位置。
+  // 访客只看得到公开的（文章已发布；手记已发布、没有密码、不是还没到时间的定时公开；页面都算），其余引用清空，
+  // 连引用的类型也不留；站长（includeHidden）能看到未公开内容的标题，方便编辑。
+  async attachRefs<T extends { ref?: unknown; refType?: unknown }>(docs: T[], includeHidden = false) {
+    const wanted: Record<RefKind, Set<string>> = {
+      [CollectionRefTypes.Post]: new Set(),
+      [CollectionRefTypes.Note]: new Set(),
+      [CollectionRefTypes.Page]: new Set(),
     }
-    for (const doc of result) {
-      if (!doc.refType) {
-        continue
-      }
-      refMap[doc.refType]?.push(doc.ref)
+    for (const doc of docs) {
+      const id = refIdOf(doc.ref)
+      const kind = refKindOf(doc.refType)
+      if (id && kind) wanted[kind].add(id)
     }
-
-    const foreignIdMap: Record<string, any> = {}
-
-    for (const refType in refMap) {
-      const refIds = refMap[refType as CollectionRefTypes]
-      if (refIds.length === 0) {
-        continue
-      }
-      const cursor = await this.databaseService.db
-        .collection(pluralize(refType).toLowerCase())
-        .find({
-          _id: {
-            $in: refIds,
-          },
-        })
-
-      for await (const doc of cursor) {
-        foreignIdMap[doc._id.toHexString()] = Object.assign({}, doc)
-      }
+    const now = new Date()
+    const found = new Map<string, Record<string, unknown>>()
+    const fields = {
+      [CollectionRefTypes.Post]: 'title slug categoryId created isPublished',
+      [CollectionRefTypes.Note]: 'title nid created isPublished publicAt +password',
+      [CollectionRefTypes.Page]: 'title slug created',
     }
-
-    for (const doc of result) {
-      if (!doc.refType) {
-        continue
-      }
-
-      const hasRef = foreignIdMap[(doc.ref as any)?.toHexString()]
-      if (hasRef) {
-        for (const field of omit) {
-          Reflect.deleteProperty(hasRef, field)
+    await Promise.all(
+      (Object.keys(wanted) as RefKind[]).map(async (kind) => {
+        if (!wanted[kind].size) return
+        const list = (await this.databaseService
+          .getModelByRefType(kind)
+          .find({ _id: { $in: [...wanted[kind]] } })
+          .select(fields[kind])
+          .lean()) as Record<string, any>[]
+        for (const doc of list) {
+          const visible =
+            kind === CollectionRefTypes.Post
+              ? doc.isPublished !== false
+              : kind === CollectionRefTypes.Note
+                ? isNoteVisibleToVisitors(doc, now)
+                : true
+          if (!visible && !includeHidden) continue
+          found.set(`${kind}:${doc._id}`, {
+            _id: doc._id,
+            title: doc.title,
+            ...(doc.slug ? { slug: doc.slug } : {}),
+            ...(doc.nid ? { nid: doc.nid } : {}),
+            ...(doc.categoryId ? { categoryId: doc.categoryId } : {}),
+            created: doc.created,
+          })
         }
-        doc.ref = hasRef
-      }
+      }),
+    )
+    for (const doc of docs) {
+      if (!doc.refType && !doc.ref) continue
+      const kind = refKindOf(doc.refType)
+      const ref = kind && found.get(`${kind}:${refIdOf(doc.ref)}`)
+      doc.ref = ref || null
+      doc.refType = ref && kind ? refTypeName[kind] : null
     }
-    return result
+    return docs
+  }
+
+  // 后台填的引用 id：只认站内的文章、手记、页面
+  private async resolveRef(input: { ref?: unknown; refId?: unknown }) {
+    const id = refIdOf(input.ref ?? input.refId)
+    if (!id) return null
+    const exist = await this.databaseService.findGlobalById(id)
+    const kind = refKindOf(exist?.type)
+    if (!kind) {
+      throw new BizException(ErrorCodeEnum.RefModelNotFound)
+    }
+    // 模型里 ref 的类型写的是填充后的样子，存的是 ObjectId
+    return { ref: new ObjectId(id) as unknown as RecentlyModel['ref'], refType: kind }
+  }
+
+  // 推给访客的消息和返回给站长的结果用同一份文档，但引用按各自的规则填
+  private async withRefs(id: unknown) {
+    const doc = await this.model.findById(id).lean()
+    if (!doc) return null
+    const [forVisitors] = await this.attachRefs([{ ...doc }])
+    const [forOwner] = await this.attachRefs([doc], true)
+    return { forVisitors, forOwner }
   }
 
   async getOffset({
     before,
     size,
     after,
+    includeHidden = false,
   }: {
     before?: string
     size?: number
     after?: string
+    includeHidden?: boolean
   }) {
     size = size ?? 10
 
@@ -216,20 +256,10 @@ export class RecentlyService {
       },
       { $limit: size },
     ])
-    await this.populateRef(result)
-    return result
+    return this.attachRefs(result, includeHidden)
   }
   async getLatestOne() {
-    const latest = await this.model
-      .findOne()
-      .sort({ created: -1 })
-      .populate([
-        {
-          path: 'ref',
-          select: '-text',
-        },
-      ])
-      .lean()
+    const latest = await this.model.findOne().sort({ created: -1 }).lean()
 
     if (!latest) {
       return null
@@ -239,46 +269,31 @@ export class RecentlyService {
       refType: CollectionRefTypes.Recently,
       ref: latest._id,
     })
+    const [withRef] = await this.attachRefs([latest])
 
     return {
-      ...latest,
+      ...withRef,
       comments: commentCount,
     }
   }
 
   async create(model: RecentlyModel) {
-    if (model.refId) {
-      const existModel = await this.databaseService.findGlobalById(model.refId)
-      if (!existModel || !existModel.type) {
-        throw new BizException(ErrorCodeEnum.RefModelNotFound)
-      }
-
-      model.refType = existModel.type
-    }
+    const ref = await this.resolveRef(model as { ref?: unknown; refId?: unknown })
 
     const res = await this.model.create({
       content: model.content,
       type: (model as any).type,
       metadata: (model as any).metadata,
-      ref: model.refId as unknown as RecentlyModel['ref'],
-      refType: model.refType,
+      ...(ref ?? {}),
     })
 
-    const withRef = await this.model
-      .findById(res._id)
-      .populate([
-        {
-          path: 'ref',
-          select: '-text',
-        },
-      ])
-      .lean()
+    const docs = await this.withRefs(res._id)
     scheduleManager.schedule(async () => {
-      await this.eventManager.emit(BusinessEvents.RECENTLY_CREATE, withRef, {
+      await this.eventManager.emit(BusinessEvents.RECENTLY_CREATE, docs?.forVisitors, {
         scope: EventScope.TO_SYSTEM_VISITOR,
       })
     })
-    return withRef
+    return docs?.forOwner
   }
 
   async delete(id: string) {
@@ -308,14 +323,24 @@ export class RecentlyService {
     return isDeleted
   }
 
+  // 后台编辑是整条替换：没带引用就清掉引用，换成纯文字就清掉卡片信息
   async update(id: string, model: Partial<RecentlyModel>) {
+    const ref = await this.resolveRef(model as { ref?: unknown; refId?: unknown })
+    const metadata = (model as any).metadata
     const res = await this.model.findByIdAndUpdate(
       id,
       {
-        content: model.content,
-        type: model.type,
-        metadata: model.metadata,
-        modified: new Date(),
+        $set: {
+          content: model.content,
+          type: model.type,
+          modified: new Date(),
+          ...(metadata ? { metadata } : {}),
+          ...(ref ?? {}),
+        },
+        $unset: {
+          ...(metadata ? {} : { metadata: 1 }),
+          ...(ref ? {} : { ref: 1, refType: 1 }),
+        },
       },
       { new: true },
     )
@@ -324,23 +349,14 @@ export class RecentlyService {
       return null
     }
 
-    const withRef = await this.model
-      .findById(res._id)
-      .populate([
-        {
-          path: 'ref',
-          select: '-text',
-        },
-      ])
-      .lean()
-
+    const docs = await this.withRefs(res._id)
     scheduleManager.schedule(async () => {
-      await this.eventManager.emit(BusinessEvents.RECENTLY_UPDATE, withRef, {
+      await this.eventManager.emit(BusinessEvents.RECENTLY_UPDATE, docs?.forVisitors, {
         scope: EventScope.TO_SYSTEM_VISITOR,
       })
     })
 
-    return withRef
+    return docs?.forOwner
   }
 
   // The blog reads the thinking list from Core on every request, so clear Core's HTTP cache before replying;
