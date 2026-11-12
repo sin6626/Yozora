@@ -3,6 +3,7 @@ import { AIController, ActivityController, AggregateController, CategoryControll
 import { fetchAdaptor } from "@mx-space/api-client/dist/adaptors/fetch";
 import { headers } from "next/headers";
 import { unstable_rethrow } from "next/navigation";
+import { connection } from "next/server";
 import { connect, isIP } from "node:net";
 import { getApiUrl, getInternalApiUrl } from "./config";
 
@@ -122,7 +123,10 @@ async function readerIp() {
   return value && isIP(value) ? value : null;
 }
 
-// 给每次请求现取的函数用（不能放进 "use cache"，会读请求头）：把读者 IP 转给 Core，限流按读者算
+// 给每次请求现取的函数用（不能放进 "use cache"，会读请求头）：把读者 IP 转给 Core，限流按读者算。
+// 先等 connection()：现取内容只属于真实请求。只等 headers() 时，开发期 partialPrefetching 的校验渲染（只到 PrefetchRuntime）
+// 也会把请求发给 Core，undici 读完正文时调 Date.now()，Next 就报 “encountered the unstable value Date.now() while prerendering”
 export async function getLiveApiClient(lang?: string) {
+  await connection();
   return clientFor(lang, await readerIp(), false);
 }
