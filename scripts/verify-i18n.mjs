@@ -134,4 +134,25 @@ for (const status of [500, 502, 503]) assert.deepEqual(plain(await readLocales([
 assert.deepEqual(plain(await readLocales(['zh', 'en'], async () => { throw new Error('timeout') })), { locales: ['zh', 'en'], ok: false }, '超时沿用上次的')
 assert.deepEqual(plain(await readLocales(null, respond(503, null))), { locales: ['zh'], ok: false }, '从没读到过时先只有中文')
 
+// 根布局在 Suspense 外读语言列表和译文（app/[locale]/layout.tsx 的 localeState）。开发期 Next 校验静态外壳时，
+// 已过 revalidate、还没过 expire 的 "use cache" 条目会被当成未命中、当场重新取 Core，于是报
+// “encountered uncached data during prerendering or a navigation”（2026-11-12，reading-tools 间歇失败、/timeline 出现 1 Insight）。
+// 这两份缓存不能有“过期但还能用”的窗口：revalidate 必须等于 expire；更新靠 Webhook 让 i18n 标签失效。stale 仍要 ≥ 300（根布局 metadata 也用）
+{
+  const lifetimes = []
+  const data = runTs('apps/web/lib/i18n/data.ts', {
+    'server-only': {},
+    'next/cache': { cacheLife: (value) => lifetimes.push(value), cacheTag() {} },
+    '../api': { coreFetch: async () => ({ status: 200, ok: true, json: async () => ({ enabled: true, languages: ['en'], messages: {} }) }) },
+    './config': config,
+  })
+  assert.deepEqual(plain(await data.getSiteLocales()), ['zh', 'en'])
+  await data.getI18nBundle('en')
+  assert.equal(lifetimes.length, 2, '语言列表和译文各记一次缓存时长')
+  for (const life of lifetimes) {
+    assert.equal(life.revalidate, life.expire, `根布局外壳里的 i18n 缓存不能有过期窗口（revalidate ${life.revalidate}、expire ${life.expire}）`)
+    assert.ok(life.stale >= 300, `stale 要 ≥ 300：${life.stale}`)
+  }
+}
+
 console.log('PASS i18n locales, path prefixes, msg/localize, translation checks shared with Core, legacy translations, rich text')
