@@ -466,3 +466,32 @@ cp -p $B/compose-before.yml /root/mx-space/core/docker-compose.yml && cd /root/m
 ```
 
 磁盘（剩 5.1G）：`/root/mx-space/core-image-6f72016/` 与前几节列的旧版本留给站长自己清。回滚要用的 `releases/eb1d17e`、镜像 `eb1d17e`、容器 `yozora-web-pre-6f72016`、目录 `admin-before-6f72016` 先别删。
+
+## 2026-11-12 已做：思考页、思考的引用修复、后台思考编辑器上线（d279e08）
+
+站长点了“现在上线”后执行，Core、后台、beta 前台三样都换（6f72016 之后的提交：思考页改为星图注记〔6c36e15〕、Core 保存思考的引用并且只给访客看公开内容的链接字段〔443c74f〕、后台思考编辑器可选类型、填卡片、引用站内内容〔d279e08〕）。
+
+- 备份：服务器 `/root/backups/yozora-d279e08/`（`mongo.archive.gz` 39 个集合 2.1MB，`gzip -t` 与 `mongorestore --dryRun` 通过；`compose-before.yml`；`web.env.before`；`yozora-web-inspect.json`；`core-main.sha256`）。`backup.sh`、`switch-core.sh`、`switch-web.sh` 由上一版的三个脚本只换版本号生成（`sed -e s/6f72016/d279e08/g -e s/eb1d17e/6f72016/g`，先 diff 确认只改了版本号），都用 `nohup` 跑，日志在同一目录。
+- 构建：本机临时 worktree `/tmp/yozora-build`（d279e08）。前台单 worker 预渲染 86 页，18.5 秒，包 76MB。
+- **Core**：`/root/mx-space/core-image-d279e08/`（以 `core-image-6f72016/out` 为 `--copy-dest`），`core-image.Dockerfile` 与上一版相同，镜像 `yozora/mx-server:d279e08`（911MB），入口 `main.mjs` SHA-256 `07f97745…` 与本机一致；停机 17 秒，healthy，日志无错误；切换后清了 Redis 的 `mx-api-cache:*`。
+- **后台**：数据目录 `admin/` 换成 d279e08 构建（`index.html` SHA-256 `961a421b…`），上一版改名 `admin-before-d279e08`；`/proxy/qaqdmin` 200，入口脚本 `index-DjXp0HKX.js` 与本机构建一致。后台地址不带结尾斜杠（`/proxy/qaqdmin/` 是 404）。
+- **前台**：`releases/d279e08`（以 `releases/6f72016` 为 `--copy-dest`；`server.js`、`BUILD_ID` 哈希一致），启动参数与上一版相同，停机 5 秒，容器在 `bridge` 与 `core_mx-space` 两个网络上。服务器本机首页、/thinking、/en/thinking、/ja/thinking、手记、文章、一言、RSS、robots 都是 200，`data-dpl-id="d279e08"`，日志无错误；容器约 251MB / 400MB，服务器可用约 680MB。
+- 界面文字：`NODE_USE_ENV_PROXY=1 HTTPS_PROXY=http://127.0.0.1:7897 node scripts/push-i18n-source.mjs --prod`，新增 69、改过 8、删掉 6（包括前几轮新增的文字），线上 Core 已生成英日译文。
+- 验证：Core 的 `/recently`、`/recently/all`、`/recently/latest` 都是 200（线上思考 0 条，引用的公开判断没有线上数据可验，靠本地 `recently-ref.e2e-spec.ts` 与 `scripts/e2e/thinking.mjs`）；旧 Shiro 首页与 /thinking、公网 API、beta /thinking、后台都是 200。无头浏览器只读检查：beta /thinking（1920 与 390 宽）显示新的空状态、无脚本报错；线上后台用线上令牌打开思考页，“新建思考”编辑框有八种类型，选“书”后字段为链接、书名、作者、封面、评分、ISBN，只有前三项带红星，写请求全部在浏览器里拦下（实际一个也没发）。截图 `.local/previews/thinking-online/`。
+
+回滚：
+
+```bash
+B=/root/backups/yozora-d279e08; W=/root/mx-space/yozora-web
+# 前台：先核对 current 仍是 d279e08
+docker stop yozora-web && docker rename yozora-web yozora-web-d279e08-stopped
+ln -sfn $W/releases/6f72016 $W/current && docker rename yozora-web-pre-d279e08 yozora-web && docker start yozora-web
+# 后台
+D=/root/mx-space/core/data/mx-space; mv $D/admin $D/admin-yozora-d279e08 && mv $D/admin-before-d279e08 $D/admin
+# Core（约 20 秒）
+cp -p $B/compose-before.yml /root/mx-space/core/docker-compose.yml && cd /root/mx-space/core && docker compose up -d --no-deps app
+```
+
+Core 回滚会把思考引用的问题带回来（存不进引用；列表、最新一条、实时推送把被引用文档的大部分字段给访客）。回滚前如果已经写了带引用的思考，先在后台把引用清掉。
+
+磁盘（剩 4.6G）：`/root/mx-space/core-image-d279e08/`、`core-image-6f72016/` 与前几节列的旧版本留给站长自己清。回滚要用的 `releases/6f72016`、镜像 `6f72016`、容器 `yozora-web-pre-d279e08`、目录 `admin-before-d279e08` 先别删。
