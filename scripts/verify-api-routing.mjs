@@ -27,7 +27,7 @@ function load(name, stubs) {
 
 // 一套独立的模块状态：clock 控制 Date.now，net.result 决定内网探测连得上（connect）、拒绝（error）还是超时（timeout），
 // requests 记下每次 fetch 的地址、方法和请求头，reply(url) 决定返回
-function setup({ internal = internalUrl, key, readerHeaders = {} } = {}) {
+function setup({ internal = internalUrl, key, readerHeaders = {}, connection = async () => {} } = {}) {
   process.env.MIX_SPACE_API_URL = publicUrl
   if (internal) process.env.MIX_SPACE_INTERNAL_API_URL = internal
   else delete process.env.MIX_SPACE_INTERNAL_API_URL
@@ -58,7 +58,7 @@ function setup({ internal = internalUrl, key, readerHeaders = {} } = {}) {
   const api = load('api', {
     Date: FakeDate,
     performance: { now: () => clock.now },
-    modules: { 'node:net': net, 'next/headers': { headers: async () => new Headers(readerHeaders) } },
+    modules: { 'node:net': net, 'next/headers': { headers: async () => new Headers(readerHeaders) }, 'next/server': { connection } },
   })
   return { api, clock, net, requests, state }
 }
@@ -201,6 +201,28 @@ try {
     await (await api.getLiveApiClient('ja')).post.getList(1, 10)
     assert.ok(requests[0].url.includes('lang=ja'))
     assert.equal(requests[0].headers.get('x-real-ip'), '203.0.113.5')
+  }
+
+  // 现取 Core 之前先等 connection()（2026-11-12）：开发期 partialPrefetching 的校验渲染只渲染到 PrefetchRuntime 阶段，
+  // headers() 在那里已经给了值，只等 headers() 的话现取请求照样发出去，undici 读完正文时调 Date.now()，
+  // Next 就记 “encountered the unstable value Date.now() while prerendering”。connection() 在那种渲染里永远不 resolve
+  {
+    let open
+    const { api, requests } = setup({ connection: () => new Promise((resolve) => { open = resolve }) })
+    const pending = api.getLiveApiClient().then((client) => client.aggregate.getAggregateData())
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    assert.equal(requests.length, 0, 'connection() 之前不能向 Core 发现取请求')
+    assert.ok(open, '现取客户端要调 connection()')
+    open()
+    await pending
+    assert.equal(requests.length, 1, 'connection() 之后照常发出')
+  }
+  // 缓存用的客户端和 coreFetch 不调 connection()（"use cache" 里调它会直接报错）
+  {
+    const { api, requests } = setup({ connection: () => { throw new Error('connection() in "use cache"') } })
+    await api.getApiClient().aggregate.getAggregateData()
+    await api.coreFetch('/ai/i18n')
+    assert.equal(requests.length, 2)
   }
 
   // 内部密钥：只有 Next 缓存重建用的 getApiClient 和 coreFetch 带；现取客户端是替读者发的，永远不带，
