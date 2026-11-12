@@ -20,6 +20,7 @@ import { createAbortError } from '~/utils/abort.util'
 import { md5 } from '~/utils/tool.util'
 
 import { ConfigsService } from '../../configs/configs.service'
+import { isNoteVisibleToVisitors } from '../../note/note-visibility.util'
 import {
   AI_STREAM_IDLE_TIMEOUT_MS,
   AI_STREAM_LOCK_TTL,
@@ -172,6 +173,20 @@ export class AiSummaryService implements OnModuleInit {
    */
   private computeContentHash(text: string): string {
     return md5(this.serializeText(text))
+  }
+
+  // 访客只能读到公开文章的摘要，也不能替未公开的文章触发生成：未发布的文章、加密或定时公开的手记一律当作不存在。
+  async assertVisibleToVisitors(articleId: string) {
+    const article = await this.databaseService.findGlobalById(articleId)
+    const visible =
+      article?.type === CollectionRefTypes.Post
+        ? article.document.isPublished !== false
+        : article?.type === CollectionRefTypes.Note
+          ? isNoteVisibleToVisitors(article.document)
+          : false
+    if (!visible) {
+      throw new BizException(ErrorCodeEnum.ContentNotFoundCantProcess)
+    }
   }
 
   /**

@@ -45,7 +45,8 @@ import {
   PartialNoteDto,
   SetNotePublishStatusDto,
 } from './note.schema'
-import { NoteService } from './note.service'
+import { NoteService, publicNoteCondition } from './note.service'
+import { isNoteVisibleToVisitors } from './note-visibility.util'
 
 type NoteListItem = {
   _id?: { toString?: () => string } | string
@@ -78,12 +79,13 @@ export class NoteController {
     lang?: string,
   ) {
     const { password, single: isSingle, prefer } = query
-    const condition = isAuthenticated ? {} : { isPublished: true }
+    // 相邻手记只连访客能读的，加密和定时公开的标题也不露
+    const condition = isAuthenticated ? {} : publicNoteCondition()
 
-    current.text =
-      !isAuthenticated && this.noteService.checkNoteIsSecret(current)
-        ? ''
-        : current.text
+    if (!isAuthenticated && this.noteService.checkNoteIsSecret(current)) {
+      current.text = ''
+      current.content = undefined
+    }
 
     if (
       !this.noteService.checkPasswordToAccess(current, password) &&
@@ -325,18 +327,22 @@ export class NoteController {
       .findOne({
         _id: id,
       })
-      .select(`+password +location +coordinates`)
+      .select(isAuthenticated ? '+password +location +coordinates' : '+password')
       .lean({ getters: true })
     if (!current) {
       throw new CannotFindException()
     }
+    if (isAuthenticated) return current
 
-    // 非认证用户只能查看已发布的手记
-    if (!isAuthenticated && !current.isPublished) {
+    // 访客：未发布的当作不存在，加密和定时公开的与 /nid 一样拒绝（带密码要走 /nid），密码和位置永远不返回
+    if (!current.isPublished) {
       throw new CannotFindException()
     }
-
-    return current
+    if (!isNoteVisibleToVisitors(current)) {
+      throw new BizException(ErrorCodeEnum.NoteForbidden)
+    }
+    const { password: _password, ...visible } = current
+    return visible
   }
 
   @Get('/:year/:month/:day/:slug')
@@ -396,11 +402,11 @@ export class NoteController {
     const half = size >> 1
     const { id } = params
     const select = 'nid _id title slug created isPublished modified'
-    const condition = isAuthenticated ? {} : { isPublished: true }
+    const condition = isAuthenticated ? {} : publicNoteCondition()
 
-    // 当前文档直接找，不用加条件，反正里面的东西是看不到的
+    // 访客只能从自己能读的手记查前后；加密、定时公开的连标题都不给
     const currentDocument = await this.noteService.model
-      .findById(id)
+      .findOne({ _id: id, ...condition })
       .select(select)
       .lean()
 
@@ -619,7 +625,7 @@ export class NoteController {
     } = query
     const condition: QueryFilter<NoteModel> = isAuthenticated
       ? {}
-      : { isPublished: true }
+      : publicNoteCondition()
 
     const result = await this.noteService.getNotePaginationByTopicId(
       id,

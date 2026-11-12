@@ -148,10 +148,18 @@ describe('NoteService', () => {
           note = mockNotes.find(
             (n) => n._id === query._id || n.id === query._id,
           )
-        } else if (!query || Object.keys(query).length === 0) {
+        } else if (
+          !query ||
+          Object.keys(query).length === 0 ||
+          query.isPublished === true
+        ) {
+          // 空条件取最新一篇；publicNoteCondition 只取访客能读的（真实查询见 note.controller.e2e-spec.ts）
+          const pool = query?.isPublished
+            ? mockNotes.filter((n) => n.isPublished && !n.password)
+            : mockNotes
           note =
-            mockNotes.length > 0
-              ? [...mockNotes].sort(
+            pool.length > 0
+              ? [...pool].sort(
                   (a, b) =>
                     new Date(b.created).getTime() -
                     new Date(a.created).getTime(),
@@ -412,6 +420,7 @@ describe('NoteService', () => {
         nid: 1,
         title: 'Note 1',
         created: new Date('2021-01-01'),
+        isPublished: true,
       })
       mockNotes.push({
         _id: 'note-2',
@@ -419,6 +428,7 @@ describe('NoteService', () => {
         nid: 2,
         title: 'Note 2',
         created: new Date('2021-01-02'),
+        isPublished: true,
       })
 
       const result = await noteService.getLatestNoteId()

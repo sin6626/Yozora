@@ -30,7 +30,7 @@ import { CommentState } from '../comment/comment.model'
 import { CommentService } from '../comment/comment.service'
 import { ConfigsService } from '../configs/configs.service'
 import type { NoteModel } from '../note/note.model'
-import { NoteService } from '../note/note.service'
+import { NoteService, publicNoteCondition } from '../note/note.service'
 import type { PostModel } from '../post/post.model'
 import type { PostService } from '../post/post.service'
 import { ReaderModel } from '../reader/reader.model'
@@ -595,11 +595,10 @@ export class ActivityService implements OnModuleInit, OnModuleDestroy {
         })
         .limit(3)
         .toArray(),
+      // 只列访客能读的手记：加密和定时公开的标题也不露（同手记列表）
       this.databaseService.db
         .collection(NOTE_COLLECTION_NAME)
-        .find({
-          isPublished: true,
-        })
+        .find(publicNoteCondition())
         .sort({
           created: -1,
         })

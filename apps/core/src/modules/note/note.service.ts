@@ -220,9 +220,10 @@ export class NoteService {
     return trackedDocument
   }
 
+  // 给访客的聚合数据用（GET /aggregate 的 latestNoteId），只看访客能读的手记
   async getLatestNoteId() {
     const note = await this.noteModel
-      .findOne()
+      .findOne(publicNoteCondition())
       .sort({
         created: -1,
       })

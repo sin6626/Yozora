@@ -12,6 +12,7 @@ import type { FastifyReply } from 'fastify'
 
 import { ApiController } from '~/common/decorators/api-controller.decorator'
 import { Auth } from '~/common/decorators/auth.decorator'
+import { IsAuthenticated } from '~/common/decorators/role.decorator'
 import { CreateSummaryTaskDto } from '~/modules/ai/ai-task/ai-task.dto'
 import { AiTaskService } from '~/modules/ai/ai-task/ai-task.service'
 import { MongoIdDto } from '~/shared/dto/id.dto'
@@ -78,7 +79,9 @@ export class AiSummaryController {
   async getArticleSummary(
     @Param() params: MongoIdDto,
     @Query() query: GetSummaryQueryDto,
+    @IsAuthenticated() isAuthenticated: boolean,
   ) {
+    if (!isAuthenticated) await this.service.assertVisibleToVisitors(params.id)
     return this.service.getOrGenerateSummaryForArticle(params.id, {
       lang: query.lang ? parseLanguageCode(query.lang) : DEFAULT_SUMMARY_LANG,
       onlyDb: query.onlyDb,
@@ -90,7 +93,9 @@ export class AiSummaryController {
     @Param() params: MongoIdDto,
     @Query() query: GetSummaryStreamQueryDto,
     @Res() reply: FastifyReply,
+    @IsAuthenticated() isAuthenticated: boolean,
   ) {
+    if (!isAuthenticated) await this.service.assertVisibleToVisitors(params.id)
     initSse(reply)
 
     let closed = false

@@ -1,4 +1,5 @@
 import { APP_INTERCEPTOR } from '@nestjs/core'
+import { Types } from 'mongoose'
 import { createE2EApp } from 'test/helper/create-e2e-app'
 import { authPassHeader } from 'test/mock/guard/auth.guard'
 import { MockingCountingInterceptor } from 'test/mock/interceptors/counting.interceptor'
@@ -25,6 +26,7 @@ import { NoteModel } from '~/modules/note/note.model'
 import { NoteService } from '~/modules/note/note.service'
 import { SlugTrackerModel } from '~/modules/slug-tracker/slug-tracker.model'
 import { SlugTrackerService } from '~/modules/slug-tracker/slug-tracker.service'
+import { TopicModel } from '~/modules/topic/topic.model'
 import { HttpService } from '~/processors/helper/helper.http.service'
 import { ImageService } from '~/processors/helper/helper.image.service'
 import { LexicalService } from '~/processors/helper/helper.lexical.service'
@@ -149,7 +151,7 @@ describe('NoteController (e2e)', async () => {
       },
     ],
     imports: [],
-    models: [NoteModel, OptionModel, DraftModel, SlugTrackerModel],
+    models: [NoteModel, OptionModel, DraftModel, SlugTrackerModel, TopicModel],
     async pourData(modelMap) {
       // @ts-ignore
       const { model: _model } = modelMap.get(NoteModel) as {
@@ -534,5 +536,73 @@ describe('NoteController (e2e)', async () => {
     })
 
     expect(res.statusCode).toBe(200)
+  })
+  // 2026-11-12: a visitor could read a locked note in full (text, rich content, the plain password, location)
+  // via GET /notes/:id, and see it in topic lists, neighbour lists and the "latest note" id.
+  // Only GET /notes/nid/:nid with the right password may reveal a locked note to a visitor.
+  describe('visitors never see locked or scheduled notes', () => {
+    const topicId = new Types.ObjectId().toString()
+    const coordinates = { latitude: 22.5, longitude: 113.9 }
+    const lexical = JSON.stringify({ root: { children: [], type: 'root', version: 1 } })
+    let open: any
+    let locked: any
+    let scheduled: any
+
+    beforeAll(async () => {
+      open = await model.create({ title: 'Open diary', text: 'open body', topicId, isPublished: true, location: 'Campus', coordinates, created: new Date('2030-01-01T00:00:00.000Z') })
+      locked = await model.create({ title: 'Locked diary', text: 'locked body', contentFormat: 'lexical', content: lexical, password: 'pw12', topicId, isPublished: true, location: 'Dorm', coordinates, created: new Date('2030-01-02T00:00:00.000Z') })
+      scheduled = await model.create({ title: 'Scheduled diary', text: 'future body', contentFormat: 'lexical', content: lexical, publicAt: new Date(Date.now() + 86_400_000), topicId, isPublished: true, created: new Date('2030-01-03T00:00:00.000Z') })
+    })
+    afterAll(async () => {
+      await model.deleteMany({ _id: { $in: [open._id, locked._id, scheduled._id] } })
+    })
+
+    const get = (url: string, headers = {}) => proxy.app.inject({ method: 'GET', url: `${apiRoutePrefix}${url}`, headers })
+    const leaks = (body: string) => ['locked body', 'pw12', 'Dorm', 'Locked diary', 'future body'].filter((s) => body.includes(s))
+
+    test('GET /notes/:id refuses a locked note and never returns password or location', async () => {
+      expect((await get(`/notes/${locked.id}`)).statusCode).toBe(403)
+      expect((await get(`/notes/${scheduled.id}`)).statusCode).toBe(403)
+      const res = await get(`/notes/${open.id}`)
+      expect(res.statusCode).toBe(200)
+      expect(res.json()).not.toHaveProperty('password')
+      expect(res.json()).not.toHaveProperty('location')
+      expect(res.json()).not.toHaveProperty('coordinates')
+      const owner = await get(`/notes/${locked.id}`, authPassHeader)
+      expect(owner.statusCode).toBe(200)
+      expect(owner.json().location).toBe('Dorm')
+    })
+
+    test('GET /notes/topics/:id lists only notes a visitor may read', async () => {
+      const res = await get(`/notes/topics/${topicId}?size=50`)
+      expect(res.statusCode).toBe(200)
+      expect(res.json().data.map((n) => n.title)).toEqual(['Open diary'])
+      expect(leaks(res.body)).toEqual([])
+    })
+
+    test('GET /notes/list/:id skips locked neighbours and reveals nothing about a locked note', async () => {
+      const around = await get(`/notes/list/${open.id}?size=10`)
+      expect(leaks(around.body)).toEqual([])
+      const self = await get(`/notes/list/${locked.id}?size=10`)
+      expect(self.json()).toEqual({ data: [], size: 0 })
+    })
+
+    test('GET /notes/nid/:nid of a public note links past locked neighbours', async () => {
+      const res = await get(`/notes/nid/${open.nid}`)
+      expect(res.statusCode).toBe(200)
+      expect(leaks(res.body)).toEqual([])
+    })
+
+    test('GET /notes/nid/:nid of a scheduled note hides the rich content as well as the text', async () => {
+      const res = await get(`/notes/nid/${scheduled.nid}`)
+      expect(res.statusCode).toBe(200)
+      expect(res.json().data.text).toBe('')
+      expect(res.json().data.content ?? '').toBe('')
+    })
+
+    test('the latest note id points at the newest note a visitor may read', async () => {
+      const latest = await proxy.app.get(NoteService).getLatestNoteId()
+      expect(latest.id).toBe(open.id)
+    })
   })
 })

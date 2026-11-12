@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { BizException } from '~/common/exceptions/biz.exception'
 import { CollectionRefTypes } from '~/constants/db.constant'
 import { AiService } from '~/modules/ai/ai.service'
 import { AiInFlightService } from '~/modules/ai/ai-inflight/ai-inflight.service'
@@ -218,6 +219,29 @@ describe('AiSummaryService', () => {
 
       const resolvedResult = await result
       expect(resolvedResult.id).toBe('cached-summary')
+    })
+  })
+
+  // 2026-11-12: visitors could read (and trigger) the AI summary of a locked note
+  describe('assertVisibleToVisitors', () => {
+    const cases = [
+      ['a published post', CollectionRefTypes.Post, { isPublished: true }, true],
+      ['a draft post', CollectionRefTypes.Post, { isPublished: false }, false],
+      ['a public note', CollectionRefTypes.Note, { isPublished: true, password: '' }, true],
+      ['a locked note', CollectionRefTypes.Note, { isPublished: true, password: 'pw12' }, false],
+      ['a scheduled note', CollectionRefTypes.Note, { isPublished: true, publicAt: new Date(Date.now() + 86_400_000) }, false],
+      ['an unpublished note', CollectionRefTypes.Note, { isPublished: false }, false],
+    ] as const
+    it.each(cases)('%s', async (_name, type, document, visible) => {
+      mockDatabaseService.findGlobalById.mockResolvedValue({ type, document: { ...mockArticle, ...document } })
+      const check = service.assertVisibleToVisitors('article-1')
+      if (visible) await expect(check).resolves.toBeUndefined()
+      else await expect(check).rejects.toThrow(BizException)
+    })
+
+    it('treats a missing article as not visible', async () => {
+      mockDatabaseService.findGlobalById.mockResolvedValue(null)
+      await expect(service.assertVisibleToVisitors('missing')).rejects.toThrow(BizException)
     })
   })
 
