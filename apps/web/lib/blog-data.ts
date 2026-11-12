@@ -3,6 +3,7 @@ import "server-only";
 // 导航面板、AI 摘要等），跟 Webhook 失效；没有 "use cache" 的每次请求现取，用 getLiveApiClient 转发读者 IP，只靠 Core 的 Redis 接口缓存。
 // 现取的函数不能被带 "use cache" 的函数调用（那里读不到请求头）。
 import { cacheLife, cacheTag } from "next/cache";
+import { cookies } from "next/headers";
 import { cache } from "react";
 import { getApiClient, getLiveApiClient } from "./api";
 import { safeUrl } from "./safe-url";
@@ -179,7 +180,7 @@ async function postEntry(post: ListedPost, lang: ContentLang) {
 // 详情页的 generateMetadata、正文、评论悬浮窗在同一次请求里各要一次同一篇：Core 的原始回答用 React cache 按地址去重
 // （不按 getPost 的 lang 去重：元数据不带 lang、正文带，向 Core 要的却是同一份）。
 const corePost = cache(async (category: string, slug: string) => orNotFound((await getLiveApiClient()).post.getPost(category, slug)));
-const coreNote = cache(async (nid: number) => orNotFound((await getLiveApiClient()).note.getNoteByNid(nid)));
+const coreNote = cache(async (nid: number, password?: string) => orNotFound((await getLiveApiClient()).note.getNoteByNid(nid, { password })));
 const corePage = cache(async (slug: string) => orNotFound((await getLiveApiClient()).page.getBySlug(slug)));
 
 // 外文页面（lang 为 en / ja）由 Core 把已有译文换进标题、正文、摘要、标签和分类名，摘录和阅读时长也按译文算。
@@ -340,14 +341,19 @@ export async function getMatchedNotes(match: NoteMatch, page: number, lang: Cont
   return paginate(pick(index, ids), page);
 }
 
+// 加密手记解锁后，密码存在这个浏览器的会话 Cookie 里（httpOnly，关掉浏览器就没了；note-unlock-action.ts 写入），
+// 之后这篇和普通手记走同一条路渲染：标题、心情、目录、评论、相邻手记都有，刷新也不用再输。
+export const noteUnlockCookie = (nid: number) => `note-unlock-${nid}`;
+
 // 正文译文由页面另取；lang 只把心情、天气、话题和相邻手记的标题换成译文。
 export async function getNote(nid: number, lang: ContentLang = "zh") {
   const names = await localizedNames(lang);
+  const password = (await cookies()).get(noteUnlockCookie(nid))?.value;
   let result;
   try {
-    result = await coreNote(nid);
+    result = await coreNote(nid, password);
   } catch (error) {
-    // Core 对设置了密码的手记返回 403。
+    // Core 对设置了密码的手记返回 403（没带密码、密码不对或站长改了密码）。
     if (httpStatus(error) === 403) return { locked: true as const };
     throw error;
   }

@@ -31,17 +31,14 @@ export default async function NoteDetail({ params }: { params: Promise<{ nid: st
     return <LoadError what={t.notes.title} href={href} />;
   }
   if (!note) notFound();
-  // Core 对加密手记返回 403，标题也拿不到；输入密码后由服务端函数带密码读取正文。
+  // Core 对加密手记返回 403，标题也拿不到；输入密码后整页按普通手记重新渲染（见 getNote 的解锁 Cookie）。
   if (note.locked) {
     return (
       <article className="post-detail">
         <header className="page-heading">
-          <Link href="/notes">{t.notes.backToList}</Link>
-          <h1 className="post-detail-title">{t.notes.locked}</h1>
+          <nav className="detail-crumb" aria-label={t.list.crumb}><Link href="/notes">{t.notes.title}</Link></nav>
         </header>
-        <div className="post-list-content">
-          <NoteUnlock nid={Number(rawNid)} />
-        </div>
+        <NoteUnlock nid={Number(rawNid)} />
       </article>
     );
   }

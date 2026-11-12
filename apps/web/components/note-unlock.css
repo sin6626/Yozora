@@ -1,0 +1,189 @@
+/* 加密手记的锁（note-unlock.tsx）：页面中间一弯月亮藏在一团云后面，下面一句标题、一句文楷写的话、一条信纸横线写密码。
+   输入框和箭头按钮与邮件订阅表单（details-sidebar.css 的 .subscribe-line）同一个样子。 */
+.note-lock {
+  /* 熄灯时月亮是各配色的月光色；开灯时月光色是深色字，月亮改用黄昏天边的暖色调淡出来，再描一圈淡边免得化在浅底里 */
+  --lock-moon: light-dark(color-mix(in oklab, var(--sky-fallback-low) 55%, var(--surface)), var(--moonlight));
+  --lock-moon-edge: light-dark(color-mix(in srgb, var(--foreground) 10%, transparent), transparent);
+  --lock-cloud: color-mix(in oklab, var(--foreground) 6%, var(--background));
+  --lock-cloud-top: color-mix(in oklab, var(--foreground) 15%, var(--background));
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: var(--space-3);
+  min-height: min(62vh, 34rem);
+  padding: var(--space-8) var(--space-4) var(--space-16);
+  text-align: center;
+}
+
+.note-lock-sky {
+  position: relative;
+  width: 8rem;
+  height: 5rem;
+  margin-bottom: var(--space-3);
+}
+
+.note-lock-moon {
+  position: absolute;
+  top: 0.1rem;
+  left: 3rem;
+  width: 3.5rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 34%, color-mix(in oklab, var(--lock-moon) 70%, var(--evening-star)), var(--lock-moon) 62%);
+  box-shadow: 0 0 0 1px var(--lock-moon-edge), 0 0 2.25rem color-mix(in srgb, var(--moonlight-glow) 90%, transparent);
+}
+
+/* 一团云（SVG）：盖住月亮下半边，慢慢左右飘一点 */
+.note-lock-cloud {
+  position: absolute;
+  inset: auto 0 0;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  animation: note-lock-drift 9s ease-in-out infinite alternate;
+}
+
+.note-lock-cloud-top {
+  stop-color: var(--lock-cloud-top);
+}
+
+.note-lock-cloud-bottom {
+  stop-color: var(--lock-cloud);
+}
+
+.note-lock-rim {
+  stop-color: light-dark(var(--surface), color-mix(in srgb, var(--moonlight) 55%, transparent));
+}
+
+@keyframes note-lock-drift {
+  to {
+    translate: 0.375rem 0;
+  }
+}
+
+.note-lock-title {
+  margin: 0;
+  color: var(--foreground);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.note-lock-hint {
+  max-width: 22rem;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-family: "LXGW WenKai", "PingFang SC", var(--font-cjk-sans), sans-serif;
+  font-size: 1.0625rem;
+  font-weight: 300;
+  line-height: 1.75;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.note-lock-form {
+  width: min(100%, 20rem);
+  margin-top: var(--space-4);
+}
+
+/* 信纸横线：写的时候线变成月光色，输错时变成提醒色并左右轻晃一下 */
+.note-lock-line {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid color-mix(in srgb, var(--foreground) 22%, transparent);
+  transition: border-color var(--duration-base) var(--ease-out);
+}
+
+.note-lock-line:focus-within {
+  border-color: var(--moonlight);
+}
+
+.note-lock-line[data-error] {
+  border-color: var(--danger);
+  animation: note-lock-shake 0.32s var(--ease-out);
+}
+
+@keyframes note-lock-shake {
+  25% { translate: -4px 0; }
+  50% { translate: 3px 0; }
+  75% { translate: -2px 0; }
+}
+
+.note-lock-input {
+  flex: 1;
+  min-width: 0;
+  height: 2.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  font-size: var(--text-base);
+  text-align: left;
+  outline: 0;
+}
+
+.note-lock-input::placeholder {
+  color: var(--muted-foreground);
+}
+
+.note-lock-send {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-right: calc(var(--space-2) * -1);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color var(--duration-fast), translate var(--duration-fast);
+}
+
+.note-lock-line:focus-within .note-lock-send {
+  color: var(--moonlight);
+}
+
+@media (hover: hover) {
+  .note-lock-send:hover {
+    color: var(--moonlight);
+    translate: 2px 0;
+  }
+}
+
+.note-lock-send:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.note-lock-send:disabled {
+  cursor: progress;
+}
+
+.note-lock-spin {
+  animation: note-lock-spin 0.9s linear infinite;
+}
+
+@keyframes note-lock-spin {
+  to {
+    rotate: 1turn;
+  }
+}
+
+/* 没出错时占着一行高度，出错提示出现时下面不跳 */
+.note-lock-error {
+  min-height: 1.25rem;
+  margin: var(--space-2) 0 0;
+  color: var(--danger);
+  font-size: var(--text-sm);
+  text-align: left;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-lock-cloud,
+  .note-lock-line[data-error] {
+    animation: none;
+  }
+}

@@ -11,6 +11,8 @@ const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKi
 const lifetimes = [], tags = [], calls = []
 let detailCalls = 0
 // React cache 替身：按参数记住第一次的结果，模拟同一次渲染里的去重
+// 读者浏览器里的 Cookie（加密手记解锁后存密码，lib/blog-data.ts 的 noteUnlockCookie）
+const cookieJar = new Map()
 const memo = (fn) => { const seen = new Map(); return (...args) => { const key = JSON.stringify(args); if (!seen.has(key)) seen.set(key, fn(...args)); return seen.get(key) } }
 const themeConfig = { exports: runTs('apps/web/lib/theme-config.ts', { './i18n/msg': loadI18n().msg }) }
 const noteExtras = runTs('apps/web/lib/note-extras.ts', { './safe-url': { safeUrl: (value) => value && /^https?:\/\//i.test(value) ? value : undefined } })
@@ -38,7 +40,7 @@ const api = {
   note: {
     getList: async (...args) => { calls.push(args); return { data: [note], pagination: { total: 1 } } },
     getNoteByTopicId: async (id, page, size, options) => { calls.push(['topic', id, page, size, options]); return id === 't1' ? { data: [{ ...note, text: 'leak' }], pagination: { total: 9 } } : { data: [], pagination: { total: 0 } } },
-    getNoteByNid: async () => { if (detailError) throw detailError; return { data: note, prev: { nid: 6, title: '较新' }, next: { nid: 4 } } },
+    getNoteByNid: async (nid, options) => { calls.push(['note', nid, options]); if (detailError) throw detailError; return { data: note, prev: { nid: 6, title: '较新' }, next: { nid: 4 } } },
   },
   project: { getAll: async () => ({ data: projectList }) },
   snippet: { getByReferenceAndName: async () => themeSnippet },
@@ -78,7 +80,7 @@ const api = {
 const module = { exports: {} }
 vm.runInNewContext(code, {
   module, exports: module.exports,
-  require: (id) => id === 'server-only' ? {} : id === './excerpt' ? { excerpt: (value) => value ?? '', readingMinutes: () => 1 } : id === './social' ? { socialLinks: () => [], socialCards: () => [] } : id === './theme-config' ? themeConfig.exports : id === './note-extras' ? noteExtras : id === './i18n/config' ? i18nConfig : id === './i18n/data' ? { getI18nBundle: async (lang) => i18nBundles[lang] ?? emptyBundle } : id === './safe-url' ? { safeUrl: (value) => value && /^https?:\/\//i.test(value) ? value : undefined } : id === './api' ? { getApiClient: () => api, getLiveApiClient: async () => api } : id === 'react' ? { cache: memo } : id === 'next/cache' ? { cacheLife: (value) => lifetimes.push(value), cacheTag: (...value) => tags.push(...value) } : require(id),
+  require: (id) => id === 'server-only' ? {} : id === './excerpt' ? { excerpt: (value) => value ?? '', readingMinutes: () => 1 } : id === './social' ? { socialLinks: () => [], socialCards: () => [] } : id === './theme-config' ? themeConfig.exports : id === './note-extras' ? noteExtras : id === './i18n/config' ? i18nConfig : id === './i18n/data' ? { getI18nBundle: async (lang) => i18nBundles[lang] ?? emptyBundle } : id === './safe-url' ? { safeUrl: (value) => value && /^https?:\/\//i.test(value) ? value : undefined } : id === './api' ? { getApiClient: () => api, getLiveApiClient: async () => api } : id === 'react' ? { cache: memo } : id === 'next/headers' ? { cookies: async () => ({ get: (name) => cookieJar.has(name) ? { name, value: cookieJar.get(name) } : undefined }) } : id === 'next/cache' ? { cacheLife: (value) => lifetimes.push(value), cacheTag: (...value) => tags.push(...value) } : require(id),
 })
 const cache = module.exports
 const navigation = await cache.getNavigationData()
@@ -159,6 +161,15 @@ assert.equal(await cache.getNote(999), null)
 assert.equal(await cache.getPage('missing'), null)
 detailError = { status: 403 }
 assert.equal((await cache.getNote(7)).locked, true)
+assert.equal(JSON.stringify(calls.findLast((c) => c[0] === 'note')), JSON.stringify(['note', 7, {}]), '没解锁过的加密手记不带密码')
+// 解锁过：带上这篇 Cookie 里的密码向 Core 读全文；别的手记的 Cookie 不会被带上
+detailError = undefined
+cookieJar.set('note-unlock-8', 'pw-8')
+cookieJar.set('note-unlock-9', 'pw-9')
+assert.equal((await cache.getNote(8)).locked, false)
+assert.equal(JSON.stringify(calls.findLast((c) => c[0] === 'note')), JSON.stringify(['note', 8, { password: 'pw-8' }]))
+cookieJar.clear()
+detailError = { status: 403 }
 detailError = { status: 500 }
 await assert.rejects(cache.getPost('technology', 'broken'))
 detailError = undefined
