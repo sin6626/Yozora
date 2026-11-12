@@ -1,5 +1,6 @@
 import { createElement } from "react";
 import Markdown, { defaultUrlTransform } from "react-markdown";
+import remarkCjkFriendly from "remark-cjk-friendly";
 import remarkGfm from "remark-gfm";
 
 // RSS 全文：把文章/手记的 Markdown 正文转成 HTML 放进 content:encoded。
@@ -19,7 +20,7 @@ export const cdata = (value: string) => `<![CDATA[${value.replace(invalidXml, ""
 export async function markdownToFeedHtml(markdown: string, link: string) {
   const { renderToStaticMarkup } = await import("react-dom/server");
   return renderToStaticMarkup(createElement(Markdown, {
-    remarkPlugins: [remarkGfm],
+    remarkPlugins: [remarkGfm, remarkCjkFriendly],
     urlTransform: (url) => {
       const safe = defaultUrlTransform(url);
       try {

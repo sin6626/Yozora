@@ -1,4 +1,5 @@
 import Markdown, { type Components } from "react-markdown";
+import remarkCjkFriendly from "remark-cjk-friendly";
 import remarkGfm from "remark-gfm";
 import { murmurImageWidth } from "../lib/murmur";
 import { safeUrl } from "../lib/safe-url";
@@ -30,7 +31,7 @@ export default async function MurmurBody({ content }: { content: string }) {
   return (
     // 站长自己的话，不翻译，外文页面上标明是中文
     <div className="murmur-body" lang="zh-CN">
-      <Markdown remarkPlugins={[remarkGfm]} components={components} allowedElements={["p", "a", "img", "strong", "em", "del", "code", "pre", "ul", "ol", "li", "blockquote", "br"]} unwrapDisallowed>
+      <Markdown remarkPlugins={[remarkGfm, remarkCjkFriendly]} components={components} allowedElements={["p", "a", "img", "strong", "em", "del", "code", "pre", "ul", "ol", "li", "blockquote", "br"]} unwrapDisallowed>
         {content}
       </Markdown>
     </div>

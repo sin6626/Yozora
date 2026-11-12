@@ -1,6 +1,7 @@
 import { cacheLife } from "next/cache";
 import type { ReactNode } from "react";
 import Markdown, { type Components, type ExtraProps } from "react-markdown";
+import remarkCjkFriendly from "remark-cjk-friendly";
 import remarkGfm from "remark-gfm";
 import { LanguageIcon } from "@haklex/rich-renderer-codeblock/icons";
 import { bundledLanguages, codeToHtml } from "shiki";
@@ -78,7 +79,7 @@ export default function ArticleBody({ text, contentFormat, content, emptyText, v
 }) {
   const markdown = typeof text === "string" ? (
     <div className={variant === "note" ? "article-body article-body-note" : "article-body"}>
-      <Markdown remarkPlugins={[remarkGfm]} components={createComponents()} skipHtml>{text}</Markdown>
+      <Markdown remarkPlugins={[remarkGfm, remarkCjkFriendly]} components={createComponents()} skipHtml>{text}</Markdown>
     </div>
   ) : <p role="status">{emptyText}</p>;
   if (contentFormat !== "lexical" || !content) return markdown;

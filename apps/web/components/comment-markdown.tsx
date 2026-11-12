@@ -1,4 +1,5 @@
 import Markdown, { type Components } from "react-markdown";
+import remarkCjkFriendly from "remark-cjk-friendly";
 import remarkGfm from "remark-gfm";
 import type { ReactNode } from "react";
 
@@ -45,7 +46,7 @@ const componentsFor = (zoom: (alt: string) => string): Components => ({
 // zoom：放大按钮的读屏文字（有替代文字时带上它）
 export default function CommentMarkdown({ text, zoom }: { text: string; zoom: (alt: string) => string }) {
   return (
-    <Markdown remarkPlugins={[remarkGfm]} allowedElements={commentElements} unwrapDisallowed urlTransform={commentUrl} components={componentsFor(zoom)}>
+    <Markdown remarkPlugins={[remarkGfm, remarkCjkFriendly]} allowedElements={commentElements} unwrapDisallowed urlTransform={commentUrl} components={componentsFor(zoom)}>
       {text}
     </Markdown>
   );
