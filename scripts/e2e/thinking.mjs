@@ -5,10 +5,15 @@
 // 需要先运行 pnpm dev。用法：node scripts/e2e/thinking.mjs
 import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { openBrowser, sleep } from "../headless-browser.mjs";
 
 const base = process.env.WEB_URL ?? "http://127.0.0.1:2323";
 const core = process.env.CORE_URL ?? "http://127.0.0.1:2333";
+const { MongoClient, ObjectId } = createRequire(new URL("../../apps/core/package.json", import.meta.url))("mongodb");
+const mongo = new MongoClient(process.env.MONGO_URL ?? "mongodb://127.0.0.1:27018", { directConnection: true });
+const recentlies = mongo.db(process.env.MONGO_DB ?? "shrio-import-20261014").collection("recentlies");
+const tempIds = [];
 const shots = new URL("../../.local/previews/thinking/", import.meta.url);
 mkdirSync(shots, { recursive: true });
 const shot = async (browser, name) => {
@@ -118,9 +123,43 @@ try {
   assert.deepEqual(real, count ? { entries: count, empty: false } : { entries: 0, empty: true });
   await shot(browser, "e2e-page-1920");
 
+  // 真实数据走一遍：往本地库直接插两条临时思考（不经 Core 接口，所以没有实时推送、Webhook 和订阅邮件），跑完删掉。
+  // 一条是书，引用真实文章 Zod（看 Core 驼峰↔蛇形转换后卡片字段和站内链接都对）；一条是影视，引用一篇不存在的手记（访客看不到引用）。
+  const zod = (await (await fetch(`${core}/posts?size=50`)).json()).data.find((post) => post.title === "Zod");
+  assert.ok(zod, "本地库要有文章 Zod");
+  await mongo.connect();
+  const now = Date.now();
+  const temp = [
+    { content: "e2e：真实数据的书", type: "book", metadata: { url: "https://book.douban.com/subject/26369699/", title: "被讨厌的勇气", author: "岸见一郎", rating: 8.4 }, ref: new ObjectId(zod.id), refType: "posts" },
+    { content: "e2e：引用不存在的手记", type: "media", metadata: { url: "https://movie.douban.com/", title: "千与千寻", originalTitle: "千と千尋の神隠し" }, ref: new ObjectId(), refType: "notes" },
+  ];
+  for (const [index, doc] of temp.entries()) {
+    const { insertedId } = await recentlies.insertOne({ ...doc, created: new Date(now + 60_000 - index), up: 0, down: 0, allowComment: false, commentsIndex: 0 });
+    tempIds.push(insertedId);
+  }
+  await browser.goto(`${base}/thinking`, 5000);
+  assert.ok(await waitFor(browser, `document.body.innerText.includes("e2e：真实数据的书")`), "临时思考出现在思考页");
+  const live = await browser.evaluate(`(() => {
+    const entry = (text) => [...document.querySelectorAll(".thinking-entry")].find((li) => li.innerText.includes(text));
+    const book = entry("e2e：真实数据的书");
+    const media = entry("e2e：引用不存在的手记");
+    return {
+      book: [...book.querySelectorAll(".thinking-quote")].map((q) => ({ type: q.dataset.type, text: q.innerText.replace(/\\s+/g, " ").trim(), href: q.getAttribute("href") })),
+      media: [...media.querySelectorAll(".thinking-quote")].map((q) => ({ type: q.dataset.type, text: q.innerText.replace(/\\s+/g, " ").trim() })),
+    };
+  })()`);
+  assert.equal(live.book.length, 2);
+  assert.match(live.book[0].text, /《被讨厌的勇气》 岸见一郎 8\.4/);
+  assert.deepEqual(live.book[1], { type: "ref", text: "文章 Zod", href: `/posts/${encodeURIComponent(zod.category.slug)}/zod` }, "引用的文章链到真实地址");
+  assert.deepEqual(live.media.map((q) => q.type), ["media"], "引用不存在的内容时不显示引用");
+  assert.match(live.media[0].text, /千と千尋の神隠し/, "原名（originalTitle）经过 Core 的大小写转换后还在");
+  await shot(browser, "e2e-page-live");
+
   // 开发模式下凡是实时向 Core 取数据的页面都会报 Date.now()（AGENTS.md 2026-11-12，线上没有），这里不算
   assert.deepEqual(browser.errors.filter((e) => !/Transition was skipped|unstable value `Date.now\(\)`/.test(e)), [], "页面不能报错");
   console.log("thinking: 通过");
 } finally {
   await browser.close();
+  if (tempIds.length) await recentlies.deleteMany({ _id: { $in: tempIds } });
+  await mongo.close();
 }

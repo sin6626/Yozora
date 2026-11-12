@@ -12,6 +12,7 @@ import {
 } from 'lucide-vue-next'
 import { NButton, NPopconfirm, NSkeleton, NTooltip } from 'naive-ui'
 import { computed, defineComponent, onMounted, ref, Transition } from 'vue'
+import { RouterLink } from 'vue-router'
 import { toast } from 'vue-sonner'
 import type { RecentlyModel, RecentlyRefTypes } from '~/models/recently'
 import type { PropType } from 'vue'
@@ -19,6 +20,7 @@ import type { PropType } from 'vue'
 import { recentlyApi } from '~/api'
 import { HeaderActionButton } from '~/components/button/header-action-button'
 import { useShorthand } from '~/components/shorthand'
+import { quoteSummary } from '~/components/shorthand/thinking-form'
 import { RelativeTime } from '~/components/time/relative-time'
 import { useLayout } from '~/layouts/content'
 
@@ -32,8 +34,15 @@ const RefTypeIcons: Record<RecentlyRefTypes, typeof ArticleIcon> = {
 
 const RefTypeLabels: Record<RecentlyRefTypes, string> = {
   Post: '文章',
-  Note: '笔记',
+  Note: '手记',
   Page: '页面',
+}
+
+// 引用的站内内容在后台的编辑页
+const RefEditPaths: Record<RecentlyRefTypes, string> = {
+  Post: '/posts/edit',
+  Note: '/notes/edit',
+  Page: '/pages/edit',
 }
 
 const RecentlyItem = defineComponent({
@@ -70,20 +79,34 @@ const RecentlyItem = defineComponent({
           <p class={styles.text}>{props.item.content}</p>
         </div>
 
-        {props.item.ref && props.item.refType && (
+        {quoteSummary(props.item) && (
           <div class={styles.reference}>
             <a
-              href={props.item.ref.url}
+              href={props.item.metadata?.url}
               target="_blank"
               rel="noopener noreferrer"
               class={styles.referenceLink}
-              aria-label={`查看关联${refLabel}: ${props.item.ref.title}`}
+              aria-label={`打开引用的${quoteSummary(props.item)}`}
+            >
+              <span class={styles.referenceTitle}>
+                {quoteSummary(props.item)}
+              </span>
+              <ExternalLinkIcon class={styles.externalIcon} />
+            </a>
+          </div>
+        )}
+
+        {props.item.ref && props.item.refType && (
+          <div class={styles.reference}>
+            <RouterLink
+              to={`${RefEditPaths[props.item.refType]}?id=${props.item.ref.id}`}
+              class={styles.referenceLink}
+              aria-label={`编辑关联的${refLabel}：${props.item.ref.title}`}
             >
               {RefIcon && <RefIcon class={styles.referenceIcon} />}
               <span class={styles.referenceType}>{refLabel}</span>
               <span class={styles.referenceTitle}>{props.item.ref.title}</span>
-              <ExternalLinkIcon class={styles.externalIcon} />
-            </a>
+            </RouterLink>
           </div>
         )}
 
@@ -211,7 +234,9 @@ const EmptyState = defineComponent({
           <NoteIcon />
         </div>
         <h3 class={styles.emptyTitle}>还没有思考</h3>
-        <p class={styles.emptyDescription}>引用一个网站、一本书或一首歌，写下你的看法</p>
+        <p class={styles.emptyDescription}>
+          引用一个网站、一本书或一首歌，写下你的看法
+        </p>
         <NButton type="primary" onClick={props.onCreate}>
           <AddIcon class="mr-1.5" />
           写一条思考
@@ -266,7 +291,7 @@ export default defineComponent({
       <HeaderActionButton
         onClick={handleCreate}
         icon={<AddIcon />}
-        aria-label="新建思考"
+        name="新建思考"
       />,
     )
 

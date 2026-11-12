@@ -1,3 +1,4 @@
+import type { ThinkingPayload } from '~/components/shorthand/thinking-form'
 import type { RecentlyModel } from '~/models/recently'
 
 import { request } from '~/utils/request'
@@ -7,11 +8,12 @@ export const recentlyApi = {
   getAll: () => request.get<RecentlyModel[]>('/recently/all'),
 
   // 创建思考
-  create: (data: { content: string }) =>
+  create: (data: ThinkingPayload) =>
     request.post<RecentlyModel>('/recently', { data }),
 
   // 更新思考
-  update: (id: string, data: { content: string }) =>
+  // 整条替换：没带 ref 会清掉原来的引用
+  update: (id: string, data: ThinkingPayload) =>
     request.put<RecentlyModel>(`/recently/${id}`, { data }),
 
   // 删除最近访问项
