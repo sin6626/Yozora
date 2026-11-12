@@ -51,12 +51,19 @@ assert.equal(excerpt('> > 嵌套引用'), '嵌套引用')
 // 波浪号只在成对包住文字（删除线）时去掉，句尾撒娇的 ~~ 保留
 assert.equal(excerpt('都是为了爱~~'), '都是为了爱~~')
 assert.equal(excerpt('~~删掉~~的字'), '删掉的字')
+// 成对的 ++ 是 Haklex 的下划线写法（手记《塞翁失马》的摘要曾露出 ++…++），C++、a++ 这种保留
+assert.equal(excerpt('++塞翁失马，焉知非福++'), '塞翁失马，焉知非福')
+assert.equal(excerpt('学 C++ 时写 a++ 就好'), '学 C++ 时写 a++ 就好')
 assert.equal(excerpt(null), '')
 // 列表信息行的阅读时长：按纯文本约 400 字一分钟，至少 1 分钟（代码块、链接地址不算字数）
 assert.equal(readingMinutes('哈'), 1)
 assert.equal(readingMinutes(null), 1)
 assert.equal(readingMinutes('字'.repeat(2000)), 5)
 assert.equal(readingMinutes('字'.repeat(800) + '\n```js\n' + 'x'.repeat(4000) + '\n```'), 2)
+// 英文按词数算（约每分钟 230 词），不按字符：英文译文曾被估成中文的 3 倍长
+assert.equal(readingMinutes('word '.repeat(1150)), 5)
+assert.equal(readingMinutes('字'.repeat(800) + ' word'.repeat(230)), 3)
+assert.equal(readingMinutes('かな'.repeat(400)), 2)
 // 文章过期提示：最后修改（没改过看发布）距今超过 60 天才给出天数，正好 60 天、未来时间、无效时间都不提示
 const day = 86_400_000
 const now = Date.UTC(2026, 10, 7, 12)
