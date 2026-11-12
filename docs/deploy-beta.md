@@ -440,3 +440,29 @@ cp -p $B/compose-before.yml /root/mx-space/core/docker-compose.yml && cd /root/m
 ```
 
 磁盘（剩 5.7G）：上传用的 `/root/mx-space/core-image-eb1d17e/`、`yozora-web/yozora-web-eb1d17e.tgz`，以及前几节列的旧版本，留给站长自己清。回滚要用的 `releases/cb463a3`、镜像 `cb463a3`、容器 `yozora-web-pre-eb1d17e` 先别删。MinIO 稳定一段时间后可以在 1Panel 里卸载（数据目录先另存）。
+
+## 2026-11-12 已做：加密手记泄露修复、新的手记锁、手记加粗上线（6f72016）
+
+站长点了“现在上线”后执行，Core、后台、beta 前台三样都换（eb1d17e 之后的提交：Core 不再把加密和定时公开的手记给访客〔6a155aa〕、图床设置保存时去掉首尾空白〔02e2011〕、手记加粗改用黑体〔3a22aea，后台和前台〕、加密手记的锁和解锁后整页显示〔2777d0d〕）。
+
+- 备份：服务器 `/root/backups/yozora-6f72016/`（`mongo.archive.gz` 39 个集合 2.1MB，`gzip -t` 与 `mongorestore --dryRun` 通过；`compose-before.yml`；`web.env.before`；`yozora-web-inspect.json`；`core-main.sha256`；`backup.sh`、`switch-core.sh`、`switch-web.sh` 与各自日志）。三个脚本都是 scp 上去再 `nohup` 跑。
+- 构建：本机临时 worktree `/tmp/yozora-build`（6f72016）。前台用单 worker 预渲染 86 页，41 秒。
+- **Core**：`/root/mx-space/core-image-6f72016/`（以 `core-image-eb1d17e/out` 为 `--copy-dest`），仓库里的 `core-image.Dockerfile`（ffmpeg 那层命中缓存），镜像 `yozora/mx-server:6f72016`（911MB），入口 `main.mjs` SHA-256 `0bdfdf27…` 与本机一致；停机 17 秒，healthy，日志无错误；切换后清了 Redis 的 `mx-api-cache:*`（5 个键）。
+- **后台**：数据目录 `admin/` 换成 6f72016 构建（`index.html` SHA-256 `ed2fd741…`，以旧 `admin/` 为 `--copy-dest` 上传），上一版改名 `admin-before-6f72016`；`/proxy/qaqdmin` 200，入口脚本与本机构建一致。
+- **前台**：`releases/6f72016`（以 `releases/eb1d17e` 为 `--copy-dest`，只传了约 5MB；`server.js`、`BUILD_ID` 哈希一致），启动参数与上一版相同，停机 5 秒。服务器本机首页、/en、文章列表、手记列表、手记 11、碎碎念、一言、RSS、robots、分享图都是 200，`data-dpl-id="6f72016"`，日志无错误；容器约 308MB / 400MB，服务器可用约 620MB。
+- 验证（公网）：用后台令牌只读取出加密手记 nid 12 的 id、正文片段和密码，在本机比对访客接口的返回（只打印“含/不含”）：`/notes/<id>`、`/notes/nid/12` 403，话题列表、`/notes/list/<id>`、`/activity/recent`、`/aggregate` 都不含标题、正文、id；AI 摘要 `/ai/summaries/article/<id>` 400。`/notes/latest` 被标“含密码”是误报：密码太短，碰巧出现在 nid 11 的正文里，响应里没有任何 password 字段。旧 Shiro 首页与手记、API、beta 首页与 `/notes/12` 都是 200；无头浏览器打开 beta `/notes/12`（1920 与 390 宽）显示新锁、不露标题、无脚本报错，截图 `.local/previews/note-locked/online-*.jpg`。线上图床的几项设置读回来都没有首尾空白（只看长度）。
+
+回滚（注意：Core 回滚会把加密手记泄露带回来，回滚前先在后台把加密手记设成未发布）：
+
+```bash
+B=/root/backups/yozora-6f72016; W=/root/mx-space/yozora-web
+# 前台：先核对 current 仍是 6f72016
+docker stop yozora-web && docker rename yozora-web yozora-web-6f72016-stopped
+ln -sfn $W/releases/eb1d17e $W/current && docker rename yozora-web-pre-6f72016 yozora-web && docker start yozora-web
+# 后台
+D=/root/mx-space/core/data/mx-space; mv $D/admin $D/admin-yozora-6f72016 && mv $D/admin-before-6f72016 $D/admin
+# Core（约 20 秒）
+cp -p $B/compose-before.yml /root/mx-space/core/docker-compose.yml && cd /root/mx-space/core && docker compose up -d --no-deps app
+```
+
+磁盘（剩 5.1G）：`/root/mx-space/core-image-6f72016/` 与前几节列的旧版本留给站长自己清。回滚要用的 `releases/eb1d17e`、镜像 `eb1d17e`、容器 `yozora-web-pre-6f72016`、目录 `admin-before-6f72016` 先别删。
