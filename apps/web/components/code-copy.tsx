@@ -4,8 +4,9 @@ import { Check, Copy } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useT } from "./locale-provider";
 
-// Markdown 代码块的复制按钮，外观和交互照富文本（Haklex）的：16px 图标，复制后 2 秒显示对勾。样式在 post-detail.css
-export default function CodeCopy({ code }: { code: string }) {
+// 复制按钮：16px 图标，复制后 2 秒显示对勾。Markdown 代码块用它（外观照富文本 Haklex 的，样式在 post-detail.css），
+// 友链申请区本站信息的每一行也用它（传读屏名字和类名）
+export default function CodeCopy({ code, label, className = "code-copy" }: { code: string; label?: string; className?: string }) {
   const t = useT().codeBlock;
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -20,7 +21,7 @@ export default function CodeCopy({ code }: { code: string }) {
   }
 
   return (
-    <button type="button" className="code-copy" aria-label={copied ? t.copied : t.copy} onClick={copy}>
+    <button type="button" className={className} aria-label={copied ? t.copied : (label ?? t.copy)} onClick={copy}>
       {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
     </button>
   );

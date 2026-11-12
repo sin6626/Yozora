@@ -499,3 +499,179 @@ a.entry-tag:focus-visible {
 .friend-outdated summary {
   cursor: pointer;
 }
+
+/* 友链申请（friend-list.tsx 的 LinkApply + link-apply-form.tsx）：交换名片。
+   左边是本站的名片和可以复制的几行信息，右边是对方的名片（边填边预览）和表单。宽屏两列，两张名片之间连一条星座线；手机上下排。 */
+.link-apply {
+  margin-top: var(--space-12);
+}
+
+.link-apply-lead {
+  margin: calc(var(--space-2) * -1) 0 var(--space-6);
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+}
+
+.link-apply-exchange {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-8) var(--space-12);
+  align-items: start;
+}
+
+.link-apply-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.link-apply-label {
+  margin-bottom: calc(var(--space-2) * -1);
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+}
+
+/* 两张名片之间的星座线：两头各一颗月光色的小星，中间一条淡线 */
+.link-apply-mine .friend-card::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: calc(100% + var(--space-2));
+  width: calc(var(--space-12) - var(--space-4));
+  height: 0.5rem;
+  translate: 0 -50%;
+  background:
+    radial-gradient(circle closest-side, var(--moonlight), transparent) left center / 0.5rem 0.5rem no-repeat,
+    radial-gradient(circle closest-side, var(--moonlight), transparent) right center / 0.5rem 0.5rem no-repeat,
+    linear-gradient(var(--constellation-line), var(--constellation-line)) center / 100% 1px no-repeat;
+  pointer-events: none;
+}
+
+/* 本站信息：名称、地址、头像、介绍，一行一个，值太长就省略（悬停看全），右边是复制 */
+.link-apply-info {
+  display: grid;
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.link-apply-info > div {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 2.25rem;
+}
+
+.link-apply-info > div + div {
+  border-top: 1px dashed var(--constellation-line);
+}
+
+.link-apply-info dt {
+  color: var(--muted-foreground);
+}
+
+.link-apply-info dd {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+}
+
+.link-apply-info dd > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.link-apply-copy {
+  flex: none;
+  width: 1.75rem;
+  margin-left: auto;
+  padding: 0;
+}
+
+/* 对方的名片预览：没填的地方是淡淡的占位字 */
+.link-apply-preview[data-empty-name] h3,
+.link-apply-preview[data-empty-intro] p {
+  color: var(--muted-foreground);
+  opacity: 0.6;
+}
+
+.link-apply-preview[data-empty-name] .friend-avatar.is-letter {
+  color: var(--moonlight);
+}
+
+.link-apply-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4) var(--space-3);
+}
+
+.link-apply-field {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.link-apply-field.is-wide {
+  grid-column: 1 / -1;
+}
+
+.link-apply-field label {
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+}
+
+.link-apply-optional {
+  margin-left: var(--space-2);
+  opacity: 0.7;
+}
+
+.link-apply-hint {
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+}
+
+.link-apply-hint.is-warn {
+  color: var(--danger);
+}
+
+.link-apply-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.link-apply-status {
+  flex: 1 1 12rem;
+  font-size: var(--text-sm);
+}
+
+.link-apply-status.is-done {
+  color: var(--success);
+}
+
+.link-apply-status.is-error {
+  color: var(--danger);
+}
+
+.link-apply-closed {
+  align-self: center;
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 639px) {
+  .link-apply-exchange {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .link-apply-mine .friend-card::after {
+    content: none;
+  }
+}
