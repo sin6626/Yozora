@@ -125,8 +125,10 @@ async function narrow(width, height) {
   assert.deepEqual(bottom.covered, [], `${label}：工具挡住了页脚链接`);
 
   await click(".article-actions .is-top");
-  await sleep(1500);
-  assert.ok(await browser.evaluate("scrollY") < 5, `${label}：点回到顶部后应当回到页面顶端`);
+  // 平滑滚动的时长随页面长度和机器忙闲变化（长文章在 dev 编译时偶尔超过 1.5 秒），等到回顶或最多 5 秒
+  let top = Infinity;
+  for (let waited = 0; waited < 5000 && top >= 5; waited += 100) { await sleep(100); top = await browser.evaluate("scrollY"); }
+  assert.ok(top < 5, `${label}：点回到顶部后应当回到页面顶端（停在 ${top}）`);
 }
 
 try {

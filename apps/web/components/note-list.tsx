@@ -88,29 +88,31 @@ export default async function NoteList({ searchParams }: { searchParams: Promise
         </div>
       </header>
       <div className="post-list-content">
-        {/* 筛选栏：宽屏（≥ 90rem）悬浮在列表右边，窄屏在列表上方（details-sidebar.css 的 .list-aside） */}
+        {/* 筛选栏：宽屏（≥ 90rem）贴在列表右边、滚动时停在页头下面，滚到列表末尾就停住、不压页脚；窄屏在列表上方（details-sidebar.css 的 .list-aside） */}
         <aside className="list-filters list-aside" aria-label={list.filters}>
-          <SidebarSearch action="/notes" label={t.search} defaultValue={filter.kind === "search" ? filter.keyword : ""} />
-          {filter.kind === "search" && <ActiveFilter label={list.searchQuery(filter.keyword)} clearHref="/notes" />}
-          {topics && topics.length > 0 && (
-            <section className="list-aside-section" aria-label={t.topics}>
-              <h2>{t.topics}</h2>
-              <nav className="post-categories" aria-label={t.topics}>
-                <Link href="/notes" aria-current={filter.kind === "all" ? "page" : undefined}>{t.all}</Link>
-                {topics.map((item) => (
-                  <Link key={item.id} href={`/notes?topic=${encodeURIComponent(item.slug)}`} aria-current={filter.kind === "topic" && item.slug === filter.slug ? "page" : undefined}>
-                    {/* 话题在后台设的图片放在名字前面（和导航“手记”面板一样）；没设图片的留一个同样大的空位，名字对齐 */}
-                    <span className="list-topic">
-                      {/* eslint-disable-next-line @next/next/no-img-element -- 后台任意地址的小图标，不走 Next 图片优化 */}
-                      {item.icon ? <img className="list-topic-icon" src={item.icon} alt="" width={18} height={18} /> : <span className="list-topic-icon" aria-hidden="true" />}
-                      {item.name}
-                    </span>
-                    <span className="tag-count">{item.count}</span>
-                  </Link>
-                ))}
-              </nav>
-            </section>
-          )}
+          <div className="list-aside-inner">
+            <SidebarSearch action="/notes" label={t.search} defaultValue={filter.kind === "search" ? filter.keyword : ""} />
+            {filter.kind === "search" && <ActiveFilter label={list.searchQuery(filter.keyword)} clearHref="/notes" />}
+            {topics && topics.length > 0 && (
+              <section className="list-aside-section" aria-label={t.topics}>
+                <h2>{t.topics}</h2>
+                <nav className="post-categories" aria-label={t.topics}>
+                  <Link href="/notes" aria-current={filter.kind === "all" ? "page" : undefined}>{t.all}</Link>
+                  {topics.map((item) => (
+                    <Link key={item.id} href={`/notes?topic=${encodeURIComponent(item.slug)}`} aria-current={filter.kind === "topic" && item.slug === filter.slug ? "page" : undefined}>
+                      {/* 话题在后台设的图片放在名字前面（和导航“手记”面板一样）；没设图片的留一个同样大的空位，名字对齐 */}
+                      <span className="list-topic">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- 后台任意地址的小图标，不走 Next 图片优化 */}
+                        {item.icon ? <img className="list-topic-icon" src={item.icon} alt="" width={18} height={18} /> : <span className="list-topic-icon" aria-hidden="true" />}
+                        {item.name}
+                      </span>
+                      <span className="tag-count">{item.count}</span>
+                    </Link>
+                  ))}
+                </nav>
+              </section>
+            )}
+          </div>
         </aside>
         {notes.length ? (
           <ul className="note-list">

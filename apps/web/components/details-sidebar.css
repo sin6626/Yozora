@@ -49,6 +49,11 @@
   display: none;
 }
 
+/* 内层只在宽屏是一个盒子（sticky 的那一层）；窄屏不占结构，搜索、分类、抽屉照旧排在 .list-filters 的网格里 */
+.list-aside-inner {
+  display: contents;
+}
+
 .list-filters .post-categories {
   margin-bottom: 0;
 }
@@ -90,17 +95,33 @@
 }
 
 @media (min-width: 90rem) {
+  /* 外层贴在正文列右边、和整页正文（标题到翻页）一样高；里面那层 sticky：滚动时停在页头下面，滚到列表末尾就跟着停住，
+     不会像原来的 position: fixed 那样在页面最底下压到页脚的分隔线（audit-1112b.mjs 的 aside）。
+     外层相对 main 定位（只在有筛选栏的列表页；排除 Next 用 Activity 藏起来的上一页），顶端和页面标题齐平 */
+  .site-content:has(> .post-list-content:not([style*="display: none"]) > .list-aside) {
+    position: relative;
+  }
+
+  /* 顶端在正文顶下面 2rem（和原来 fixed 时一样高、每页一致）；底端伸进页脚上面的留白，停在分隔线上方 1rem，短页面也多一点地方 */
   .list-aside {
-    position: fixed;
-    top: calc(var(--header-height) + var(--space-8));
-    left: calc(50% + var(--article-max-width) / 2 + var(--space-8));
+    position: absolute;
+    top: var(--space-8);
+    bottom: calc(var(--space-4) - var(--space-16));
+    left: calc(100% + var(--space-8));
     z-index: 1;
+    display: block;
     width: 15rem;
-    max-height: calc(100dvh - var(--header-height) - var(--space-16));
     margin: 0;
+  }
+
+  .list-aside-inner {
+    position: sticky;
+    top: calc(var(--header-height) + var(--space-8));
+    display: grid;
+    gap: var(--space-6);
+    max-height: min(calc(100dvh - var(--header-height) - var(--space-16)), 100%);
     padding: 2px;
     overflow-y: auto;
-    gap: var(--space-6);
     overscroll-behavior: contain;
     scrollbar-width: thin;
     /* 滚动条的位置一直留着：内容长到放不下、滚动条出现时右栏宽度不变，标签不会整片重新换行（2026-11-01 用户录屏） */

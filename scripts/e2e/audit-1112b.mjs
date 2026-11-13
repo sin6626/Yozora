@@ -13,6 +13,7 @@
 //   spacing     英文小标签（Tags、Pinned）用了给中文设的字距，字母被拉散
 //   pagination  翻页那一行四个列表不一致：文章、手记第一页把“上一页”显示成纯文字、“下一页”是按钮，碎碎念、思考用空占位，
 //               页码因此不在正中；碎碎念写“更早的”、思考写“更早”
+//   aside       宽屏右侧的筛选栏（.list-aside）和文章目录（.site-details）是 position: fixed，页面滚到最底下时压在页脚的分隔线上
 // 需要先运行 pnpm dev。用法：node scripts/e2e/audit-1112b.mjs [检查名…]（不写就全跑）
 import assert from "node:assert/strict";
 import { openBrowser, sleep } from "../headless-browser.mjs";
@@ -218,6 +219,26 @@ const checks = {
     // 碎碎念和思考的“更早”写法一样
     const older = (path) => navs[path].links.at(-1)?.text;
     assert.equal(older("/thinking"), older("/murmurs"), `碎碎念、思考的“更早”要同一个写法（${older("/murmurs")} / ${older("/thinking")}）`);
+  },
+
+  async aside() {
+    // 篇数最少的分类页（内容短，一打开就看得到页脚），和很长的富文本文章
+    const categories = (await (await fetch(`${core}/categories`)).json()).data.filter((c) => c.count > 0).sort((a, b) => a.count - b.count);
+    for (const [path, selector] of [[`/categories/${categories[0].slug}`, ".list-aside"], [rich, ".site-details"]]) {
+      await open(path, { theme: "light" });
+      assert.ok(await waitFor(`!!document.querySelector(${JSON.stringify(selector)}) && !!document.querySelector('.site-footer')`), `${path} 有右侧栏和页脚`);
+      await b.evaluate(`window.scrollTo(0, document.documentElement.scrollHeight)`);
+      await sleep(800);
+      const rects = await b.evaluate(`(() => {
+        // 右侧栏看得见的区域：会滚动的那一层（现在是里面 sticky 的内层，原来是 fixed 的外层自己）。
+        // 不能按子元素算：收起的标签被裁掉了，但它们的位置仍在下面
+        const aside = document.querySelector(${JSON.stringify(selector)})
+        const bottom = (aside.querySelector('.list-aside-inner, .site-details-inner') ?? aside).getBoundingClientRect().bottom
+        const column = document.querySelector('.page-heading').getBoundingClientRect()
+        return { bottom, left: aside.getBoundingClientRect().left, footer: document.querySelector('.site-footer').getBoundingClientRect().top, columnRight: column.right }
+      })()`);
+      assert.ok(rects.bottom <= rects.footer, `${path}：滚到底时右侧栏（下沿 ${rects.bottom.toFixed(0)}）不能压到页脚（${rects.footer.toFixed(0)}）`);
+    }
   },
 };
 

@@ -116,23 +116,25 @@ export default async function PostList({ searchParams, params }: PostListProps) 
         </div>
       </header>
       <div className="post-list-content">
-        {/* 筛选栏：宽屏（≥ 90rem）悬浮在列表右边，窄屏在列表上方（details-sidebar.css 的 .list-aside） */}
+        {/* 筛选栏：宽屏（≥ 90rem）贴在列表右边、滚动时停在页头下面，滚到列表末尾就停住、不压页脚；窄屏在列表上方（details-sidebar.css 的 .list-aside） */}
         <aside className="list-filters list-aside" aria-label={list.filters}>
-          <SidebarSearch action="/posts" label={t.search} defaultValue={filter.kind === "search" ? filter.keyword : ""} />
-          {filter.kind === "tag" && <ActiveFilter label={t.tag(filter.name.trim())} clearHref="/posts" />}
-          {filter.kind === "search" && <ActiveFilter label={list.searchQuery(filter.keyword)} clearHref="/posts" />}
-          <section className="list-aside-section" aria-label={t.categories}>
-            <h2>{t.categories}</h2>
-            <nav className="post-categories" aria-label={t.categories}>
-              <Link href="/posts" aria-current={filter.kind === "all" ? "page" : undefined}>{t.all}</Link>
-              {categories.map((item) => (
-                <Link key={item.id} href={`/categories/${encodeURIComponent(item.slug)}`} aria-current={item.id === category?.id ? "page" : undefined}>
-                  {item.name}<span className="tag-count">{item.count}</span>
-                </Link>
-              ))}
-            </nav>
-          </section>
-          <Suspense fallback={null}><PostTagDrawer activeTag={filter.kind === "tag" ? filter.name : undefined} /></Suspense>
+          <div className="list-aside-inner">
+            <SidebarSearch action="/posts" label={t.search} defaultValue={filter.kind === "search" ? filter.keyword : ""} />
+            {filter.kind === "tag" && <ActiveFilter label={t.tag(filter.name.trim())} clearHref="/posts" />}
+            {filter.kind === "search" && <ActiveFilter label={list.searchQuery(filter.keyword)} clearHref="/posts" />}
+            <section className="list-aside-section" aria-label={t.categories}>
+              <h2>{t.categories}</h2>
+              <nav className="post-categories" aria-label={t.categories}>
+                <Link href="/posts" aria-current={filter.kind === "all" ? "page" : undefined}>{t.all}</Link>
+                {categories.map((item) => (
+                  <Link key={item.id} href={`/categories/${encodeURIComponent(item.slug)}`} aria-current={item.id === category?.id ? "page" : undefined}>
+                    {item.name}<span className="tag-count">{item.count}</span>
+                  </Link>
+                ))}
+              </nav>
+            </section>
+            <Suspense fallback={null}><PostTagDrawer activeTag={filter.kind === "tag" ? filter.name : undefined} /></Suspense>
+          </div>
         </aside>
         {posts.length ? (
           <ul className="post-list">

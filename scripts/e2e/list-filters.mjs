@@ -89,7 +89,8 @@ try {
   })()`);
   await browser.goto(`${base}/posts`);
   const wide = await layout();
-  assert.ok(wide.position === "fixed" && wide.asideLeft >= wide.listRight, `宽屏时筛选栏应悬浮在列表右边：${JSON.stringify(wide)}`);
+  // 2026-11-13 起外层贴着正文绝对定位、里面 sticky（原来 fixed 会在页面最底下压到页脚），位置不变
+  assert.ok(wide.position === "absolute" && wide.asideLeft >= wide.listRight, `宽屏时筛选栏应在列表右边：${JSON.stringify(wide)}`);
   assert.ok(wide.search && wide.categories > 1 && wide.tags > 0 && !wide.drawer, `宽屏筛选栏里应有搜索、分类和直接摊开的标签：${JSON.stringify(wide)}`);
 
   // 标签多了不能把右栏拉得很长：只摊开最常用的 12 个，其余收起，最下面一个“展开全部 / 收起”按钮（曾经是 <details>，展开后“收起”夹在两组标签中间）；
@@ -113,7 +114,8 @@ try {
     const section = [...document.querySelectorAll(".site-content .list-aside-tags")].find((el) => el.checkVisibility());
     const first = [...section.querySelectorAll(".tag-chip")].slice(0, 12);
     // 右栏内容宽度也记进去：滚动条出现时如果占宽度，标签就会重新换行（这台机器上行尾有余量时位置不一定变，宽度一定变）
-    const aside = section.closest(".list-aside");
+    // 滚动的是里面 sticky 的那一层
+    const aside = section.closest(".list-aside-inner");
     const where = () => aside.clientWidth + " | " + first.map((el) => { const r = el.getBoundingClientRect(); return Math.round(r.left) + "," + Math.round(r.top); }).join(" ");
     const before = where();
     section.querySelector(".tag-fold-toggle").click();
@@ -128,7 +130,7 @@ try {
   assert.equal(steady.moved, 0, `展开时右栏宽度和上面 12 个标签都不能变（有 ${steady.moved} 帧变了）`);
   // 用户的 Chrome 是会占宽度的经典滚动条：右栏展开到放不下、滚动条一出现，宽度少 11px，上面的标签整片重新换行。
   // 这台机器的无头浏览器只有不占宽度的悬浮滚动条，复现不出来，所以直接检查右栏一直给滚动条留着位置
-  assert.equal(await browser.evaluate(`getComputedStyle([...document.querySelectorAll(".list-aside")].find((el) => el.checkVisibility())).scrollbarGutter`), "stable", "右栏要一直留着滚动条的位置");
+  assert.equal(await browser.evaluate(`getComputedStyle([...document.querySelectorAll(".list-aside-inner")].find((el) => el.checkVisibility())).scrollbarGutter`), "stable", "右栏要一直留着滚动条的位置");
   const expanded = await tagState();
   assert.ok(expanded.visible.length === expanded.total && expanded.expanded === "true" && expanded.toggleBelowAll, `展开后显示全部标签，“收起”仍在最下面：${JSON.stringify({ ...expanded, visible: expanded.visible.length })}`);
   await browser.evaluate(`[...document.querySelectorAll(".site-content .tag-fold-toggle")].find((el) => el.checkVisibility()).click()`);
@@ -140,7 +142,7 @@ try {
   assert.ok(withRare.visible.includes(rare), `正在筛的不常用标签“${rare}”应直接显示：${JSON.stringify(withRare.visible)}`);
   await browser.goto(`${base}/notes`);
   const notesWide = await layout();
-  assert.ok(notesWide.position === "fixed" && notesWide.search && notesWide.categories > 1, `手记页宽屏也有右侧筛选栏（搜索、话题）：${JSON.stringify(notesWide)}`);
+  assert.ok(notesWide.position === "absolute" && notesWide.search && notesWide.categories > 1, `手记页宽屏也有右侧筛选栏（搜索、话题）：${JSON.stringify(notesWide)}`);
   // 话题在后台设了图片（近况有）就显示在话题名前面，和导航“手记”面板一样（曾经漏了）
   const topicIcons = await browser.evaluate(`[...document.querySelectorAll(".site-content .list-aside .post-categories a")].filter((a) => a.checkVisibility()).map((a) => ({ name: a.firstChild.textContent, icon: a.querySelector("img")?.getAttribute("src") ?? null }))`);
   assert.ok(topicIcons.some((topic) => topic.icon), `话题应显示后台设置的图片：${JSON.stringify(topicIcons)}`);
@@ -149,7 +151,7 @@ try {
   await browser.setViewport(1280, 900);
   await browser.goto(`${base}/posts`);
   const narrow = await layout();
-  assert.ok(narrow.position !== "fixed" && narrow.asideBottom <= narrow.listTop && narrow.drawer && narrow.tags === 0, `窄屏时筛选在列表上方、标签收在抽屉里：${JSON.stringify(narrow)}`);
+  assert.ok(narrow.position === "static" && narrow.asideBottom <= narrow.listTop && narrow.drawer && narrow.tags === 0, `窄屏时筛选在列表上方、标签收在抽屉里：${JSON.stringify(narrow)}`);
 
   // 抽屉展开、收起有过渡；展开后最多把列表往下推一小段（标签多了在抽屉里滚动）。
   // Chrome 的 getAnimations() 不列出 ::details-content 上的过渡，所以逐帧量展开内容的高度

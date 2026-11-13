@@ -497,18 +497,38 @@ a:focus-visible,
   font-weight: 600;
 }
 
-/* 正文 56rem 加两侧各 2rem 间距和 15rem 目录 = 90rem，屏幕更宽时目录才悬浮在右侧 */
+/* 内层只在宽屏是一个盒子（sticky 的那一层）；窄屏不占结构 */
+.site-details-inner {
+  display: contents;
+}
+
+/* 正文 56rem 加两侧各 2rem 间距和 15rem 目录 = 90rem，屏幕更宽时目录才放在右侧留白里。
+   外层贴在正文列右边、和整篇文章一样高；里面那层 sticky：滚动时停在页头下面，读到文章末尾就跟着停住，
+   不会像原来的 position: fixed 那样在页面最底下压到页脚（检查：audit-1112b.mjs 的 aside）。 */
 @media (min-width: 90rem) {
+  .post-detail {
+    position: relative;
+  }
+
+  /* 顶端在正文顶下面 2rem（和原来 fixed 时一样高）；底端伸进页脚上面的留白，停在分隔线上方 1rem（页脚 margin-top 是 4rem） */
   .site-details {
-    position: fixed;
-    top: calc(var(--header-height) + var(--space-8));
-    left: calc(50% + var(--article-max-width) / 2 + var(--space-8));
-    width: 15rem;
-    max-height: calc(100dvh - var(--header-height) - var(--space-16));
-    overflow-y: auto;
-    padding: 0;
-    /* 浮在页脚上面：目录很长时滚到页面最底下会和页脚重叠，以前页脚盖住悬浮栏，下半截点不了也不能悬停（回归测试 e2e article-actions.mjs） */
+    position: absolute;
+    top: var(--space-8);
+    bottom: calc(var(--space-4) - var(--space-16));
+    left: calc(100% + var(--space-8));
     z-index: 1;
+    width: 15rem;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .site-details-inner {
+    position: sticky;
+    top: calc(var(--header-height) + var(--space-8));
+    display: block;
+    max-height: min(calc(100dvh - var(--header-height) - var(--space-16)), 100%);
+    overflow-y: auto;
   }
 }
 

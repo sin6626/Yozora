@@ -188,13 +188,13 @@
 
 /* 悬浮时目录太长：目录自己滚动，操作栏固定在底部，始终看得见 */
 @media (min-width: 90rem) {
-  .site-details:has(.article-actions) {
+  .site-details-inner:has(.article-actions) {
     display: flex;
     flex-direction: column;
     overflow: hidden;
   }
 
-  .site-details:has(.article-actions) .article-toc {
+  .site-details-inner:has(.article-actions) .article-toc {
     min-height: 0;
     overflow-y: auto;
     scrollbar-width: thin;
