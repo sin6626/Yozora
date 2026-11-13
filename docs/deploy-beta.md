@@ -495,3 +495,25 @@ cp -p $B/compose-before.yml /root/mx-space/core/docker-compose.yml && cd /root/m
 Core 回滚会把思考引用的问题带回来（存不进引用；列表、最新一条、实时推送把被引用文档的大部分字段给访客）。回滚前如果已经写了带引用的思考，先在后台把引用清掉。
 
 磁盘（剩 4.6G）：`/root/mx-space/core-image-d279e08/`、`core-image-6f72016/` 与前几节列的旧版本留给站长自己清。回滚要用的 `releases/6f72016`、镜像 `6f72016`、容器 `yozora-web-pre-d279e08`、目录 `admin-before-d279e08` 先别删。
+
+## 2026-11-13 已做：友链交换名片、中文加粗、第二轮巡查修复、右侧栏不压页脚、开发期报错修复上线（b8073ae）
+
+站长说“现在部署”后执行。d279e08 之后的提交只改前台（外加前台用的 Haklex 补丁与锁文件），**这次只换 beta 前台，Core、后台不动**：友链申请区“交换名片”（e957117）、中文标点旁的加粗（7ad8f3d，新依赖 remark-cjk-friendly）、富文本表格样式等第二轮巡查 14 处（5d10851、6d20e2d，补丁给 @haklex/rich-static-renderer 加了 ./style.css 导出）、宽屏右侧栏改为跟着正文 sticky（de46385）、现取 Core 先等 connection() 与缓存时长不留过期窗口（0f9e940、63f45ec、b8073ae，都是为了开发期报错，线上表现见下）。
+
+- 备份：服务器 `/root/backups/yozora-b8073ae/`（`mongo.archive.gz` 39 个集合 2.1MB，`gzip -t` 与 `mongorestore --dryRun` 通过；`web.env.before`；`yozora-web-inspect.json`；`backup.sh` 去掉了镜像构建；`switch-web.sh` 由上一版只换版本号生成，diff 只有版本号）。都用 `nohup` 跑。
+- 构建：本机临时 worktree `/tmp/yozora-build`（b8073ae）。第一次 `build-web.mjs` 报“SSH 隧道没有打开”（跨境 SSH 被断开），重试一次成功；单 worker 预渲染 86 页 32.6 秒，包 76MB。确认包里有表格样式（`_1v9yxw31{`）和友链 `link-apply-*` 样式。
+- **前台**：`releases/b8073ae`（以 `releases/d279e08` 为 `--copy-dest`；`server.js` SHA-256 `29e56c6c…` 与本机一致），启动参数与上一版相同，4 秒就绪，容器在 `bridge` 与 `core_mx-space` 两个网络上。服务器本机 16 个页面 200、`data-dpl-id="b8073ae"`，日志无 error/unstable/uncached；容器约 263MB / 400MB。
+- 界面文字：`push-i18n-source --prod` 新增 10、改过 6、删掉 2，线上 Core 已生成英文（如 friends.myCard “My card”）。
+- 验证（公网 beta，无头浏览器只读，不提交表单）：友链页 1920 与 390 宽都有本站名片、四行可复制信息和申请表单；文章列表右侧栏外层 absolute、内层 sticky、顶端 100，滚到底下沿 629、页脚 645 不重叠；翻页在；无脚本报错。截图 `.local/previews/b8073ae-online/`。旧 Shiro 首页、公网 API 200。
+- 缓存时长的线上影响（b8073ae）：前台所有 `use cache` 现在 revalidate = expire，过期后第一个请求要等重取（Core 走内网，很快）；页脚星带的兜底从 24 小时缩到 6 小时。
+
+回滚（只有前台）：
+
+```bash
+W=/root/mx-space/yozora-web
+# 先核对 current 仍是 b8073ae
+docker stop yozora-web && docker rename yozora-web yozora-web-b8073ae-stopped
+ln -sfn $W/releases/d279e08 $W/current && docker rename yozora-web-pre-b8073ae yozora-web && docker start yozora-web
+```
+
+磁盘（剩 4.4G）：前几节列的旧版本留给站长自己清。回滚要用的 `releases/d279e08`、容器 `yozora-web-pre-b8073ae` 先别删。
