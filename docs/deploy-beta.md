@@ -517,3 +517,23 @@ ln -sfn $W/releases/d279e08 $W/current && docker rename yozora-web-pre-b8073ae y
 ```
 
 磁盘（剩 4.4G）：前几节列的旧版本留给站长自己清。回滚要用的 `releases/d279e08`、容器 `yozora-web-pre-b8073ae` 先别删。
+
+## 2026-11-13 已做：作品卡片、细节修复上线（acb3229）
+
+站长说“现在部署”后执行，**只换 beta 前台**（b8073ae 之后只改了前台样式、作品卡片和作品数据函数，依赖、Core、后台、界面文字都没变，没有推原文）：作品卡片显示年月、GitHub 仓库名 + 图标、整卡可点，没有标题的页面右侧栏不再有孤零零的分隔线（4c4dda8）；输入框占位提示比标签淡、富文本链接小图标留空隙（acb3229）。
+
+- 备份：服务器 `/root/backups/yozora-acb3229/`（`mongo.archive.gz` 39 个集合 2.1MB，试还原通过；`web.env.before`；`yozora-web-inspect.json`）。`backup.sh`、`switch-web.sh` 由上一版只换版本号生成（diff 只有版本号），都用 `nohup` 跑。
+- 构建：本机临时 worktree `/tmp/yozora-build`（acb3229），一次成功，单 worker 预渲染 86 页 22 秒，包 76MB；包里有 `.project-card-link-label` 与 `.rich-link-favicon` 的新样式。
+- **前台**：`releases/acb3229`（以 `releases/b8073ae` 为 `--copy-dest`；`server.js` SHA-256 `0b04dd98…` 与本机一致），4 秒就绪，容器在 `bridge` 与 `core_mx-space` 上。服务器本机 7 个页面 200、`data-dpl-id="acb3229"`，日志无报错，容器约 233MB / 400MB。
+- 验证（公网 beta，无头浏览器只读）：作品两张卡都是 `2026.06`、`sin6626/…` + GitHub 图标、整卡链接；《关于我》没有目录、操作栏上边框 0px；友链表单占位提示是标签色的 65% 透明；无脚本报错。截图 `.local/previews/b8073ae-online/projects-acb3229.jpg`。
+
+回滚（只有前台）：
+
+```bash
+W=/root/mx-space/yozora-web
+# 先核对 current 仍是 acb3229
+docker stop yozora-web && docker rename yozora-web yozora-web-acb3229-stopped
+ln -sfn $W/releases/b8073ae $W/current && docker rename yozora-web-pre-acb3229 yozora-web && docker start yozora-web
+```
+
+回滚要用的 `releases/b8073ae`、容器 `yozora-web-pre-acb3229` 先别删；更早的版本和停着的旧容器留给站长自己清。
