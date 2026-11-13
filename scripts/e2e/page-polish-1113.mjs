@@ -2,6 +2,8 @@
 //   divider   没有标题的页面（关于我等）右侧栏不显示目录，可操作栏上面那条“和目录隔开”的线还在，孤零零飘着；有目录的文章照旧有线
 //   projects  作品卡片：GitHub 地址显示成仓库名 + GitHub 图标（原来只写“项目地址”），右上角是做的年月（对得上 Core 的创建时间），
 //             整张卡可点、去主链接（仓库，没有就预览、文档）
+//   favicon   富文本链接前的网站小图标紧贴着文字（Haklex 只留 2.4px）
+//   placeholder 输入框的占位提示和标签同一个颜色，浅色主题下“不公开，只用来通知审核结果”看着像已经填好的内容
 // 需要先运行 pnpm dev。用法：node scripts/e2e/page-polish-1113.mjs [检查名…]
 import assert from "node:assert/strict";
 import { openBrowser, sleep } from "../headless-browser.mjs";
@@ -64,6 +66,42 @@ const checks = {
       const github = repo?.match(/^https:\/\/github\.com\/([^/]+\/[^/?#]+)/);
       if (github) assert.ok(card.repo.some((link) => link.text === github[1] && link.github && link.href === repo), `“${project.name}”的仓库链接显示 ${github[1]} 和 GitHub 图标：${JSON.stringify(card.repo)}`);
       assert.ok(card.links.every((link) => link.lines === 1), `“${project.name}”的链接都在一行里（仓库名太长就省略）：${JSON.stringify(card.links)}`);
+    }
+  },
+
+  async favicon() {
+    await b.setViewport(1920, 991);
+    await b.goto(`${web}/notes/10`, 4000);
+    assert.ok(await waitFor(`!!document.querySelector('.article-rich .rich-link-favicon')`, 40000), "手记 10 的富文本里有带网站小图标的链接");
+    const gaps = await b.evaluate(`[...document.querySelectorAll('.article-rich .rich-link-favicon')].map((icon) => {
+      const link = icon.closest('a'); const r = icon.getBoundingClientRect(); const range = document.createRange(); range.selectNodeContents(link)
+      const text = [...range.getClientRects()].find((x) => x.left > r.right - 1 && x.width > 0)
+      return text ? text.left - r.right : null
+    }).filter((gap) => gap !== null)`);
+    assert.ok(gaps.length > 0);
+    for (const gap of gaps) assert.ok(gap >= 4, `小图标和文字之间要留出空隙（现在 ${gap.toFixed(1)}px）`);
+  },
+
+  async placeholder() {
+    const contrast = `(() => {
+      // rgb()/rgba() 是 0–255；color-mix 算出来的是 color(srgb r g b / a)，分量 0–1
+      const parse = (c) => { const m = c.match(/[\\d.]+/g).map(Number); const scale = c.startsWith('color(') ? 255 : 1; return { rgb: m.slice(0, 3).map((v) => v * scale), a: m[3] ?? 1 } }
+      const over = (top, bottom) => top.rgb.map((v, i) => v * top.a + bottom.rgb[i] * (1 - top.a))
+      const lum = (rgb) => { const [r, g, b] = rgb.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4 }); return 0.2126 * r + 0.7152 * g + 0.0722 * b }
+      const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05) }
+      const input = document.querySelector('.link-apply-form input[name=email]'); const label = document.querySelector('.link-apply-form label[for="' + input.id + '"]')
+      const bg = parse(getComputedStyle(input).backgroundColor); const field = bg.a < 1 ? over(bg, parse(getComputedStyle(document.body).backgroundColor)) : bg.rgb
+      return { placeholder: ratio(over(parse(getComputedStyle(input, '::placeholder').color), { rgb: field }), field), label: ratio(over(parse(getComputedStyle(label).color), { rgb: field }), field) }
+    })()`;
+    for (const theme of ["light", "dark"]) {
+      await b.setViewport(1920, 991);
+      await b.goto(`${web}/debug`, 1500);
+      await b.evaluate(`localStorage.setItem('theme', '${theme}')`);
+      await b.goto(`${web}/friends`, 3000);
+      assert.ok(await waitFor(`!!document.querySelector('.link-apply-form input[name=email]')`), "友链页有申请表单");
+      const c = await b.evaluate(contrast);
+      assert.ok(c.placeholder <= c.label * 0.85, `${theme}：占位提示要比标签淡（占位 ${c.placeholder.toFixed(2)}，标签 ${c.label.toFixed(2)}）`);
+      assert.ok(c.placeholder >= 2.2, `${theme}：占位提示仍要看得清（${c.placeholder.toFixed(2)}）`);
     }
   },
 };

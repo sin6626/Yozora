@@ -548,3 +548,8 @@
 :root[data-theme="dark"] .article-rich :is(td, th)[style*="background-color"] {
   color: var(--background);
 }
+
+/* 富文本链接前的网站小图标：Haklex 只留 2.4px，图标贴着链接文字、左边也贴着前面的字；右边留 0.3em、左边 0.15em */
+.article-rich .rich-link-favicon {
+  margin-inline: 0.15em 0.3em;
+}

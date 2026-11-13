@@ -340,8 +340,9 @@ body {
   transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
 }
 
+/* 占位提示比标签淡一档：和标签同色时，浅色主题下“不公开，只用来通知审核结果”看着像已经填好的内容（检查 page-polish-1113.mjs 的 placeholder） */
 .field::placeholder {
-  color: var(--muted-foreground);
+  color: color-mix(in srgb, var(--muted-foreground) 65%, transparent);
 }
 
 .field:focus-visible {
