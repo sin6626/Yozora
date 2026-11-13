@@ -101,7 +101,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(detail.related)), [{ id: 'rel-b', tit
 assert.equal(detail.copyright, false, '后台“版权注明”开关原样带到详情')
 // 4 次：导航、分类、列表里读 AI 摘要（getArticleAi）、详情换算关联阅读用的时间线。文章列表和详情每次现取，不进 Next 缓存（2026-11-09）
 assert.equal(lifetimes.length, 4)
-assert.ok(lifetimes.every(p => p.revalidate > 0 && p.expire > p.revalidate))
+assert.ok(lifetimes.every(p => p.revalidate >= 300 && p.expire === p.revalidate), "缓存不留过期窗口（见 scripts/verify-cache-life.mjs）")
 const notes = await cache.getNotes(3)
 assert.equal(calls[1][0], 3)
 assert.equal(notes.data[0].topic, '近况')
@@ -150,7 +150,7 @@ assert.equal(topicNotes.data[0].nid, 5)
 assert.equal((await cache.getMatchedNotes({ keyword: '近况' }, 2)).data.length, 0, '超出页数时这一页为空（列表页据此 404）')
 // 只剩 Next 拼出来的和站点级的：AI 摘要、全部条目索引、话题、标签、话题下的手记等；列表、详情、搜索、筛选结果本身每次现取
 assert.equal(lifetimes.length, 18)
-assert.ok(lifetimes.every(p => p.revalidate > 0 && p.expire > p.revalidate))
+assert.ok(lifetimes.every(p => p.revalidate >= 300 && p.expire === p.revalidate), "缓存不留过期窗口（见 scripts/verify-cache-life.mjs）")
 post.contentFormat = 'lexical'
 assert.equal((await cache.getPost('technology', 'lexical')).content, 'unused JSON', 'Lexical 文章缓存 content 给富文本渲染器')
 delete post.contentFormat

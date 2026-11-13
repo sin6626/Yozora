@@ -2,6 +2,7 @@ import "server-only";
 // 缓存分两层（2026-11-09，docs/architecture-cache-plan.md）：带 "use cache" 的是站点级数据和 Next 自己拼出来的东西（时间线、索引、
 // 导航面板、AI 摘要等），跟 Webhook 失效；没有 "use cache" 的每次请求现取，用 getLiveApiClient 转发读者 IP，只靠 Core 的 Redis 接口缓存。
 // 现取的函数不能被带 "use cache" 的函数调用（那里读不到请求头）。
+// 缓存时长一律 revalidate = expire（不留“过期但还能用”的窗口），否则开发期 Next 校验外壳时会当场重取、报 uncached data：见 scripts/verify-cache-life.mjs。
 import { cacheLife, cacheTag } from "next/cache";
 import { cookies } from "next/headers";
 import { cache } from "react";
@@ -45,7 +46,7 @@ async function orNotFound<T>(request: Promise<T>) {
 // lang：外文页面传 en / ja，分类名和页面标题换成 Core 里的译文（没有译文的保持中文），见 getLocalizedNames。
 export async function getNavigationData(lang: ContentLang = "zh") {
   "use cache";
-  cacheLife({ stale: 300, revalidate: 3600, expire: 86400 });
+  cacheLife({ stale: 300, revalidate: 3600, expire: 3600 });
   cacheTag("blog:navigation", "blog:categories", "blog:pages", "blog:ai");
   // 聚合接口的页面只有标题，副标题（导航“首页”面板里每个页面下面那句）从页面列表补上
   const [data, names, pages] = await Promise.all([
@@ -75,7 +76,7 @@ export async function getSiteSettings() {
   // 改个人资料、设置经 OWNER_UPDATE、OPTION_UPDATE 立即失效（后台 Webhook 要勾上这两个事件）；没勾时靠这里的过期时间。
   // stale 至少 300 秒：Next 只把 stale ≥ 5 分钟的缓存放进预渲染外壳，太短的话根布局的 generateMetadata 会被当成动态数据，
   // 整页静态的路由（/debug）会报 “encountered URL data in generateMetadata()”。回归测试 scripts/e2e/dev-issues.mjs。
-  cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
+  cacheLife({ stale: 300, revalidate: 300, expire: 300 });
   cacheTag("blog:navigation");
   const { url, commentOptions, seo, user } = await getApiClient().aggregate.getAggregateData();
   const site = new URL(url.webUrl);
@@ -93,7 +94,7 @@ export async function getSiteSettings() {
 // 后台“设置 → 账户 → OAuth”里启用的第三方登录（前端接了 GitHub 和 Google）。改动经 OPTION_UPDATE 失效，没勾事件时靠短缓存。
 export async function getLoginProviders() {
   "use cache";
-  cacheLife({ stale: 60, revalidate: 300, expire: 3600 });
+  cacheLife({ stale: 60, revalidate: 300, expire: 300 });
   cacheTag("blog:navigation");
   const { data } = await getApiClient().proxy.auth.providers.get<{ data: string[] }>();
   // 前端目前支持 GitHub 和 Google 两种读者登录
@@ -103,7 +104,7 @@ export async function getLoginProviders() {
 // 邮件订阅：后台开启订阅且配置了邮件服务时才可用；只放行文章、手记两类（Core 的 allow_types）。
 export async function getSubscribeOptions() {
   "use cache";
-  cacheLife({ stale: 60, revalidate: 300, expire: 3600 });
+  cacheLife({ stale: 60, revalidate: 300, expire: 300 });
   cacheTag("blog:navigation");
   const status = await getApiClient().subscribe.check();
   const types = (status.allowTypes ?? []).filter((type): type is "post_c" | "note_c" => type === "post_c" || type === "note_c");
@@ -114,7 +115,7 @@ export async function getSubscribeOptions() {
 // lang：社交平台名称用哪种语言（首屏、导航面板的悬停提示），默认中文；只用头像、名字的地方不用传
 export async function getOwner(lang: ContentLang = "zh") {
   "use cache";
-  cacheLife({ stale: 60, revalidate: 300, expire: 3600 });
+  cacheLife({ stale: 60, revalidate: 300, expire: 300 });
   cacheTag("blog:navigation", "blog:pages");
   const { user, pageMeta } = await getApiClient().aggregate.getAggregateData();
   const pages = Array.isArray(pageMeta) ? [...pageMeta].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
@@ -136,7 +137,7 @@ export async function getSiteUrl() {
 
 export async function getCategories(lang: ContentLang = "zh") {
   "use cache";
-  cacheLife({ stale: 300, revalidate: 3600, expire: 86400 });
+  cacheLife({ stale: 300, revalidate: 3600, expire: 3600 });
   cacheTag("blog:categories");
   const { data } = await getApiClient(lang).category.getAllCategories();
   return data.map(({ id, name, slug, type, count, created }) => ({
@@ -208,7 +209,7 @@ function paginate<T>(items: T[], page: number) {
 // ponytail: 每次缓存过期都把全部文章取一遍（每页 50 篇），文章上千篇时改成让 Core 直接按标签分页、搜索返回正文片段。
 async function getPostIndex(lang: ContentLang) {
   "use cache";
-  cacheLife({ stale: 60, revalidate: 60, expire: 300 });
+  cacheLife({ stale: 60, revalidate: 300, expire: 300 });
   cacheTag("blog:posts", "blog:categories", "blog:ai");
   const client = getApiClient(lang);
   const first = await client.post.getList(1, 50, { select: postSelect });
@@ -300,7 +301,7 @@ export async function getNotes(page: number, lang: ContentLang = "zh") {
 // 列表接口本身就过滤了草稿、加密和定时手记；文章按 created 排，不让置顶的旧文章占位。描述同列表摘要：AI 摘要 → 手写摘要 → 正文开头。
 export async function getFeedItems() {
   "use cache";
-  cacheLife({ stale: 60, revalidate: 300, expire: 3600 });
+  cacheLife({ stale: 60, revalidate: 300, expire: 300 });
   cacheTag("blog:posts", "blog:notes", "blog:categories", "blog:ai");
   const [posts, notes] = await Promise.all([
     getApiClient().post.getList(1, 10, { select: ["title", "summary", "text", "created", "categoryId", "slug"], sortBy: "created", sortOrder: -1 }),
@@ -322,7 +323,7 @@ export async function getFeedItems() {
 // 同 getPostIndex：公开列表里的全部手记（加密手记不在里面，话题和搜索结果里也就不会出现）。
 async function getNoteIndex(lang: ContentLang) {
   "use cache";
-  cacheLife({ stale: 60, revalidate: 60, expire: 300 });
+  cacheLife({ stale: 60, revalidate: 300, expire: 300 });
   cacheTag("blog:notes", "blog:ai");
   const client = getApiClient(lang);
   const first = await client.note.getList(1, 50);
@@ -419,7 +420,7 @@ export async function getSiteContent(lang: ContentLang = "zh") {
 // 短了 metadata 会被当成动态，整页静态的 /en/debug 就报 “encountered URL data in generateMetadata()”（e2e dev-issues.mjs）。
 export async function getThemeConfig(): Promise<unknown> {
   "use cache";
-  cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
+  cacheLife({ stale: 300, revalidate: 300, expire: 300 });
   cacheTag("blog:theme");
   const data = await orNotFound(getApiClient().snippet.getByReferenceAndName<unknown>("theme", "yozora"));
   return data === null ? null : JSON.parse(JSON.stringify(data));
@@ -428,7 +429,7 @@ export async function getThemeConfig(): Promise<unknown> {
 // 时间线：全部已发布文章与公开手记，只取标题、日期和拼链接的字段，按发布时间倒序合并。
 export async function getTimeline(lang: ContentLang = "zh") {
   "use cache";
-  cacheLife({ stale: 60, revalidate: 300, expire: 3600 });
+  cacheLife({ stale: 60, revalidate: 300, expire: 300 });
   cacheTag("blog:posts", "blog:notes", "blog:categories", "blog:ai");
   const [{ data }, names] = await Promise.all([getApiClient().aggregate.getTimeline({ sort: "desc" }), localizedNames(lang)]);
   const title = (id: string, original: string) => names?.titles[id] ?? original;
@@ -614,7 +615,7 @@ const isTranslationLanguage = (value: unknown): value is TranslationLanguage => 
 
 export async function getArticleAi(id: string, lang: ContentLang = "zh") {
   "use cache";
-  cacheLife({ stale: 300, revalidate: 3600, expire: 86400 });
+  cacheLife({ stale: 300, revalidate: 3600, expire: 3600 });
   cacheTag("blog:ai", `blog:ai:${id}`);
   const ai = getApiClient().ai;
   const [summary, languages] = await Promise.all([
@@ -646,7 +647,7 @@ export type LocalizedNames = {
 
 export async function getLocalizedNames(lang: TranslationLanguage): Promise<LocalizedNames> {
   "use cache";
-  cacheLife({ stale: 60, revalidate: 300, expire: 3600 });
+  cacheLife({ stale: 60, revalidate: 300, expire: 300 });
   cacheTag("blog:posts", "blog:notes", "blog:categories", "blog:pages", "blog:ai");
   const client = getApiClient(lang);
   const all = async <T>(load: (page: number) => Promise<{ data: T[]; pagination: { totalPage: number } }>) => {
@@ -686,7 +687,7 @@ const localizedNames = (lang: ContentLang) => (lang === "zh" ? Promise.resolve(n
 
 export async function getArticleTranslation(id: string, lang: TranslationLanguage) {
   "use cache";
-  cacheLife({ stale: 300, revalidate: 3600, expire: 86400 });
+  cacheLife({ stale: 300, revalidate: 3600, expire: 3600 });
   cacheTag("blog:ai", `blog:ai:${id}`);
   const translation = await orNotFound(getApiClient().ai.getTranslation({ articleId: id, lang }));
   if (!translation) return null;
@@ -746,7 +747,7 @@ export async function searchNotes(keyword: string, lang: ContentLang = "zh") {
 // 标签来自文章，文章变动（blog:posts）时一起失效。
 export async function getTags() {
   "use cache";
-  cacheLife({ stale: 300, revalidate: 3600, expire: 86400 });
+  cacheLife({ stale: 300, revalidate: 3600, expire: 3600 });
   cacheTag("blog:posts");
   const { data } = await getApiClient().category.getAllTags();
   return data
@@ -757,7 +758,7 @@ export async function getTags() {
 // 后台“话题”：名字、图标、简介、详细描述。话题本身没有篇数，用每个话题第一页的分页总数统计；话题很少，请求数可以接受。
 export async function getTopics(lang: ContentLang = "zh") {
   "use cache";
-  cacheLife({ stale: 300, revalidate: 3600, expire: 86400 });
+  cacheLife({ stale: 300, revalidate: 3600, expire: 3600 });
   cacheTag("blog:notes");
   // 带 ?lang= 时 Core 已把话题名和简介换成译文（后台“翻译条目”）；详细描述 Core 不翻译，外文页面显示中文原文
   const client = getApiClient(lang);
@@ -780,7 +781,7 @@ export async function getTopics(lang: ContentLang = "zh") {
 // ponytail: 一次取 50 条不分页，话题下手记超过 50 篇时再加分页。
 export async function getNotesByTopic(topicId: string, lang: ContentLang = "zh") {
   "use cache";
-  cacheLife({ stale: 60, revalidate: 300, expire: 3600 });
+  cacheLife({ stale: 60, revalidate: 300, expire: 300 });
   cacheTag("blog:notes", "blog:ai");
   const [{ data, pagination }, names] = await Promise.all([getApiClient().note.getNoteByTopicId(topicId, 1, 50, { sortBy: "created", sortOrder: -1 }), localizedNames(lang)]);
   return {
@@ -797,7 +798,7 @@ export type NavigationEntry = { id: string; title: string; created: string; href
 
 export async function getNavigationPanels(lang: ContentLang = "zh") {
   "use cache";
-  cacheLife({ stale: 60, revalidate: 300, expire: 3600 });
+  cacheLife({ stale: 60, revalidate: 300, expire: 300 });
   cacheTag("blog:posts", "blog:notes", "blog:categories", "blog:navigation", "blog:ai");
   const [site, categories, timeline, topics] = await Promise.all([
     getApiClient().proxy.aggregate.site_info.get<{ postCount?: number; noteCount?: number; totalWordCount?: number; firstPublishDate?: string }>(),

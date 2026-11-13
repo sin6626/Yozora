@@ -54,7 +54,7 @@ async function gitHub(account: string, from: number, to: number) {
 
 export async function getActivitySky() {
   "use cache";
-  cacheLife({ stale: 3600, revalidate: 21600, expire: 86400 });
+  cacheLife({ stale: 3600, revalidate: 21600, expire: 21600 });
   cacheTag("activity-sky", "blog:theme");
   const { accounts } = await getSiteContent();
   const leetcodeAccount = accounts.leetcode;
