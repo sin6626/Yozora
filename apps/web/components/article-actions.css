@@ -1,11 +1,9 @@
-/* 文章目录下的操作（article-actions.tsx）：一排圆形小按钮，和目录之间隔一条淡线。平时是淡色，悬停变亮。 */
+/* 文章目录下的操作（article-actions.tsx）：一排圆形小按钮，和目录之间隔一条淡线（只有上面真的有目录时才画，见下面宽屏那段；
+   没有标题的页面不显示目录，原来这条线还在、孤零零飘着）。平时是淡色，悬停变亮。 */
 .article-actions {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-top: var(--space-6);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border);
 }
 
 .article-action {
@@ -202,5 +200,11 @@
 
   .article-actions {
     flex: none;
+  }
+
+  .article-toc + .article-actions {
+    margin-top: var(--space-6);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border);
   }
 }

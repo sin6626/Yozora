@@ -94,6 +94,7 @@ export const answer = 42;
 // 作品进场示例：八张卡，看斜对角波浪（本地真实作品只有两张）
 const sampleProjects = ["星图", "夜航岛", "小火箭", "碎碎念", "金句卡片", "月相", "星井", "跃迁门"].map((name, index) => ({
   id: `sample-${index}`,
+  created: `2026-${String(10 - (index % 9)).padStart(2, "0")}-01T08:00:00.000Z`,
   name,
   description: "示例作品，用来看进场动画。",
   nameLang: undefined,

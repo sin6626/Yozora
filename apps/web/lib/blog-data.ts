@@ -390,8 +390,9 @@ export async function getProjects(lang: ContentLang = "zh") {
   const [{ data }, { projects: translated }] = await Promise.all([(await getLiveApiClient()).project.getAll(), getI18nBundle(lang)]);
   // 名字和介绍可以只译一项：各自没有译文时显示中文、单独标 zh-CN
   const original = (text: string | undefined) => (lang !== "zh" && !text ? ("zh-CN" as const) : undefined);
-  return data.map(({ id, name, description, avatar, projectUrl, previewUrl, docUrl }) => ({
+  return data.map(({ id, created, name, description, avatar, projectUrl, previewUrl, docUrl }) => ({
     id,
+    created,
     name: translated[id]?.name ?? name,
     nameLang: original(translated[id]?.name),
     description: translated[id]?.description ?? description,
