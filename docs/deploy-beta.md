@@ -557,3 +557,23 @@ ln -sfn $W/releases/acb3229 $W/current && docker rename yozora-web-pre-8fc7205 y
 ```
 
 回滚要用的 `releases/acb3229`、容器 `yozora-web-pre-8fc7205` 先别删；更早的版本和停着的旧容器留给站长自己清（服务器磁盘已用 87%，剩约 3.7G，每个前台版本约 190MB）。
+
+## 2026-11-14 已做：蜂群开场期间禁止滚动（8062f4f）
+
+站长截图发现蜂群开场播放时还能滚动（光标只画第一屏，滚走后画面乱掉），修好后说“现在部署”，**只换 beta 前台**（8fc7205 之后只改了根布局里的一条开场样式，依赖、Core、后台、界面文字都没变，没有推原文）：`html[data-swarm-intro="playing"]{overflow:hidden}`，播完、Esc 跳过、没播成都会解锁（8062f4f）。
+
+- 备份：服务器 `/root/backups/yozora-8062f4f/`（`mongo.archive.gz` 39 个集合 2.1MB，试还原通过；`web.env.before`；`yozora-web-inspect.json`）。`backup.sh`、`switch-web.sh` 由上一版只换版本号生成，都用 `nohup` 跑，看日志末尾的 `BACKUP_OK` / `WEB_READY` 判断结果。
+- 构建：本机临时 worktree `/tmp/yozora-build`（8062f4f），一次成功，单 worker 预渲染 86 页 21 秒，包 77MB；包里 `zh.html` 带 `data-dpl-id="8062f4f"` 和这条样式，首屏下面那块仍在骨架里。
+- **前台**：`releases/8062f4f`（以 `releases/8fc7205` 为 `--copy-dest`；`server.js` SHA-256 `b8e0fb70…` 与本机一致），3 秒就绪。服务器本机 14 个地址 200、`data-dpl-id="8062f4f"`、robots 仍整站禁止，日志无报错，容器约 156MB / 400MB。
+- 验证（公网 beta，无头浏览器只读）：打开 `/?swarm`，光标开始画后滚轮、PageDown、End 都滚不动（`scrollY` 仍是 0、状态仍是 playing），Esc 跳过后状态 done、能滚到 1547；无脚本报错。
+
+回滚（只有前台）：
+
+```bash
+W=/root/mx-space/yozora-web
+# 先核对 current 仍是 8062f4f
+docker stop yozora-web && docker rename yozora-web yozora-web-8062f4f-stopped
+ln -sfn $W/releases/8fc7205 $W/current && docker rename yozora-web-pre-8062f4f yozora-web && docker start yozora-web
+```
+
+回滚要用的 `releases/8fc7205`、容器 `yozora-web-pre-8062f4f` 先别删；更早的版本和停着的旧容器留给站长自己清（服务器磁盘已用 88%，剩约 3.5G）。
