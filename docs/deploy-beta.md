@@ -577,3 +577,23 @@ ln -sfn $W/releases/8fc7205 $W/current && docker rename yozora-web-pre-8062f4f y
 ```
 
 回滚要用的 `releases/8fc7205`、容器 `yozora-web-pre-8062f4f` 先别删；更早的版本和停着的旧容器留给站长自己清（服务器磁盘已用 88%，剩约 3.5G）。
+
+## 2026-11-14 已做：一言卡片入场后字不再跳（eca3309）
+
+站长录屏发现一言星空悬停浮出的卡片在入场动画快结束时后几行往下挪 1px、收起时跳回，修好后说“现在部署”，**只换 beta 前台**（8062f4f 之后只改了 `say-sky.tsx` 与 `says.css`，依赖、Core、后台、界面文字都没变，没有推原文）：卡片挂载时量一次位置，挪到整像素上（eca3309）。
+
+- 备份：服务器 `/root/backups/yozora-eca3309/`（`mongo.archive.gz` 39 个集合 2.1MB，试还原通过；`web.env.before`；`yozora-web-inspect.json`）。`backup.sh`、`switch-web.sh` 由上一版只换版本号生成。这次 SSH 连续断开，生成脚本那步 4 次都没连上（上传在第 4 次成功），重试后才生成；以后看到 `Connection closed` 要确认那一步真的做完再往下走。
+- 构建：本机临时 worktree `/tmp/yozora-build`（eca3309），一次成功，单 worker 预渲染 86 页 34 秒，包 77MB；包里脚本和样式都有 `--snap-x`。
+- **前台**：`releases/eca3309`（以 `releases/8062f4f` 为 `--copy-dest`；`server.js` SHA-256 `aa99f425…` 与本机一致），5 秒就绪。服务器本机 14 个地址 200、`data-dpl-id="eca3309"`、robots 仍整站禁止，日志无报错，容器约 149MB / 400MB。
+- 验证（公网 beta，无头浏览器只读）：`WEB_URL=https://beta.sin6626.me node scripts/e2e/say-card-steady.mjs` 通过，5 张卡片入场后段、离场开头字都不动。
+
+回滚（只有前台）：
+
+```bash
+W=/root/mx-space/yozora-web
+# 先核对 current 仍是 eca3309
+docker stop yozora-web && docker rename yozora-web yozora-web-eca3309-stopped
+ln -sfn $W/releases/8062f4f $W/current && docker rename yozora-web-pre-eca3309 yozora-web && docker start yozora-web
+```
+
+回滚要用的 `releases/8062f4f`、容器 `yozora-web-pre-eca3309` 先别删；更早的版本和停着的旧容器留给站长自己清（服务器磁盘已用 89%，剩约 3.3G）。
