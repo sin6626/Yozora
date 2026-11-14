@@ -1,7 +1,9 @@
 // 浏览器回归测试：全站读取中的小火箭（components/page-loading.tsx）。
 // 各页面正文包在 Suspense 里，服务端先发出带读取占位的外壳，正文随后流式送到、由 React 的内联脚本换上。
 // 测试关掉页面脚本，让读取占位一直留在屏幕上，检查：铺满页头以下一屏、80px 火箭在动、
-// Innei 那句话带「」、读屏念“正在读取…”、一出现就开始淡入（不等待）、“重试”十秒后才出现；首页是 compact，排在第一屏下面。
+// Innei 那句话带「」、读屏念“正在读取…”、一出现就开始淡入（不等待）、“重试”十秒后才出现。
+// 首页第一屏下面那块不放小火箭（2026-11-14 站长：首屏已经在播入场，下面再闪一个读取动画不连贯）：只留一块空白占位，
+// 读屏仍念“正在读取…”，内容到了每条用自己的视口内上浮动画出现。
 // 打开脚本时读完就换成正文；/debug 检查深浅主题火苗颜色、减少动态效果时火箭不动。
 // 需要先运行 pnpm dev（默认 http://127.0.0.1:2323，可用 WEB_URL 覆盖）。用法：pnpm e2e
 import assert from "node:assert/strict";
@@ -22,7 +24,6 @@ try {
     const retry = el.querySelector(".page-loading-retry");
     const running = (sel) => [...el.querySelectorAll(sel)].every((n) => n.getAnimations().some((a) => a.playState === "running"));
     const result = {
-      compact: el.hasAttribute("data-compact"),
       role: el.getAttribute("role"),
       sr: el.querySelector(".sr-only")?.textContent,
       quote: el.querySelector(".page-loading-quote")?.textContent,
@@ -46,7 +47,6 @@ try {
     await browser.goto(base + path);
     const loading = await browser.evaluate(measure);
     assert.ok(loading, `${path} 没有显示读取中的小火箭`);
-    assert.equal(loading.compact, false);
     assert.equal(loading.role, "status");
     assert.equal(loading.sr, path.startsWith("/en") ? "Loading…" : "正在读取…", `${path} 读屏文字不对：${loading.sr}`);
     assert.equal(loading.quote, "「当第一颗卫星飞向大气层外，我们便以为自己终有一日会征服宇宙。」");
@@ -62,13 +62,26 @@ try {
     assert.equal(loading.retryHref, "", "“重试”整页重新打开当前地址");
   }
 
-  // 首页：compact，排在第一屏下面，不撑满一屏
+  // 首页：第一屏下面那块没有小火箭，只有一块安静的空白占位（读屏念“正在读取…”），排在第一屏下面、不撑满一屏
   await browser.goto(base + "/");
-  const home = await browser.evaluate(measure);
-  const heroBottom = await browser.evaluate(`document.querySelector(".home-hero").getBoundingClientRect().bottom + scrollY`);
-  assert.ok(home?.compact, "首页应当用 compact 版本");
-  assert.ok(home.top >= heroBottom - 1, "首页读取区应当在第一屏下面");
-  assert.ok(home.height < home.screen * 0.7, `首页读取区不该撑满一屏：${home.height}`);
+  const home = await browser.evaluate(`(() => {
+    const room = document.querySelector(".home-room");
+    const pending = room.querySelector("[role=status]");
+    const box = pending?.getBoundingClientRect();
+    return {
+      rockets: room.querySelectorAll(".page-loading, .page-loading-rocket").length,
+      // 看得见的字：去掉只给读屏的 .sr-only（innerText 会把被裁成 1px 的 sr-only 文字也算进去）
+      text: pending && (() => { const copy = pending.cloneNode(true); copy.querySelectorAll(".sr-only").forEach((el) => el.remove()); return copy.textContent.trim(); })(),
+      sr: pending?.querySelector(".sr-only")?.textContent,
+      top: box && box.top + scrollY, height: box?.height,
+      heroBottom: document.querySelector(".home-hero").getBoundingClientRect().bottom + scrollY,
+    };
+  })()`);
+  assert.equal(home.rockets, 0, "首页第一屏下面不该有小火箭");
+  assert.equal(home.sr, "正在读取…", "首页占位读屏仍念“正在读取…”");
+  assert.equal(home.text, "", "首页占位看不见任何字");
+  assert.ok(home.top >= home.heroBottom - 1, "首页占位在第一屏下面");
+  assert.ok(home.height >= 300 && home.height < 991 * 0.7, `首页占位留出空白、但不撑满一屏：${home.height}`);
 
   // 手机：那句话只在逗号处换行，不把“终有一日”拆开
   await browser.setViewport(390, 844);

@@ -3,11 +3,11 @@ import "./page-loading.css";
 
 // 全站读取中：一枚往上飞的简笔小火箭 + Innei 首页底部那句话。
 // 读屏只念“正在读取…”；十秒还没读完时露出“重试”（空 href = 整页重新打开当前地址）。
-// compact 用在首页第一屏下面，不撑满一屏。
-export default async function PageLoading({ compact }: { compact?: boolean }) {
+// 首页第一屏下面不用它（那里只留空白，见 app/[locale]/page.tsx）。
+export default async function PageLoading() {
   const { common, list } = await getT();
   return (
-    <div className="page-loading" data-compact={compact || undefined} role="status">
+    <div className="page-loading" role="status">
       <svg className="page-loading-rocket" viewBox="0 0 24 34" aria-hidden="true">
         <g className="craft">
           <path className="body" d="M12 2.6c2.5 1.9 3.9 4.9 3.9 8.4v5.4H8.1V11c0-3.5 1.4-6.5 3.9-8.4Z" />

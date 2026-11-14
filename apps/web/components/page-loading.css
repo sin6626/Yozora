@@ -15,11 +15,6 @@
   --flame: var(--primary);
 }
 
-.page-loading[data-compact] {
-  min-height: 24rem;
-  padding-bottom: 0;
-}
-
 @keyframes page-loading-in {
   from { opacity: 0; }
 }

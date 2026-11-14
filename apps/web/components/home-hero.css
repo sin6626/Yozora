@@ -537,6 +537,11 @@ html[data-swarm-intro] :is(.home-hero-title > span, .home-hero-title > strong, .
   padding-top: calc(var(--header-height) + var(--space-8));
 }
 
+/* 第一屏下面那块还没读完时的空白占位：不放小火箭，只留出一段高度，免得页脚先冒上来再被内容推下去 */
+.home-room-pending {
+  min-height: 24rem;
+}
+
 /* 页头不在这里加宽：首页和内页共用同一个页头、同样的宽度，头像和主题按钮靠近中间，换页时页头位置不动 */
 .site-shell:has(.home-hero:not([style*="display: none"])) .site-footer-inner {
   max-width: 1800px;
