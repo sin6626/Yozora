@@ -626,7 +626,7 @@ ln -sfn $W/releases/eca3309 $W/current && docker rename yozora-web-pre-f6eb00f y
 - 删掉 12 个停着的旧前台容器 `yozora-web-pre-*`（eca3309、8062f4f、8fc7205、acb3229、b8073ae、d279e08、6f72016、eb1d17e、cb463a3、cache-b30be94、live-3b895ae、f28dd0b），每个只占约 16kB，删它们是为了让旧版本目录不再被引用。留着回滚用的 `yozora-web-pre-f6eb00f`（挂 `releases/eca3309`）。上面各节回滚命令里提到的更早容器已经没有了，现在前台只能回滚到 eca3309。
 - 删掉 9 个不用的 Core 镜像标签 `yozora/mx-server:`eb1d17e、cb463a3、cache-b30be94、live-3b895ae、20261105-ac758f0、20261105、20261104、20261103、beta-test。留着：正在跑的 `d279e08`、它的回滚 `6f72016`、构建底座 `innei/mx-server:running-20261102`（Dockerfile 的 FROM，别删）。实际腾出约 0.55GB（镜像共享层多），磁盘剩 3.6G。
 - 没动：MinIO 容器和它的镜像（图床迁到 R2 后留作备份）、`innei/mx-server:latest`（651MB）、没用的 `minio/minio:RELEASE.2025-09-07T16-13-09Z`（241MB）、Docker 构建缓存（约 0.68GB 可回收）。
-- 交给站长：17 个旧前台版本目录（约 3.4GB，留 `f6eb00f` 当前、`eca3309` 回滚），命令只列明确目录名、不用通配：
+- 17 个旧前台版本目录（约 3.4GB，留 `f6eb00f` 当前、`eca3309` 回滚）：本来按全局规则交给站长，站长随后明确批准这一次由 Agent 删。用服务器脚本 `/root/backups/cleanup-releases-20261114.sh`（nohup 跑，日志同名 `.log`）先检查 `current` 仍指向 f6eb00f、保留的两个不在名单里、没有容器挂着名单里的目录，再逐个 `rm -r` 明确目录名；17 个全部删除，磁盘 88% → 76%，剩 6.9G。网站、Core、回滚目录与容器都正常。当时交给站长的命令（只列明确目录名、不用通配）：
 
 ```bash
 ssh -i ~/.ssh/id_ed25519_windows root@38.95.74.213 'cd /root/mx-space/yozora-web/releases && rm -r -- 1b5a6d4 2131c7a 3b895ae 6f72016 7dd878b 81383e8 8062f4f 8fc7205 ac758f0 acb3229 b30be94 b8073ae cb463a3 cf9d6bf d279e08 eb1d17e f28dd0b && ls && df -h /'
