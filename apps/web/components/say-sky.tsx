@@ -17,6 +17,24 @@ type Shape = "wide" | "tall";
 type Card = { id: string; leaving?: boolean };
 const hideDelay = 160;
 
+// 卡片挪到整像素上（2026-11-14 站长录屏）：星的百分比位置、卡片自身高度的百分比、铺满全宽的星空都会让卡片左上角落在小数像素上。
+// 入场动画期间字画在卡片自己的图层里、按图层对齐像素，动画一结束改按页面对齐，小数部分越过 0.5 的那几行就跳 1px（后几行往下挪），
+// 离场动画一开始又跳回去。挂载时（绘制前）量一次不带动画的位置，用 --snap-x/--snap-y 挪不到一像素对齐（1 倍屏才看得出，2 倍屏按半像素对齐）。
+// 量之前先去掉上次的挪动（开发模式严格模式会把 ref 调两次，第二次量到的是已经对齐的位置）。
+// ponytail: 只在挂载时量，卡片开着时改窗口大小会失准，到下次打开就好
+function snapToPixel(card: HTMLElement | null) {
+  if (!card) return;
+  card.style.removeProperty("--snap-x");
+  card.style.removeProperty("--snap-y");
+  card.style.animation = "none";
+  const { left, top } = card.getBoundingClientRect();
+  card.style.animation = "";
+  const ratio = window.devicePixelRatio || 1;
+  const offset = (value: number) => `${Math.round(value * ratio) / ratio - value}px`;
+  card.style.setProperty("--snap-x", offset(left));
+  card.style.setProperty("--snap-y", offset(top));
+}
+
 export default function SaySky({ layouts, says, site, children }: { layouts: Record<Shape, SkyLayout>; says: Say[]; site: string; children?: ReactNode }) {
   const t = useT().says;
   const byId = useMemo(() => new Map(says.map((say) => [say.id, say])), [says]);
@@ -159,6 +177,7 @@ export default function SaySky({ layouts, says, site, children }: { layouts: Rec
               return (
                 <article
                   key={card.id}
+                  ref={snapToPixel}
                   className="say-sky-card"
                   data-side={place.side}
                   data-leaving={card.leaving ? "" : undefined}
