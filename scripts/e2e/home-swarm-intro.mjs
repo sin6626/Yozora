@@ -4,6 +4,7 @@
 //    1 倍速在 25 秒内画完，蜂群图层慢慢淡出（中途能采到半透明），播完遮罩、夜空快照、蜂群图层都拿掉，真实页面完全不透明；
 // ② 站内跳走再回首页：不播蜂群，照常播 CSS 入场；
 // ③ 判断脚本：从外面打开（无来源、navigate）和刷新都播（刷新不管这个标签页播没播过）；同一标签页第二次从外面进、减少动态效果、别的页面不播；Esc 跳过后真实页面在；
+//    光标在画的时候读者滚不动（滚轮、PageDown、End），Esc 跳过或引擎加载不了放弃开场后能照常滚；
 // ④ 光标图层出现之前，屏幕上每一帧都是一片夜色：页头和首屏插进页面的那一刻已经盖住；流式内容进来时 React 播换页过渡，
 //    带名字的页头和正文层会被抬到遮罩上面画（导航栏和首屏先露出来），所以按真实画面的像素检查，不只看样式；
 //    无头浏览器的 navigator.webdriver 是 true（其他 e2e 因此不会被开场挡住），这一段用注入脚本把它改成 false 来测。
@@ -71,6 +72,17 @@ const after = () => browser.evaluate(`(() => {
 })()`);
 
 const stateNow = () => browser.evaluate(`document.documentElement.dataset.swarmIntro ?? "none"`);
+// 读者自己滚：屏幕正中滚一下滚轮，再按 PageDown、End，返回之后的滚动位置
+const userScroll = async () => {
+  await browser.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 960, y: 500 });
+  await browser.send("Input.dispatchMouseEvent", { type: "mouseWheel", x: 960, y: 500, deltaX: 0, deltaY: 800 });
+  for (const [key, code] of [["PageDown", 34], ["End", 35]]) {
+    await browser.send("Input.dispatchKeyEvent", { type: "rawKeyDown", key, code: key, windowsVirtualKeyCode: code });
+    await browser.send("Input.dispatchKeyEvent", { type: "keyUp", key, code: key, windowsVirtualKeyCode: code });
+  }
+  await sleep(600);
+  return browser.evaluate("scrollY");
+};
 const jsErrors = () => browser.errors.filter((e) => !/Download the React DevTools|\\[HMR\\]|\\[Fast Refresh\\]/.test(e));
 
 try {
@@ -180,12 +192,22 @@ try {
   await browser.goto(`${base}/`, 300);
   assert.ok(["pending", "playing"].includes(await stateNow()), "从外面打开首页应准备播");
   await coveredFirst("从外面打开");
-  await sleep(1500);
+  // 光标开始画以后（引擎开始前会自己把页面滚一遍来扫描，那段不算）：读者滚轮、PageDown、End 都滚不动，光标只画第一屏，滚走了画面就乱了（2026-11-14 站长）
+  let drawing = false;
+  for (let i = 0; i < 150 && !drawing; i++) {
+    drawing = await browser.evaluate(`(() => { const p = window.SwarmCursors?.progress?.(); return !!p && p.started && !p.complete })()`);
+    if (!drawing) await sleep(100);
+  }
+  assert.ok(drawing, "光标应开始画");
+  assert.equal(await browser.evaluate("scrollY"), 0, "光标开始画时页面在顶上");
+  assert.equal(await userScroll(), 0, "开场期间读者不应能滚动页面");
+  assert.equal(await stateNow(), "playing", "滚动不应打断开场");
   await browser.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
   await browser.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
   await sleep(1200);
   const skipped = await after();
   assert.deepEqual({ state: skipped.state, host: skipped.host, cover: skipped.cover, opacity: skipped.opacity }, { state: "done", host: false, cover: false, opacity: "1" }, `Esc 跳过后应露出真实页面：${JSON.stringify(skipped)}`);
+  assert.ok((await userScroll()) > 0, "跳过开场后应能照常滚动");
 
   await browser.goto(`${base}/`, 300);
   assert.equal(await stateNow(), "none", "同一标签页第二次打开不应再播");
@@ -207,7 +229,17 @@ try {
   await browser.goto(`${base}/posts`, 300);
   assert.equal(await stateNow(), "none", "别的页面不应播");
 
-  console.log(`PASS 首页蜂群开场：光标开始前 ${darkFrames} 帧都是夜色；强制播 ${run.seconds.toFixed(1)}s 画完 ${run.total} 个元素、${run.cursors} 个光标，进度条、透明占位、慢慢淡出；刷新也播、页头和首屏出现时已盖住；站内跳回、第二次从外面进、减少动态效果、别的页面不播；Esc 跳过`);
+  // 引擎脚本加载不了：放弃开场，页面不能一直锁着不让滚
+  await browser.send("Network.enable");
+  await browser.send("Network.setBlockedURLs", { urls: ["*swarm-cursors.js*"] });
+  await browser.goto(`${base}/?swarm`, 300);
+  let gaveUp = false;
+  for (let i = 0; i < 80 && !gaveUp; i++) { gaveUp = (await stateNow()) === "none"; if (!gaveUp) await sleep(100); }
+  await browser.send("Network.setBlockedURLs", { urls: [] });
+  assert.ok(gaveUp, "引擎加载不了时应放弃开场");
+  assert.ok((await userScroll()) > 0, "放弃开场后应能照常滚动");
+
+  console.log(`PASS 首页蜂群开场：光标开始前 ${darkFrames} 帧都是夜色；强制播 ${run.seconds.toFixed(1)}s 画完 ${run.total} 个元素、${run.cursors} 个光标，进度条、透明占位、慢慢淡出；刷新也播、页头和首屏出现时已盖住；站内跳回、第二次从外面进、减少动态效果、别的页面不播；开场期间滚不动，Esc 跳过或放弃开场后能滚；Esc 跳过`);
 } finally {
   await browser.close();
 }

@@ -80,7 +80,10 @@ const swarmIntroScript = (home: string) => `try{var d=document.documentElement,p
 // 遮罩：脚本没跑起来时 5 秒后自己淡掉，不会一直空白；接手后组件换成 .swarm-cover（home-hero.css）。
 // 开场期间去掉所有视图过渡名字：流式内容进来时 React 会播换页过渡，带名字的页头（site-header）和正文层被抬到最上层画，
 // 盖不住，导航栏和首屏会先露出来；没有名字时整页是一张画面，遮罩也在里面。播完（done）恢复，离开首页照常有换页动画。
-const swarmCoverStyle = `html[data-swarm-intro="pending"] body::after{content:"";position:fixed;inset:0;z-index:2147483600;background:var(--background);pointer-events:none;animation:swarm-cover-timeout .4s ease 5s forwards}@keyframes swarm-cover-timeout{to{opacity:0;visibility:hidden}}html:is([data-swarm-intro="pending"],[data-swarm-intro="playing"]) *{view-transition-name:none!important}`;
+// 组件接手播放（playing）后读者滚不动（光标只画第一屏，滚走了画面就乱了）：overflow: hidden 只挡滚轮、键盘和滚动条，引擎扫描时
+// 自己 scrollTo 不受影响；html 有 scrollbar-gutter: stable，滚动条位置留着，页面不左右跳。播完、Esc 跳过、没播成都会改掉这个标记，
+// pending 不锁：组件没接手时（脚本出错）标记会一直留着，锁了就再也滚不动。
+const swarmCoverStyle = `html[data-swarm-intro="pending"] body::after{content:"";position:fixed;inset:0;z-index:2147483600;background:var(--background);pointer-events:none;animation:swarm-cover-timeout .4s ease 5s forwards}@keyframes swarm-cover-timeout{to{opacity:0;visibility:hidden}}html:is([data-swarm-intro="pending"],[data-swarm-intro="playing"]) *{view-transition-name:none!important}html[data-swarm-intro="playing"]{overflow:hidden}`;
 
 // 首页标题像 Shiro 一样是“站名 - 描述”，子页面套用模板“文章 - 站名”；站名、描述都取后台 SEO 设置（外文页面描述用译文）；
 // metadataBase 取后台“网站地址”，让分享链接、RSS 自动发现等相对地址变成完整网址；读取失败时省略。
