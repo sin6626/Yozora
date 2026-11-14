@@ -515,18 +515,11 @@ const zh = {
     // 标题下的操作提示：有鼠标时说悬停，触屏说点（say-list.tsx，按 hover 媒体查询只显示一种）
     hintHover: "把鼠标移到星星上，读一读那一句",
     hintTap: "点一颗星，读一读那一句",
-    // 金句星图（say-sky.tsx，sky 只给读屏念）与金句卡片（say-tools.tsx）
+    // 金句星图（say-sky.tsx，sky 只给读屏念）
     sky: "金句星图",
     newer: "新",
     older: "旧",
     plate: "一言星图",
-    close: "收起",
-    makeCard: "做成卡片",
-    card: "金句卡片",
-    making: "正在画卡片…",
-    cardFailed: "卡片没画出来，换个浏览器试试",
-    save: "保存图片",
-    share: "分享",
     anonymous: "佚名",
   },
   thinking: {

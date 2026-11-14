@@ -1,11 +1,11 @@
-// 浏览器回归测试：一言页（components/say-list.tsx、say-sky.tsx、say-tools.tsx）。
+// 浏览器回归测试：一言页（components/say-list.tsx、say-sky.tsx）。
 // 2026-11-02 用户定：一言页整页是一片星空（不要圆形星盘、不要“金句星图”说明和抽一句、不要下面的列表），每句话一颗暖色的星，
 // 同一个人说的连成星座；一开始没有选中的星，鼠标移到星上就在旁边浮出那句话，点别处或按 Esc 收起；没有列表和抽屉（全部句子只在给读屏的隐藏列表里）；
 // 手机竖屏另排一份，那句话在底部。
 // 这里检查：星空铺满屏幕宽、每句一颗星、一开始没有选中的星和卡片、悬停换句与星座亮起、离开停住、点别处和 Esc 收起、卡片在星旁边且不出画面、
 // 没有圆盘/说明/抽一句/胶囊、旧 ?author= 显示全部；
 // 调试页 5 / 60 / 240 句都在画面里且悬停范围互不盖住、240 句能悬停到指定星；手机竖屏用竖排那份、点星换句、卡片在底部；
-// 金句卡片图 1080×1350 可保存、Esc 关闭。只读，不写库。
+// 星旁边的卡片里只有那句话、署名和日期，没有“做成卡片”（2026-11-14 站长去掉了这个功能）。只读，不写库。
 // 需要先运行 pnpm dev。用法：pnpm e2e
 import assert from "node:assert/strict";
 import { openBrowser, sleep } from "../headless-browser.mjs";
@@ -94,7 +94,7 @@ try {
     assert.ok(now.card.left >= now.field.left && now.card.right <= now.field.right && now.card.top >= now.field.top - 40 && now.card.bottom <= now.field.bottom + 40, "那句话的卡片在星空里");
   }
   // 悬停触发（2026-11-02 用户：离开后卡片还留着，手感卡、挡住别的星）：鼠标离开星和卡片就收起，收起时有淡出动画；
-  // 从星移到卡片上卡片留着（来得及点“做成卡片”），点卡片本身也不收
+  // 从星移到卡片上卡片留着（移过去读也不会收），点卡片本身也不收
   const empty = await browser.evaluate(`(() => { const r = ${visible()}.getBoundingClientRect(); for (let y = r.top + 20; y < r.bottom; y += 23) for (let x = r.left + 20; x < r.right; x += 37) { const el = document.elementFromPoint(x, y); if (el && !el.closest(".say-star, .say-sky-card, a, button")) return { x, y }; } })()`);
   const cardAnimations = () => browser.evaluate(`[...document.querySelectorAll(${JSON.stringify(`${layer().trim()} .say-sky-card`)})].flatMap((card) => card.getAnimations().map((a) => (card.hasAttribute("data-leaving") ? "leaving:" : "") + a.animationName))`);
   assert.ok((await cardAnimations()).includes("say-sky-in") || (await sky()).reading, "卡片浮出");
@@ -162,24 +162,16 @@ try {
     assert.equal(await browser.evaluate(`document.querySelector(".page-heading .post-meta")?.firstChild?.textContent`), `共 ${all.length} 条`, `旧的 ?${query} 链接显示全部`);
   }
 
-  // 金句卡片图：星旁边那句的“做成卡片”；弹窗用 Esc 关上后那句话的卡片还在
+  // 没有“做成卡片”（2026-11-14 站长去掉了这个功能）：卡片里只有那句话、署名和日期，没有按钮和链接
   await hover(`${layer()} .say-star[data-id="${ids[0]}"]`);
   await sleep(500);
-  const drawn = (await sky()).reading;
-  await click(`${layer()} .say-sky-card .btn`);
-  await browser.evaluate(`new Promise((resolve) => { const check = () => document.querySelector(".say-card-preview img")?.naturalWidth ? resolve() : setTimeout(check, 100); check(); })`);
-  const card = await browser.evaluate(`(() => {
-    const img = document.querySelector(".say-card-preview img");
-    const save = document.querySelector(".say-card-actions a[download]");
-    return { size: [img.naturalWidth, img.naturalHeight], alt: img.alt, save: save && { href: save.href.startsWith("blob:"), name: save.getAttribute("download") } };
+  const content = await browser.evaluate(`(() => {
+    const card = document.querySelector(${JSON.stringify(`${layer().trim()} .say-sky-card:not([data-leaving])`)});
+    return { controls: card.querySelectorAll("button, a, [role=button]").length, text: card.textContent, date: Boolean(card.querySelector("time")) };
   })()`);
-  assert.deepEqual(card.size, [1080, 1350], "金句卡片是 1080×1350 的竖图");
-  assert.equal(card.alt, drawn, "卡片画的就是星旁边那句");
-  assert.ok(card.save?.href && card.save.name.endsWith(".png"), "可以保存成 PNG");
-  await escape();
-  await sleep(400);
-  assert.equal(await browser.evaluate(`Boolean(document.querySelector(".say-card-dialog"))`), false, "Esc 关掉卡片弹窗");
-  assert.equal((await sky()).reading, drawn, "关掉弹窗后那句话的卡片还在");
+  assert.equal(content.controls, 0, `卡片里不应再有按钮或链接：${content.text}`);
+  assert.ok(!content.text.includes("做成卡片"), "卡片里不应再有“做成卡片”");
+  assert.ok(content.date, "卡片里仍有日期");
 
   // 手机竖屏：竖排那份，点一颗星换句，那句话在星空底部、不出屏幕
   await browser.setViewport(390, 844);
@@ -245,7 +237,7 @@ try {
   assert.equal(await browser.evaluate(`document.querySelector('${scope} .say-star[data-active]')?.dataset.id`), blocked.hidden, "卡片收起后，原来被挡住的星能悬停到");
 
   assert.deepEqual(browser.errors, [], "页面不应当有报错");
-  console.log(`PASS 一言：整屏星空铺满宽、每句一颗星、一开始不选中、悬停换句与星座亮起、离开就收起（淡出动画）、移到卡片上不收、点别处和 Esc 收起、关弹窗卡片还在、被挡住的星收起后能悬停到、无圆盘说明抽一句和列表、开灯是星图图版（墨点白边、图框刻度经纬线、星等图例）、旧链接显示全部、没有列表和抽屉（读屏有隐藏列表）、金句卡片 1080×1350、手机竖排点星换句卡片在底部点别处收起、调试页 5/60/240 句都装得下且悬停不打架`);
+  console.log(`PASS 一言：整屏星空铺满宽、每句一颗星、一开始不选中、悬停换句与星座亮起、离开就收起（淡出动画）、移到卡片上不收、点别处和 Esc 收起、被挡住的星收起后能悬停到、无圆盘说明抽一句和列表、开灯是星图图版（墨点白边、图框刻度经纬线、星等图例）、旧链接显示全部、没有列表和抽屉（读屏有隐藏列表）、卡片里没有“做成卡片”、手机竖排点星换句卡片在底部点别处收起、调试页 5/60/240 句都装得下且悬停不打架`);
 } finally {
   await browser.close();
 }

@@ -47,7 +47,7 @@ export default function SaySkyPreview() {
         return (
           <div key={count} className="debug-say-sky" data-count={count}>
             <p className="post-meta">{count} 句</p>
-            <SaySky layouts={{ wide: skyLayout(says, skyFrames.wide), tall: skyLayout(says, skyFrames.tall) }} says={says} site="Sin’s Yozora · 调试" />
+            <SaySky layouts={{ wide: skyLayout(says, skyFrames.wide), tall: skyLayout(says, skyFrames.tall) }} says={says} />
           </div>
         );
       })}

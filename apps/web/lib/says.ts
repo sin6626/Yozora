@@ -1,4 +1,4 @@
-// 一言（朋友们说过的好句子）的几样纯逻辑：按人分组、金句卡片图上的折行、金句星图排布。页面在 components/say-list.tsx、say-sky.tsx、say-tools.tsx。
+// 一言（朋友们说过的好句子）的几样纯逻辑：按人分组、金句星图排布。页面在 components/say-list.tsx、say-sky.tsx。
 
 export type Say = { id: string; text: string; author?: string; source?: string; created: string };
 
@@ -10,30 +10,6 @@ export function authorsOf(says: Say[]) {
     if (author) counts.set(author, (counts.get(author) ?? 0) + 1);
   }
   return [...counts].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
-}
-
-// 不能放在行首的标点：放不下时挂在上一行末尾（中文排版的“避头”）
-const closing = /^[，。、；：？！,.;:?!）)」』》〉】”’…—～]/;
-
-// 卡片图上的折行：中日文一个字一个单位，英文和数字连成一个词不拆；measure 量一段文字的宽度（画布的 measureText）
-export function wrapText(text: string, measure: (value: string) => number, maxWidth: number) {
-  const lines: string[] = [];
-  for (const paragraph of text.split(/\r?\n/)) {
-    const units = paragraph.match(/[A-Za-z0-9'’\-_.@/]+ ?|\s+|./gu) ?? [];
-    let line = "";
-    for (const unit of units) {
-      if (!line && /^\s+$/.test(unit)) continue;
-      const next = line + unit;
-      if (!line || measure(next.trimEnd()) <= maxWidth || closing.test(unit)) {
-        line = next;
-        continue;
-      }
-      lines.push(line.trimEnd());
-      line = unit.trimStart();
-    }
-    lines.push(line.trimEnd());
-  }
-  return lines;
 }
 
 // ---------- 金句星图（components/say-sky.tsx）：一整屏星空，每句话一颗星，同一个人说的连成星座 ----------

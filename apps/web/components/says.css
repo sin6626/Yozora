@@ -1,4 +1,4 @@
-/* 一言页（say-list.tsx、say-sky.tsx、say-tools.tsx）：整屏金句星空、星旁边的那句话、“做成卡片”的卡片弹窗 */
+/* 一言页（say-list.tsx、say-sky.tsx）：整屏金句星空、星旁边的那句话 */
 
 /* ---------- 星空：冲出正文那一栏铺满屏幕宽，高度到一屏底部 ---------- */
 .site-shell:has(.say-field) {
@@ -502,86 +502,12 @@
 
 .say-sky-card-foot {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
   margin-top: var(--space-3);
 }
 
 .say-date {
   color: var(--muted-foreground);
   font-size: var(--text-xs);
-}
-
-/* 卡片弹窗：居中一张 4:5 的预览图，下面保存、分享、收起 */
-.say-card-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-popup);
-  background: color-mix(in srgb, var(--island-bg) 70%, transparent);
-  backdrop-filter: blur(6px);
-  transition: opacity var(--duration-base) var(--ease-out);
-}
-
-.say-card-dialog {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  z-index: var(--z-popup);
-  display: grid;
-  justify-items: center;
-  gap: var(--space-4);
-  width: min(24rem, calc(100vw - 2rem));
-  translate: -50% -50%;
-  outline: 0;
-  transition: opacity var(--duration-base) var(--ease-out), scale var(--duration-base) var(--ease-out);
-}
-
-.say-card-backdrop[data-starting-style],
-.say-card-backdrop[data-ending-style],
-.say-card-dialog[data-starting-style],
-.say-card-dialog[data-ending-style] {
-  opacity: 0;
-}
-
-.say-card-dialog[data-starting-style],
-.say-card-dialog[data-ending-style] {
-  scale: 0.96;
-}
-
-.say-card-preview {
-  width: 100%;
-}
-
-.say-card-preview img,
-.say-card-preview p {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-height: 72vh;
-  aspect-ratio: 4 / 5;
-  margin: 0;
-  border-radius: var(--radius-md);
-  object-fit: contain;
-}
-
-.say-card-preview img {
-  box-shadow: var(--shadow-popup);
-}
-
-.say-card-preview p {
-  display: grid;
-  place-items: center;
-  background: var(--muted);
-  color: var(--muted-foreground);
-  font-size: var(--text-sm);
-}
-
-.say-card-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-2);
 }
 
 @media (prefers-reduced-motion: reduce) {
