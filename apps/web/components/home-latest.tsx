@@ -2,13 +2,13 @@ import { ArrowRight } from "lucide-react";
 import Link from "./locale-provider";
 import { unstable_rethrow } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
-import { getMurmurs, getNotes, getPosts } from "../lib/blog-data";
+import { getHomeFeed, getMurmurs, getNotes, getPosts } from "../lib/blog-data";
 import { murmurImageSources } from "../lib/murmur";
 import { formatDate } from "../lib/date";
 import { getLocale, getT } from "../lib/i18n/server";
 import { excerpt } from "../lib/excerpt";
 import { postHref } from "./post-list";
-import RecentActivityList from "./recent-activity";
+import RecentActivityList, { RecentActivityItems } from "./recent-activity";
 import Reveal from "./reveal";
 import TechStack from "./tech-stack";
 import "./corners.css";
@@ -81,15 +81,45 @@ function TimelineItem({ href, created, title, meta, serif, pinned, original, ind
   );
 }
 
-// 首屏下面：左栏上下放文章和手记；右栏按 2:3 上下分成碎碎念和“最近发生的事”；两栏下面是技术栈滚动条。
+type Posts = Awaited<ReturnType<typeof getPosts>>["data"];
+type Notes = Awaited<ReturnType<typeof getNotes>>["data"];
+type Murmurs = Awaited<ReturnType<typeof getMurmurs>>["data"];
+
+// 首屏下面（2026-11-14 站长：首屏好了下面也该好了，不然一往下滑还在读）：数据平时来自 Next 缓存的 getHomeFeed，
+// 这里不包 Suspense，和首屏一起渲染、一起进页面骨架。缓存读不到时才退回各块现取，那时包 Suspense、只留一块空白（不放小火箭）。
 export default async function HomeLatest() {
-  const t = (await getT()).home;
-  const section = (copy: { title: string; note: string; empty: string }) => ({ ...copy, allLabel: t.all, failed: t.loadFailed(copy.title) });
+  const feed = await load(async () => getHomeFeed(await getLocale()));
+  if (feed) return <HomeColumns posts={feed.posts} notes={feed.notes} murmurs={feed.murmurs} activity={<RecentActivityItems items={feed.activity} />} />;
+  const { common } = await getT();
+  return (
+    <Suspense fallback={<div className="home-room-pending" role="status"><span className="sr-only">{common.loading}</span></div>}>
+      <HomeLatestLive />
+    </Suspense>
+  );
+}
+
+// 退回现取：各块分别读，一块失败不影响其他块
+async function HomeLatestLive() {
+  const locale = await getLocale();
   const [posts, notes, murmurs] = await Promise.all([
-    load(async () => (await getPosts(1, undefined, await getLocale())).data.slice(0, 5)),
-    load(async () => (await getNotes(1, await getLocale())).data.slice(0, 5)),
+    load(async () => (await getPosts(1, undefined, locale)).data.slice(0, 5)),
+    load(async () => (await getNotes(1, locale)).data.slice(0, 5)),
     load(async () => (await getMurmurs(1)).data.slice(0, 6)),
   ]);
+  const t = (await getT()).home;
+  return (
+    <HomeColumns posts={posts} notes={notes} murmurs={murmurs} activity={(
+      <Suspense fallback={<p className="post-empty" role="status">{t.loading}</p>}>
+        <RecentActivityList />
+      </Suspense>
+    )} />
+  );
+}
+
+// 左栏上下放文章和手记；右栏按 2:3 上下分成碎碎念和“最近发生的事”；两栏下面是技术栈滚动条。
+async function HomeColumns({ posts, notes, murmurs, activity }: { posts: Posts | null; notes: Notes | null; murmurs: Murmurs | null; activity: ReactNode }) {
+  const t = (await getT()).home;
+  const section = (copy: { title: string; note: string; empty: string }) => ({ ...copy, allLabel: t.all, failed: t.loadFailed(copy.title) });
   return (
     <div className="home-columns">
       <div className="home-main">
@@ -158,9 +188,7 @@ export default async function HomeLatest() {
         </Section>
         <section className="home-section home-side-activity" aria-label={t.activity.title}>
           <Heading title={t.activity.title} note={t.activity.note} />
-          <Suspense fallback={<p className="post-empty" role="status">{t.loading}</p>}>
-            <RecentActivityList />
-          </Suspense>
+          {activity}
         </section>
       </aside>
       <TechStack />

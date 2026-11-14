@@ -2,8 +2,9 @@
 // 各页面正文包在 Suspense 里，服务端先发出带读取占位的外壳，正文随后流式送到、由 React 的内联脚本换上。
 // 测试关掉页面脚本，让读取占位一直留在屏幕上，检查：铺满页头以下一屏、80px 火箭在动、
 // Innei 那句话带「」、读屏念“正在读取…”、一出现就开始淡入（不等待）、“重试”十秒后才出现。
-// 首页第一屏下面那块不放小火箭（2026-11-14 站长：首屏已经在播入场，下面再闪一个读取动画不连贯）：只留一块空白占位，
-// 读屏仍念“正在读取…”，内容到了每条用自己的视口内上浮动画出现。
+// 首页第一屏下面那块（最新文章、手记、碎碎念、最近发生的事）和首屏一起到（2026-11-14 站长：首屏好了下面也该好了，不然一往下滑还在读）：
+// 数据来自 Next 缓存 getHomeFeed、不包 Suspense，关掉脚本也已经在页面里，没有小火箭、没有等待占位。
+// 生产构建的预渲染另有 scripts/e2e/home-first-html.mjs（对 next start 或 beta 测）。
 // 打开脚本时读完就换成正文；/debug 检查深浅主题火苗颜色、减少动态效果时火箭不动。
 // 需要先运行 pnpm dev（默认 http://127.0.0.1:2323，可用 WEB_URL 覆盖）。用法：pnpm e2e
 import assert from "node:assert/strict";
@@ -62,26 +63,25 @@ try {
     assert.equal(loading.retryHref, "", "“重试”整页重新打开当前地址");
   }
 
-  // 首页：第一屏下面那块没有小火箭，只有一块安静的空白占位（读屏念“正在读取…”），排在第一屏下面、不撑满一屏
+  // 首页：先开着脚本打开一次（让缓存热起来），再关掉脚本打开，看服务端发出的页面里是不是已经有内容
+  // （流式补上的部分要靠脚本换上，关掉脚本就只剩占位）
+  await browser.send("Emulation.setScriptExecutionDisabled", { value: false });
+  await browser.goto(base + "/");
+  await browser.send("Emulation.setScriptExecutionDisabled", { value: true });
   await browser.goto(base + "/");
   const home = await browser.evaluate(`(() => {
     const room = document.querySelector(".home-room");
-    const pending = room.querySelector("[role=status]");
-    const box = pending?.getBoundingClientRect();
     return {
-      rockets: room.querySelectorAll(".page-loading, .page-loading-rocket").length,
-      // 看得见的字：去掉只给读屏的 .sr-only（innerText 会把被裁成 1px 的 sr-only 文字也算进去）
-      text: pending && (() => { const copy = pending.cloneNode(true); copy.querySelectorAll(".sr-only").forEach((el) => el.remove()); return copy.textContent.trim(); })(),
-      sr: pending?.querySelector(".sr-only")?.textContent,
-      top: box && box.top + scrollY, height: box?.height,
-      heroBottom: document.querySelector(".home-hero").getBoundingClientRect().bottom + scrollY,
+      rockets: room.querySelectorAll(".page-loading").length,
+      pending: room.querySelectorAll(".home-room-pending").length,
+      posts: room.querySelectorAll(".home-main .home-timeline-item").length,
+      murmurs: room.querySelectorAll(".home-murmurs > li").length,
+      activity: room.querySelectorAll(".activity-item").length + room.querySelectorAll(".home-side-activity .post-empty:not([role=status])").length,
     };
   })()`);
   assert.equal(home.rockets, 0, "首页第一屏下面不该有小火箭");
-  assert.equal(home.sr, "正在读取…", "首页占位读屏仍念“正在读取…”");
-  assert.equal(home.text, "", "首页占位看不见任何字");
-  assert.ok(home.top >= home.heroBottom - 1, "首页占位在第一屏下面");
-  assert.ok(home.height >= 300 && home.height < 991 * 0.7, `首页占位留出空白、但不撑满一屏：${home.height}`);
+  assert.equal(home.pending, 0, `首页第一屏下面应当和首屏一起到，不该是等待占位：${JSON.stringify(home)}`);
+  assert.ok(home.posts > 0 && home.murmurs > 0 && home.activity > 0, `首页一打开就应当已有文章、手记、碎碎念和最近发生的事：${JSON.stringify(home)}`);
 
   // 手机：那句话只在逗号处换行，不把“终有一日”拆开
   await browser.setViewport(390, 844);
@@ -150,7 +150,7 @@ try {
   assert.equal(reduced.trail, "0.45");
 
   assert.deepEqual(browser.errors, [], `页面报错：${browser.errors.join("\n")}`);
-  console.log("PASS 读取中显示铺满页头以下一屏的小火箭（80px、「」那句话、读屏“正在读取…”、一出现就淡入、十秒后露出重试），首页是第一屏下面的 compact，手机上只在逗号处换行，读完换成正文；深浅火苗、减少动态效果正常");
+  console.log("PASS 读取中显示铺满页头以下一屏的小火箭（80px、「」那句话、读屏“正在读取…”、一出现就淡入、十秒后露出重试），首页第一屏下面那块和首屏一起到、没有读取占位，手机上只在逗号处换行，读完换成正文；深浅火苗、减少动态效果正常");
 } finally {
   browser.close();
 }

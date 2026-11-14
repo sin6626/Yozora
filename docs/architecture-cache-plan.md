@@ -117,6 +117,7 @@ flowchart LR
 | getNavigationPanels | 每页都渲染，每个话题各请求一次，再加时间线、站点信息 |
 | getTimeline、getPostIndex、getNoteIndex、getLocalizedNames | 一次要翻完全部文章 / 手记，被相邻文章、关联阅读、标签和搜索结果、外文译名反复用 |
 | getNotesByTopic | 导航面板和手记文末话题卡片用 |
+| getHomeFeed（2026-11-14） | 首页第一屏下面那块（最新文章、手记、碎碎念、最近发生的事）；现取总比首屏晚到、往下滑还在读，放 Next 缓存后不包 Suspense、和首屏一起进页面骨架。挂文章、手记、碎碎念、评论、思考、AI 的标签（verify-blog-cache 检查），点赞没有事件、最多晚 5 分钟；读不到时退回现取 |
 | getArticleAi、getArticleTranslation | 列表里每条一次（一页 10 次） |
 | getFeedItems | RSS 每条都带全文和摘要，阅读器访问频繁 |
 

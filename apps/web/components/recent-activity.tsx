@@ -61,6 +61,7 @@ function Body({ item, t }: { item: RecentActivity; t: Messages["activity"] }) {
   }
 }
 
+// 现取一次再画（首页缓存 getHomeFeed 读不到时才用它）
 export default async function RecentActivityList() {
   const t = (await getT()).activity;
   let items: RecentActivity[];
@@ -70,6 +71,12 @@ export default async function RecentActivityList() {
     unstable_rethrow(error);
     return <p className="post-empty" role="alert">{t.failed}</p>;
   }
+  return <RecentActivityItems items={items} />;
+}
+
+// 只负责画：首页把缓存里的 getHomeFeed().activity 直接传进来，和首屏一起进页面骨架
+export async function RecentActivityItems({ items }: { items: RecentActivity[] }) {
+  const t = (await getT()).activity;
   if (!items.length) return <p className="post-empty">{t.quiet}</p>;
   return (
     <ul className="activity-timeline">

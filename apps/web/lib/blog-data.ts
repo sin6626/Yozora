@@ -428,9 +428,10 @@ export async function getThemeConfig(): Promise<unknown> {
 }
 
 // 时间线：全部已发布文章与公开手记，只取标题、日期和拼链接的字段，按发布时间倒序合并。
+// stale 要 ≥ 300：首页缓存 getHomeFeed 用它换算文章地址，里层短于 5 分钟会把外层也拉成“短期”，Next 就不把首页下面那块放进页面骨架（getLocalizedNames 同理）。
 export async function getTimeline(lang: ContentLang = "zh") {
   "use cache";
-  cacheLife({ stale: 60, revalidate: 300, expire: 300 });
+  cacheLife({ stale: 300, revalidate: 300, expire: 300 });
   cacheTag("blog:posts", "blog:notes", "blog:categories", "blog:ai");
   const [{ data }, names] = await Promise.all([getApiClient().aggregate.getTimeline({ sort: "desc" }), localizedNames(lang)]);
   const title = (id: string, original: string) => names?.titles[id] ?? original;
@@ -467,7 +468,12 @@ export type RecentActivity = {
 
 // lang：文章、手记的标题换成译文（按时间线里的标题对照），评论、思考的内容保持中文。
 export async function getRecentActivity(lang: ContentLang = "zh") {
-  const [data, timeline, zhTimeline] = await Promise.all([(await getLiveApiClient()).activity.getRecentActivities(), getTimeline(lang), getTimeline()]);
+  return activityItems(await (await getLiveApiClient()).activity.getRecentActivities(), lang);
+}
+
+// Core /activity/recent 的回答整理成“最近发生的事”（现取的 getRecentActivity 和首页缓存的 getHomeFeed 共用）
+async function activityItems(data: unknown, lang: ContentLang) {
+  const [timeline, zhTimeline] = await Promise.all([getTimeline(lang), getTimeline()]);
   const posts = new Map(timeline.flatMap((item) => item.kind === "post" ? [[item.slug, `/posts/${encodeURIComponent(item.category.slug)}/${encodeURIComponent(item.slug)}`]] : []));
   // 动态里只有中文标题，按时间线的中文标题找到译文
   const translatedTitle = new Map(zhTimeline.map((item, index) => [item.title, timeline[index].title]));
@@ -519,12 +525,28 @@ export async function getAllSays() {
 }
 
 // 碎碎念：站长随手记的闲话（Core /murmurs），按页读，每页 20 条，从新到旧。
+// 首页第一屏下面那块（最新 5 篇文章、5 篇手记、6 条碎碎念、最近发生的事）：Next 拼出来的，放 Next 缓存，和首屏一起进页面骨架。
+// 原来这几块各自现取，总比首屏晚到一点，往下滑时还在读（2026-11-14 站长：首屏好了下面也该好了）。
+// 文章、手记、碎碎念、评论、思考、AI 摘要与译文的 Webhook 事件立即作废；点赞没有事件，最多晚 5 分钟。
+// stale 要 ≥ 300，否则 Next 不把它放进页面骨架；某一块读不到就抛错、不缓存，首页退回各块现取。
+export async function getHomeFeed(lang: ContentLang = "zh") {
+  "use cache";
+  cacheLife({ stale: 300, revalidate: 300, expire: 300 });
+  cacheTag("blog:posts", "blog:notes", "blog:murmurs", "blog:comments", "blog:recently", "blog:ai", "blog:categories");
+  const [posts, notes, murmurs, activity] = await Promise.all([
+    getApiClient(lang).post.getList(1, 5, { select: postSelect }).then(({ data }) => Promise.all(data.map((post) => postEntry(post, lang)))),
+    getApiClient(lang).note.getList(1, 5).then(({ data }) => Promise.all(data.map((note) => noteEntry(note, lang)))),
+    getApiClient().murmur.getList(1, 6).then(({ data }) => data.map(murmurEntry)),
+    getApiClient().activity.getRecentActivities().then((data) => activityItems(data, lang)),
+  ]);
+  return { posts, notes, murmurs, activity };
+}
+
+const murmurEntry = ({ id, content, created, modified }: { id: string; content: string; created: string; modified?: string | null }) => ({ id, content, created, modified: modified ?? null });
+
 export async function getMurmurs(page = 1) {
   const { data, pagination } = await (await getLiveApiClient()).murmur.getList(page, 20);
-  return {
-    data: data.map(({ id, content, created, modified }) => ({ id, content, created, modified: modified ?? null })),
-    pagination: { ...pagination },
-  };
+  return { data: data.map(murmurEntry), pagination: { ...pagination } };
 }
 
 // 思考（Core 的速记）按 id 游标分页：before 取上一页最后一条的 id。
@@ -648,7 +670,7 @@ export type LocalizedNames = {
 
 export async function getLocalizedNames(lang: TranslationLanguage): Promise<LocalizedNames> {
   "use cache";
-  cacheLife({ stale: 60, revalidate: 300, expire: 300 });
+  cacheLife({ stale: 300, revalidate: 300, expire: 300 });
   cacheTag("blog:posts", "blog:notes", "blog:categories", "blog:pages", "blog:ai");
   const client = getApiClient(lang);
   const all = async <T>(load: (page: number) => Promise<{ data: T[]; pagination: { totalPage: number } }>) => {

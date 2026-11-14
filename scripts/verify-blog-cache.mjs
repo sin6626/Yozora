@@ -234,6 +234,16 @@ for (const [name, body] of bodies) {
   if (!body.includes('"use cache"')) continue
   assert.ok(!liveCall.test(body), `${name} 带 "use cache"，却调用了现取的 ${body.match(liveCall)?.[1]}`)
 }
+// 首页第一屏下面那块（getHomeFeed）放在 Next 缓存里、和首屏一起进页面骨架：文章、手记、碎碎念、评论、思考的 Webhook 事件
+// 作废的标签它都要挂上，否则后台改了内容首页要等 5 分钟才变
+{
+  const feedTags = [...bodies.get('getHomeFeed').matchAll(/cacheTag\(([^)]*)\)/g)].flatMap(([, list]) => [...list.matchAll(/"([^"]+)"/g)].map(([, tag]) => tag))
+  const events = readFileSync(new URL('../apps/web/lib/webhook-events.ts', import.meta.url), 'utf8')
+  for (const kind of ['POST', 'NOTE', 'MURMUR', 'COMMENT', 'RECENTLY']) {
+    const tags = [...events.match(new RegExp(`\\b${kind}: \\{ tags: \\[([^\\]]*)\\]`))[1].matchAll(/"([^"]+)"/g)].map(([, tag]) => tag)
+    for (const tag of tags) assert.ok(feedTags.includes(tag), `getHomeFeed 要挂 ${tag}（${kind}_* 事件作废它），否则首页不跟着更新`)
+  }
+}
 // blog-data 以外：访客能触发的服务端函数（"use server"）一律用现取客户端，否则带着内部密钥、不带读者 IP，绕过 Core 的限流；
 // 其他地方用 getApiClient 的只能是带 "use cache" 的文件
 const { readdirSync } = await import('node:fs')
