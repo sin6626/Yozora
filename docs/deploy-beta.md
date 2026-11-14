@@ -597,3 +597,24 @@ ln -sfn $W/releases/8062f4f $W/current && docker rename yozora-web-pre-eca3309 y
 ```
 
 回滚要用的 `releases/8062f4f`、容器 `yozora-web-pre-eca3309` 先别删；更早的版本和停着的旧容器留给站长自己清（服务器磁盘已用 89%，剩约 3.3G）。
+
+## 2026-11-14 已做：去掉一言卡片的“做成卡片”（f6eb00f）
+
+站长要求去掉“做成卡片”并直接部署，**只换 beta 前台**（eca3309 之后只改了前台一言页、词典和测试，依赖、Core、后台都没变）：星旁边的卡片里只剩那句话、署名和日期，卡片图、弹窗和相关文案都删了（f6eb00f）。
+
+- 界面文字：词典删了 7 条，前台切换后跑了 `node scripts/push-i18n-source.mjs --prod`（走系统代理），线上 Core 记下“新增 0，改过 0，删掉 7”。
+- 备份：服务器 `/root/backups/yozora-f6eb00f/`（`mongo.archive.gz` 39 个集合 2.1MB，试还原通过）。`backup.sh`、`switch-web.sh` 由上一版只换版本号生成。SSH 仍常断：改属主、核对哈希那步第一轮 4 次都断开，重试后确认 `server.js` SHA-256 `40aaaee1…` 一致、属主 1000。
+- 构建：本机临时 worktree `/tmp/yozora-build`（f6eb00f），前两次 SSH 隧道没打开，第三次成功，单 worker 预渲染 86 页 21 秒，包 77MB；包里没有“做成卡片”和卡片弹窗样式。
+- **前台**：`releases/f6eb00f`（以 `releases/eca3309` 为 `--copy-dest`），3 秒就绪。服务器本机 14 个地址 200、`data-dpl-id="f6eb00f"`、robots 仍整站禁止，日志无报错，容器约 156MB / 400MB。
+- 验证（公网 beta，无头浏览器只读）：5 颗星的卡片里都没有按钮和“做成卡片”、有日期、左上角在整像素上，无脚本报错；`WEB_URL=https://beta.sin6626.me node scripts/e2e/say-card-steady.mjs` 通过。
+
+回滚（只有前台；回滚后前台还会显示“做成卡片”，但线上 Core 已删了这 7 条文案，外文页面会显示中文，必要时再对线上推一次旧版原文）：
+
+```bash
+W=/root/mx-space/yozora-web
+# 先核对 current 仍是 f6eb00f
+docker stop yozora-web && docker rename yozora-web yozora-web-f6eb00f-stopped
+ln -sfn $W/releases/eca3309 $W/current && docker rename yozora-web-pre-f6eb00f yozora-web && docker start yozora-web
+```
+
+回滚要用的 `releases/eca3309`、容器 `yozora-web-pre-f6eb00f` 先别删；更早的版本和停着的旧容器留给站长自己清（服务器磁盘已用 90%，剩约 3.1G）。
