@@ -537,3 +537,23 @@ ln -sfn $W/releases/b8073ae $W/current && docker rename yozora-web-pre-acb3229 y
 ```
 
 回滚要用的 `releases/b8073ae`、容器 `yozora-web-pre-acb3229` 先别删；更早的版本和停着的旧容器留给站长自己清。
+
+## 2026-11-14 已做：首页第一屏下面那块和首屏一起到（8fc7205）
+
+站长说“现在部署”后执行，**只换 beta 前台**（acb3229 之后只改了首页、读取动画和 blog-data，依赖、Core、后台、界面文字都没变，没有推原文）：首页第一屏下面不再放小火箭（7736722）；最新文章、手记、碎碎念、最近发生的事改读 Next 缓存的 `getHomeFeed`，生产构建时预渲染进页面骨架，和首屏一起发出，往下滑不用再等（8fc7205）。
+
+- 备份：服务器 `/root/backups/yozora-8fc7205/`（`mongo.archive.gz` 39 个集合 2.1MB，试还原通过；`web.env.before`；`yozora-web-inspect.json`）。`backup.sh`、`switch-web.sh` 由上一版只换版本号生成（diff 只有版本号），都用 `nohup` 跑。注意：在 SSH 命令里用 `pgrep -f <路径>` 判断脚本是否还在跑会匹配到这条 SSH 命令自己，永远是“还在跑”，要看日志末尾的 `BACKUP_OK` / `WEB_READY`。
+- 构建：本机临时 worktree `/tmp/yozora-build`（8fc7205），一次成功，单 worker 预渲染 86 页 22 秒，包 77MB；包里 `zh.html` 带 `data-dpl-id="8fc7205"`，首屏下面那块就在骨架里、没有等待占位。
+- **前台**：`releases/8fc7205`（以 `releases/acb3229` 为 `--copy-dest`；`server.js` SHA-256 `46a07873…` 与本机一致），5 秒就绪。服务器本机 14 个地址 200（含 /en、/ja、RSS、分享图）、`data-dpl-id="8fc7205"`、robots 仍整站禁止，日志无报错，容器约 180MB / 400MB。
+- 验证（公网 beta）：`WEB_URL=https://beta.sin6626.me node scripts/e2e/home-first-html.mjs` 通过（对旧版 beta 是失败的）；无头浏览器只读打开首页：时间线 10 条、碎碎念、最近发生的事 12 条，没有占位和小火箭，无脚本报错。
+
+回滚（只有前台）：
+
+```bash
+W=/root/mx-space/yozora-web
+# 先核对 current 仍是 8fc7205
+docker stop yozora-web && docker rename yozora-web yozora-web-8fc7205-stopped
+ln -sfn $W/releases/acb3229 $W/current && docker rename yozora-web-pre-8fc7205 yozora-web && docker start yozora-web
+```
+
+回滚要用的 `releases/acb3229`、容器 `yozora-web-pre-8fc7205` 先别删；更早的版本和停着的旧容器留给站长自己清（服务器磁盘已用 87%，剩约 3.7G，每个前台版本约 190MB）。
