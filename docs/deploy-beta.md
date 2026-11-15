@@ -633,3 +633,28 @@ ssh -i ~/.ssh/id_ed25519_windows root@38.95.74.213 'cd /root/mx-space/yozora-web
 ```
 
 以后每次部署前台完成并验证后，上上个版本的目录和停着的容器都可以清掉（同样的做法），只留当前和一个回滚。
+
+## 2026-11-15 已做：带密码的手记“标题加锁”上线（b9f89e9）
+
+站长说“现在部署”后执行，**换 Core 和 beta 前台，后台不动**（d279e08 之后 Core 只改了这一处；后台没改）：Core 的访客手记列表、话题列表、某篇前后的列表、详情的前后手记和时间线照常列出带密码的手记，只给标题、日期、心情天气、话题、回忆项、阅读点赞数并标 `locked: true`；前台在标题前加一把小锁，列表摘要位置写“上了锁，输入密码才能读”，RSS、站点地图不收。
+
+- 顺序：先换前台、再换 Core。新前台对旧 Core 是兼容的（旧 Core 不给 locked，列表照旧没有加密手记）；反过来先换 Core 的话，旧前台会把加密手记标题放进 RSS 几分钟。
+- 备份：服务器 `/root/backups/yozora-b9f89e9/`（`mongo.archive.gz` 39 个集合 2.1MB，试还原通过；`compose-before.yml`；`web.env.before`；`yozora-web-inspect.json`；`core-main.sha256`）。`backup.sh`、`switch-core.sh` 由 d279e08 的脚本只换版本号生成（`sed -e s/d279e08/b9f89e9/g -e s/6f72016/d279e08/g`），`switch-web.sh` 由 f6eb00f 的生成（`s/f6eb00f/b9f89e9/g; s/eca3309/f6eb00f/g`），diff 都只有版本号；都用 `nohup` 跑，判断结束用 `pgrep -f "^bash <脚本路径>"`（锚在开头，不会匹配到 SSH 命令自己）。
+- 构建：本机临时 worktree `/tmp/yozora-build`（b9f89e9）。前台单 worker 预渲染 86 页 50 秒，包 77MB；Core `pnpm build:sdk && pnpm --filter @mx-space/core build`，`out` 60MB，入口 `main.mjs` SHA-256 `5ed648de…`。坑：rsync 只建最后一层目录，`core-image-<版本>/out/` 的父目录要先 `mkdir -p`，否则六次重试全失败。
+- **Core**：`/root/mx-space/core-image-b9f89e9/`（以 `core-image-d279e08/out` 为 `--copy-dest`，Dockerfile 与上一版相同），镜像 `yozora/mx-server:b9f89e9`，容器里入口哈希一致；停机 17 秒，healthy，清了 Redis `mx-api-cache:*`（3 个）。
+- **前台**：`releases/b9f89e9`（以 `releases/f6eb00f` 为 `--copy-dest`，`server.js` 哈希一致），12 秒就绪。服务器本机 10 个地址 200，两个容器日志无报错；前台约 298MB / 400MB，Core 约 307MB，服务器可用约 640MB，磁盘剩 6.4G。
+- 界面文字：`push-i18n-source.mjs --prod`，新增 2（`entry.locked`、`entry.lockedHint`）。
+- 验证（公网，只读）：Core `/notes` 里《自我怀疑》（nid 12）`locked: true`、只有安全字段，访客 `select` 里要 text/content/+password/location 也没有；`/notes/nid/12` 仍 403；话题列表、时间线同样只有标题等；`/notes/latest` 仍是 11；搜索搜不到。beta 无头浏览器：手记列表带锁和提示、没有阅读时长，时间线、11 号手记的“较新”卡片带锁，首页手记在旧缓存过期后（约 5 分钟）带锁，`/notes/12` 是锁页，RSS 和站点地图不含它，无脚本报错；旧 Shiro 与后台 200。
+
+回滚（前台和 Core 一起回，否则旧前台会把加密手记标题放进 RSS）：
+
+```bash
+B=/root/backups/yozora-b9f89e9; W=/root/mx-space/yozora-web
+# Core（约 20 秒）
+cp -p $B/compose-before.yml /root/mx-space/core/docker-compose.yml && cd /root/mx-space/core && docker compose up -d --no-deps app
+# 前台：先核对 current 仍是 b9f89e9
+docker stop yozora-web && docker rename yozora-web yozora-web-b9f89e9-stopped
+ln -sfn $W/releases/f6eb00f $W/current && docker rename yozora-web-pre-b9f89e9 yozora-web && docker start yozora-web
+```
+
+回滚要用的 `releases/f6eb00f`、容器 `yozora-web-pre-b9f89e9`、镜像 `yozora/mx-server:d279e08` 先别删。服务器上旧的 Core 构建目录 `core-image-*`（20261104 到 d279e08）和上一版回滚留下的 `releases/eca3309`、容器 `yozora-web-pre-f6eb00f` 现在都用不上了，留给站长决定清不清。
