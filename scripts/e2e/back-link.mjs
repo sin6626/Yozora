@@ -50,10 +50,18 @@ try {
   const y = await b.evaluate("scrollY");
   assert.ok(Math.abs(y - fromHome.y) < 80, `回去停在原来的位置（原来 ${fromHome.y}，现在 ${y}）`);
 
-  // ② 从时间线点进手记：“← 返回时间线”
+  // ② 从时间线点进手记：“← 返回时间线”。带锁的手记（线上有）点进去是锁页，锁页也要有返回；接着的 ②b 要用左侧时间线，所以挑没锁的那篇
+  const lockedNote = '.timeline-list li:has(.locked-mark) a.card-link[href^="/notes/"]';
+  const openNote = '.timeline-list li:not(:has(.locked-mark)) a.card-link[href^="/notes/"]';
   await b.goto(`${web}/timeline`, 3000);
-  assert.ok(await waitFor(`Boolean(document.querySelector('.timeline-list a.card-link[href^="/notes/"]')?.checkVisibility())`), "时间线有手记");
-  await open('.timeline-list a.card-link[href^="/notes/"]');
+  assert.ok(await waitFor(`Boolean(document.querySelector('${openNote}')?.checkVisibility())`), "时间线有手记");
+  if (await b.evaluate(`Boolean(document.querySelector('${lockedNote}'))`)) {
+    await open(lockedNote);
+    assert.ok(await waitFor(`Boolean(document.querySelector(".note-lock")?.checkVisibility()) && ${backLink}?.text === "返回时间线"`), `锁页写“返回时间线”：${JSON.stringify(await b.evaluate(backLink))}`);
+    await b.evaluate(`document.querySelector(".detail-back").click()`);
+    assert.ok(await waitFor(`location.pathname === "/timeline" && Boolean(document.querySelector('${openNote}')?.checkVisibility())`), "从锁页回到时间线");
+  }
+  await open(openNote);
   assert.ok(await waitFor(`${backLink}?.text === "返回时间线"`), `手记页写“返回时间线”：${JSON.stringify(await b.evaluate(backLink))}`);
 
   // ②b 从一篇手记点到另一篇（左侧时间线）：“← 返回上一页”。两边都有返回链接时，Next 在 useInsertionEffect 里 pushState，

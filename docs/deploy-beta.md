@@ -658,3 +658,20 @@ ln -sfn $W/releases/f6eb00f $W/current && docker rename yozora-web-pre-b9f89e9 y
 ```
 
 回滚要用的 `releases/f6eb00f`、容器 `yozora-web-pre-b9f89e9`、镜像 `yozora/mx-server:d279e08` 先别删。服务器上旧的 Core 构建目录 `core-image-*`（20261104 到 d279e08）和上一版回滚留下的 `releases/eca3309`、容器 `yozora-web-pre-f6eb00f` 现在都用不上了，留给站长决定清不清。
+
+## 2026-11-15 已做：详情页“返回来时的那一页”上线（5e8b859 → 782837b）
+
+站长说“现在部署”后执行，**只换 beta 前台**（b9f89e9 之后 Core、后台、依赖都没变）：文章、手记、页面从站内点进来时，标题上方面包屑左边有“← 返回首页 / 时间线 / 搜索结果……”，点了走浏览器后退；窄屏阅读工具条最前面也有返回。
+
+- 第一次（5e8b859）：备份 `/root/backups/yozora-5e8b859/`（39 个集合，试还原通过），`backup.sh` 由 f6eb00f 的只换前台版生成、`switch-web.sh` 由 b9f89e9 的生成（diff 只有版本号）；`releases/5e8b859` 以 `releases/b9f89e9` 为 `--copy-dest`，3 秒就绪；界面文字推了 3 条（`list.backTo/backSearch/backPrevious`）。
+- 在 beta 上跑 `WEB_URL=https://beta.sin6626.me node scripts/e2e/back-link.mjs` 发现：线上时间线最新一篇是加密手记《自我怀疑》，点进去的锁页没有返回（本地没有加密手记所以没测到）。修好（782837b，锁页同样放返回；e2e note-locked.mjs 加了检查）后再部署：备份 `/root/backups/yozora-782837b/`（试还原通过），`releases/782837b` 以 `releases/5e8b859` 为 `--copy-dest`，`server.js` 哈希 `6988aad8…` 一致，3 秒就绪。
+- 验证（公网 beta，无头浏览器只读）：back-link.mjs 全部通过（首页、时间线、搜索结果来的文字与回到原位置，时间线点加密手记的锁页写“返回时间线”且能回去，手记到手记写“上一页”且不报错，站外直接打开不显示，宽屏侧栏不放，手机菜单进页面后标题上方和工具条都有返回）。服务器本机页面 200、日志无报错，容器约 233MB / 400MB，磁盘剩 6.0G。
+
+回滚（只有前台）：
+
+```bash
+W=/root/mx-space/yozora-web
+# 先核对 current 仍是 782837b；回到 5e8b859（锁页没有返回），再往前是 b9f89e9（没有返回链接，容器 yozora-web-pre-5e8b859）
+docker stop yozora-web && docker rename yozora-web yozora-web-782837b-stopped
+ln -sfn $W/releases/5e8b859 $W/current && docker rename yozora-web-pre-782837b yozora-web && docker start yozora-web
+```
