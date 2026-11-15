@@ -10,6 +10,7 @@ import Comments from "./comments";
 import { ArticleAiNotes, loadArticleAi } from "./article-ai";
 import { getT } from "../lib/i18n/server";
 import LoadError from "./load-error";
+import BackLink from "./back-link";
 
 // 后台“页面”（如关于我、关于本站），地址是 /<slug>。
 export default async function PageDetail({ params }: { params: Promise<{ slug: string }> }) {
@@ -39,6 +40,7 @@ export default async function PageDetail({ params }: { params: Promise<{ slug: s
       <ArticleNotifications id={page.id} kind="page" />
       <IslandReading title={body.title} kind="page" />
       <header className="page-heading">
+        <div className="detail-top"><BackLink /></div>
         <h1 lang={ai.original}>{body.title}</h1>
         {subtitle && <p className="post-meta" lang={ai.original}>{subtitle}</p>}
       </header>

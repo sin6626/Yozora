@@ -1,12 +1,13 @@
 "use client";
 
 import { Popover } from "@base-ui/react/popover";
-import { ArrowUp, Bell, Heart, ListTree, Share2 } from "lucide-react";
+import { ArrowLeft, ArrowUp, Bell, Heart, ListTree, Share2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useIsland } from "../lib/island-store";
 import { useArticleLike } from "../lib/use-article-like";
 import { useT } from "./locale-provider";
 import ArticleToc, { useTocEntries } from "./article-toc";
+import { useBackTarget } from "./back-link";
 import SubscribePopover from "./subscribe-popover";
 import { realHref } from "../lib/address-typing";
 import "./subscribe-popover.css";
@@ -16,7 +17,8 @@ type Like = { apiUrl: string; id: string; type: "post" | "note"; count: number }
 
 // 文章目录下面的一排操作（参考 Shiro 的 PostActionAside，做了改动）：喜欢、评论（边读边聊的悬浮窗）、分享、订阅，再加一个 Shiro 没有的“回到顶部”。
 // 回到顶部的按钮外面套着阅读进度环（读的是页头夜航岛同一份进度），读得越多画得越满；还在页面顶部时淡出隐藏。
-// 宽度不到 90rem 时侧栏放不下，这一排变成右下角的悬浮胶囊（article-actions.css），最前面多一个目录按钮（侧栏里的目录这时隐藏）；
+// 宽度不到 90rem 时侧栏放不下，这一排变成右下角的悬浮胶囊（article-actions.css），最前面多一个返回按钮（从站内点进来时，同标题上方的返回）
+// 和一个目录按钮（侧栏里的目录这时隐藏）；
 // 往下读时胶囊收起不挡正文，往上滚、滚到底或有浮层开着时出现（参考 Shiro 的 TocFAB、BackToTopFAB，样子是自己的）。
 // comments：评论悬浮窗（comment-chat.tsx，服务端组件，作为节点传进来）
 export default function ArticleActions({ title, like, comments, subscribe }: {
@@ -31,6 +33,7 @@ export default function ArticleActions({ title, like, comments, subscribe }: {
 
   return (
     <div className="article-actions" role="group" aria-label={t.group} data-tucked={tucked ? "" : undefined}>
+      <BackButton />
       <TocButton />
       {like && <LikeButton like={like} />}
       {comments}
@@ -68,6 +71,17 @@ function useTuckOnScroll() {
     };
   }, []);
   return tucked;
+}
+
+// 窄屏的返回按钮：去处和标题上方的“← 返回…”一样（back-link.tsx），宽屏不显示
+function BackButton() {
+  const target = useBackTarget();
+  if (!target) return null;
+  return (
+    <button type="button" className="article-action is-back" aria-label={target.label} title={target.label} onClick={() => history.back()}>
+      <ArrowLeft size={18} strokeWidth={1.75} aria-hidden="true" />
+    </button>
+  );
 }
 
 // 窄屏的目录按钮：浮层里是和侧栏同一个目录组件（当前章节高亮），点某一节跳过去并收起浮层。正文没有标题时不显示。

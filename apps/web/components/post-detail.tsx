@@ -17,6 +17,7 @@ import "./post-detail.css";
 import { Suspense } from "react";
 import Comments from "./comments";
 import LoadError from "./load-error";
+import BackLink from "./back-link";
 
 export default async function PostDetail({ params }: { params: Promise<{ category: string; slug: string }> }) {
   const route = await params;
@@ -46,10 +47,13 @@ export default async function PostDetail({ params }: { params: Promise<{ categor
       <ArticleNotifications id={post.id} kind="post" />
       <IslandReading title={body.title} kind="post" date={formatDate(post.created)} />
       <header className="page-heading">
-        <nav className="detail-crumb" aria-label={t.list.crumb}>
-          <Link href="/posts">{t.posts.title}</Link>
-          {post.category && <><span aria-hidden="true">/</span><Link href={`/categories/${encodeURIComponent(post.category.slug)}`}>{post.category.name}</Link></>}
-        </nav>
+        <div className="detail-top">
+          <BackLink />
+          <nav className="detail-crumb" aria-label={t.list.crumb}>
+            <Link href="/posts">{t.posts.title}</Link>
+            {post.category && <><span aria-hidden="true">/</span><Link href={`/categories/${encodeURIComponent(post.category.slug)}`}>{post.category.name}</Link></>}
+          </nav>
+        </div>
         <h1 className="post-detail-title" lang={ai.original}>{body.title}</h1>
         <div className="post-meta detail-meta">
           <time dateTime={post.created}>{formatDate(post.created)}</time>

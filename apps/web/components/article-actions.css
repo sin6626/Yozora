@@ -149,9 +149,23 @@
   }
 }
 
-/* 宽屏目录就在侧栏里，不需要目录按钮 */
+/* 手机（不到 30rem）：胶囊里多了返回按钮、最多七格，按钮从 40px 收到 36px，胶囊仍在屏幕右边三分之二以内（e2e reading-tools.mjs） */
+@media (width < 30rem) {
+  .article-action {
+    min-width: 2.25rem;
+    height: 2.25rem;
+    padding: 0 var(--space-1);
+  }
+
+  .article-action.is-top {
+    width: 2.25rem;
+    padding: 0;
+  }
+}
+
+/* 宽屏目录就在侧栏里，不需要目录按钮；返回在标题上方，侧栏里也不放 */
 @media (min-width: 90rem) {
-  .article-action.is-toc {
+  .article-action:is(.is-toc, .is-back) {
     display: none;
   }
 }

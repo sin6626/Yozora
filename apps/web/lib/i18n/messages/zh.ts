@@ -270,6 +270,10 @@ const zh = {
     toc: "目录",
   },
   list: {
+    // 详情页“返回来时的那一页”（components/back-link.tsx）：回到首页、文章、手记、时间线这些列表时写它们的名字，搜索结果写“搜索结果”，其余写“上一页”
+    backTo: msg<[place: string]>("返回{place}"),
+    backSearch: "搜索结果",
+    backPrevious: "上一页",
     retry: "重试",
     failed: msg<[what: string]>("{what}读取失败。"),
     genericFailed: "读取失败，请稍后重试。",
