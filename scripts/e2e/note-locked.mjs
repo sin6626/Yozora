@@ -104,6 +104,8 @@ try {
   assert.ok(await waitFor(browser, `document.querySelector('.entry a[href$="${href}"]')?.checkVisibility() === true`, 40000), "点之前列表还在");
   await browser.evaluate(`document.querySelector('.entry a[href$="${href}"]').click()`);
   assert.ok(await waitFor(browser, `document.querySelector(".note-lock")?.checkVisibility() === true`, 40000), "点进去是锁页");
+  // 锁页也有“返回来时的那一页”（back-link.tsx）：从手记列表点进来写“返回手记”
+  assert.ok(await waitFor(browser, `document.querySelector(".detail-back")?.innerText.trim() === "返回手记"`, 20000), `锁页有“← 返回手记”：${await browser.evaluate(`document.querySelector(".detail-back")?.innerText ?? null`)}`);
   // 首页手记、时间线（都在 Next 缓存里，靠上面的 Webhook 更新）
   const lockedLink = (selector) => `(() => { const a = document.querySelector('${selector} a[href$="${href}"]'); return Boolean(a?.checkVisibility() && a.closest("li")?.querySelector(".locked-mark svg")?.checkVisibility()) })()`;
   await browser.goto(`${base}/`, 3000);

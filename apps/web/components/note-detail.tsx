@@ -38,7 +38,10 @@ export default async function NoteDetail({ params }: { params: Promise<{ nid: st
     return (
       <article className="post-detail">
         <header className="page-heading">
-          <nav className="detail-crumb" aria-label={t.list.crumb}><Link href="/notes">{t.notes.title}</Link></nav>
+          <div className="detail-top">
+            <BackLink />
+            <nav className="detail-crumb" aria-label={t.list.crumb}><Link href="/notes">{t.notes.title}</Link></nav>
+          </div>
         </header>
         <NoteUnlock nid={Number(rawNid)} />
       </article>
