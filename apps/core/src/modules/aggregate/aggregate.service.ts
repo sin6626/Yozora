@@ -228,34 +228,8 @@ export class AggregateService {
           })),
         )
 
-    const getNotes = () =>
-      this.noteService.model
-        .find(
-          // 与 RSS 一致：访客不应看到加密手记和尚未到公开时间的定时手记。
-          {
-            isPublished: true,
-            ...addYearCondition(year),
-            $and: [
-              {
-                $or: [
-                  { password: undefined },
-                  { password: { $exists: false } },
-                  { password: null },
-                ],
-              },
-              {
-                $or: [
-                  { publicAt: { $lte: new Date() } },
-                  { publicAt: { $exists: false } },
-                  { publicAt: null },
-                ],
-              },
-            ],
-          },
-          '_id nid title weather mood created modified bookmark',
-        )
-        .sort({ created: sortBy })
-        .lean()
+    // 手记按列表规则（带密码的也列出来、只给标题并标 locked，定时公开的到点前不露），规则在 NoteService.getTimelineNotes
+    const getNotes = () => this.noteService.getTimelineNotes(addYearCondition(year), sortBy)
 
     switch (type) {
       case TimelineType.Post: {

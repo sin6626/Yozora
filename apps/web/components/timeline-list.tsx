@@ -5,6 +5,7 @@ import { formatDate } from "../lib/date";
 import { htmlLang } from "../lib/i18n/config";
 import { getLocale, getT } from "../lib/i18n/server";
 import LoadError from "./load-error";
+import LockedMark from "./locked-mark";
 import Reveal from "./reveal";
 import type { CSSProperties } from "react";
 import "./timeline.css";
@@ -34,7 +35,7 @@ function MonthLabel({ month, locale }: { month: number; locale: string }) {
 // 每个月进入视野时播一次：竖线从上往下画出，画到哪条哪颗星亮、那条浮上（timeline.css）。
 export default async function TimelineList({ kind }: { kind?: Item["kind"] }) {
   const view = views.find((item) => item.kind === kind) ?? views[0];
-  const [{ timeline: t, posts, notes }, locale] = await Promise.all([getT(), getLocale()]);
+  const [{ timeline: t, posts, notes, entry }, locale] = await Promise.all([getT(), getLocale()]);
   const label = (item: (typeof views)[number]) => (item.kind === "post" ? posts.title : item.kind === "note" ? notes.title : t.all);
   let all: Item[];
   try {
@@ -91,7 +92,7 @@ export default async function TimelineList({ kind }: { kind?: Item["kind"] }) {
                     <li key={`${item.kind}-${item.id}`} className="timeline-item" data-kind={item.kind} style={{ "--i": index } as CSSProperties}>
                       <span className="timeline-node" aria-hidden="true" />
                       <time dateTime={item.created}>{t.day(day)}</time>
-                      <Link className="card-link" href={href(item)}>{item.title}</Link>
+                      <Link className="card-link" href={href(item)}>{item.kind === "note" && item.locked && <LockedMark label={entry.locked} />}{item.title}</Link>
                       <span className="post-meta">{item.kind === "post" ? item.category.name : t.note}</span>
                     </li>
                   ))}

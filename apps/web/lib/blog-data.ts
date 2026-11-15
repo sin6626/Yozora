@@ -273,7 +273,12 @@ export async function getPost(category: string, slug: string, lang: ContentLang 
 // 列表里的一篇手记：普通列表（getNotes）和话题、搜索的结果（getMatchedNotes）共用。手记没有手写摘要字段：AI 摘要 → 正文开头
 type ListedNote = Awaited<ReturnType<ReturnType<typeof getApiClient>["note"]["getList"]>>["data"][number];
 
+// 带密码的手记（2026-11-15 站长定“标题加锁”）：Core 的访客列表、话题、时间线、前后手记里照常列出，但只给标题等几项并标 locked: true，
+// 正文要到详情页输密码才能读。SDK 的类型里没有这个字段。RSS、站点地图不收它们。
+const isLocked = (note: object) => (note as { locked?: boolean }).locked === true;
+
 async function noteEntry(note: ListedNote, lang: ContentLang) {
+  const locked = isLocked(note);
   return {
     id: note.id,
     nid: note.nid,
@@ -285,8 +290,10 @@ async function noteEntry(note: ListedNote, lang: ContentLang) {
     // 后台“回忆项”：列表里用和置顶文章一样的北极星卡片，但不挪位置
     bookmark: Boolean(note.bookmark),
     original: lang !== "zh" && !(note as { isTranslated?: boolean }).isTranslated,
-    excerpt: await listExcerpt(note.id, null, note.text, lang),
-    stats: { minutes: readingMinutes(note.text), reads: note.count?.read ?? 0, likes: note.count?.like ?? 0 },
+    // 上锁的不给摘要（AI 摘要也不去读）和阅读时长（会透露篇幅）
+    locked,
+    excerpt: locked ? null : await listExcerpt(note.id, null, note.text, lang),
+    stats: locked ? null : { minutes: readingMinutes(note.text), reads: note.count?.read ?? 0, likes: note.count?.like ?? 0 },
   };
 }
 
@@ -298,7 +305,7 @@ export async function getNotes(page: number, lang: ContentLang = "zh") {
 
 // RSS（feed.xml）：最新 10 篇文章 + 手记按发布时间合并取 10 条（和 Shiro 读的 Core /aggregate/feed 同样多）。
 // 正文 text 是 Markdown：Lexical 富文本保存时 Core 会同步生成 Markdown 版（populateText），所以两种格式都用它。
-// 列表接口本身就过滤了草稿、加密和定时手记；文章按 created 排，不让置顶的旧文章占位。描述同列表摘要：AI 摘要 → 手写摘要 → 正文开头。
+// 列表接口本身就过滤了草稿和定时手记；带密码的手记列表里只有标题（locked），这里去掉；文章按 created 排，不让置顶的旧文章占位。描述同列表摘要：AI 摘要 → 手写摘要 → 正文开头。
 export async function getFeedItems() {
   "use cache";
   cacheLife({ stale: 60, revalidate: 300, expire: 300 });
@@ -311,7 +318,7 @@ export async function getFeedItems() {
     ...posts.data.flatMap((post) => post.category
       ? [{ id: post.id, summary: post.summary, text: post.text, title: post.title, path: ["posts", post.category.slug, post.slug], created: post.created, category: post.category.name }]
       : []),
-    ...notes.data.map((note) => ({ id: note.id, summary: null, text: note.text, title: note.title, path: ["notes", String(note.nid)], created: note.created, category: "手记" })),
+    ...notes.data.filter((note) => !isLocked(note)).map((note) => ({ id: note.id, summary: null, text: note.text, title: note.title, path: ["notes", String(note.nid)], created: note.created, category: "手记" })),
   ].sort((a, b) => Date.parse(b.created) - Date.parse(a.created)).slice(0, 10);
   return Promise.all(items.map(async ({ id, summary, text, ...item }) => ({
     ...item,
@@ -320,7 +327,7 @@ export async function getFeedItems() {
   })));
 }
 
-// 同 getPostIndex：公开列表里的全部手记（加密手记不在里面，话题和搜索结果里也就不会出现）。
+// 同 getPostIndex：公开列表里的全部手记（带密码的只有标题、标 locked；搜索结果里没有它们，Core 搜索不收）。
 async function getNoteIndex(lang: ContentLang) {
   "use cache";
   cacheLife({ stale: 60, revalidate: 300, expire: 300 });
@@ -363,7 +370,7 @@ export async function getNote(nid: number, lang: ContentLang = "zh") {
   const { data: note, prev, next } = result;
   // Mix Space 的 prev 是更新的一篇，next 是更早的一篇。
   const link = (item?: { id?: string; nid?: number; title?: string }) =>
-    item?.nid && item.title ? { nid: item.nid, title: (item.id && names?.titles[item.id]) || item.title } : null;
+    item?.nid && item.title ? { nid: item.nid, title: (item.id && names?.titles[item.id]) || item.title, locked: isLocked(item) } : null;
   return {
     locked: false as const,
     id: note.id,
@@ -427,7 +434,7 @@ export async function getThemeConfig(): Promise<unknown> {
   return data === null ? null : JSON.parse(JSON.stringify(data));
 }
 
-// 时间线：全部已发布文章与公开手记，只取标题、日期和拼链接的字段，按发布时间倒序合并。
+// 时间线：全部已发布文章与公开手记（带密码的手记也在，标 locked），只取标题、日期和拼链接的字段，按发布时间倒序合并。
 // stale 要 ≥ 300：首页缓存 getHomeFeed 用它换算文章地址，里层短于 5 分钟会把外层也拉成“短期”，Next 就不把首页下面那块放进页面骨架（getLocalizedNames 同理）。
 export async function getTimeline(lang: ContentLang = "zh") {
   "use cache";
@@ -440,7 +447,7 @@ export async function getTimeline(lang: ContentLang = "zh") {
   const posts = (data.posts ?? []).flatMap((post) => post.category
     ? [{ kind: "post" as const, id: post.id, title: title(post.id, post.title), titleLang: titleLang(post.id), created: post.created, category: { name: names?.categories[post.category.slug] ?? post.category.name, slug: post.category.slug }, slug: post.slug }]
     : []);
-  const notes = (data.notes ?? []).map((note) => ({ kind: "note" as const, id: note.id, title: title(note.id, note.title), titleLang: titleLang(note.id), created: note.created, nid: note.nid }));
+  const notes = (data.notes ?? []).map((note) => ({ kind: "note" as const, id: note.id, title: title(note.id, note.title), titleLang: titleLang(note.id), created: note.created, nid: note.nid, locked: isLocked(note) }));
   return [...posts, ...notes].sort((a, b) => Date.parse(b.created) - Date.parse(a.created));
 }
 
@@ -763,7 +770,7 @@ export async function searchNotes(keyword: string, lang: ContentLang = "zh") {
   const [{ data, pagination }, names] = await Promise.all([(await getLiveApiClient()).search.search("note", keyword), localizedNames(lang)]);
   return {
     total: pagination.total,
-    data: data.map((note) => ({ id: note.id, nid: note.nid, title: names?.titles[note.id] ?? note.title, titleLang: lang !== "zh" && !names?.titles[note.id] ? ("zh-CN" as const) : undefined, created: note.created })),
+    data: data.map((note) => ({ id: note.id, nid: note.nid, title: names?.titles[note.id] ?? note.title, titleLang: lang !== "zh" && !names?.titles[note.id] ? ("zh-CN" as const) : undefined, created: note.created, locked: isLocked(note) })),
   };
 }
 
@@ -809,7 +816,7 @@ export async function getNotesByTopic(topicId: string, lang: ContentLang = "zh")
   const [{ data, pagination }, names] = await Promise.all([getApiClient().note.getNoteByTopicId(topicId, 1, 50, { sortBy: "created", sortOrder: -1 }), localizedNames(lang)]);
   return {
     total: pagination.total,
-    data: data.map((note) => ({ id: note.id, nid: note.nid, title: names?.titles[note.id] ?? note.title, titleLang: lang !== "zh" && !names?.titles[note.id] ? ("zh-CN" as const) : undefined, created: note.created })),
+    data: data.map((note) => ({ id: note.id, nid: note.nid, title: names?.titles[note.id] ?? note.title, titleLang: lang !== "zh" && !names?.titles[note.id] ? ("zh-CN" as const) : undefined, created: note.created, locked: isLocked(note) })),
   };
 }
 
@@ -817,7 +824,7 @@ export async function getNotesByTopic(topicId: string, lang: ContentLang = "zh")
 // 首页面板的“此间”三个数字取 Core 的 /aggregate/site_info（文章数、手记数、全站字数、第一篇发布日期；SDK 会把字段转成驼峰），
 // 文章面板按分类列出篇数和各分类最近 5 篇，手记面板按话题列出篇数和各话题最近 5 篇，时间线面板列出近期文章与手记。
 // 建站天数在缓存函数里按当时时间算，最多晚一个缓存周期（1 小时）变化，跨零点那一会儿可能差一天。
-export type NavigationEntry = { id: string; title: string; created: string; href: string; kind: "post" | "note" };
+export type NavigationEntry = { id: string; title: string; created: string; href: string; kind: "post" | "note"; locked?: boolean };
 
 export async function getNavigationPanels(lang: ContentLang = "zh") {
   "use cache";
@@ -837,6 +844,7 @@ export async function getNavigationPanels(lang: ContentLang = "zh") {
     href: item.kind === "post"
       ? `/posts/${encodeURIComponent(item.category.slug)}/${encodeURIComponent(item.slug)}`
       : `/notes/${item.nid}`,
+    locked: item.kind === "note" && item.locked,
   });
   const posts = timeline.filter((item) => item.kind === "post");
   const topicNotes = await Promise.all(topics.map((topic) => getNotesByTopic(topic.id, lang).catch(() => ({ data: [] }))));
@@ -861,7 +869,7 @@ export async function getNavigationPanels(lang: ContentLang = "zh") {
       icon: topic.icon,
       count: topic.count,
       href: `/notes?topic=${encodeURIComponent(topic.slug)}`,
-      recent: topicNotes[index].data.slice(0, 5).map((note): NavigationEntry => ({ id: note.id, title: note.title, created: note.created, kind: "note", href: `/notes/${note.nid}` })),
+      recent: topicNotes[index].data.slice(0, 5).map((note): NavigationEntry => ({ id: note.id, title: note.title, created: note.created, kind: "note", href: `/notes/${note.nid}`, locked: note.locked })),
     })),
     recentNotes: timeline.filter((item) => item.kind === "note").slice(0, 5).map(entry),
     recentPosts: posts.slice(0, 5).map(entry),

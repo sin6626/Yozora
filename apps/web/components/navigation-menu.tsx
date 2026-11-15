@@ -17,6 +17,7 @@ import SocialTooltip, { SocialTooltipGroup } from "./social-tooltip";
 import MobileMenu from "./mobile-menu";
 import RollText from "./roll-text";
 import "./navigation-menu.css";
+import LockedMark from "./locked-mark";
 
 // note：后台页面的副标题（首页面板里页面名下面那句）
 type NavigationLink = { label: string; href: string; note?: string };
@@ -79,7 +80,8 @@ function PanelLink({ href, className, children, current, external, label }: { hr
 
 // 一条条“月·日 标题 [类型]”的近期列表
 function EntryList({ entries, pathname, showKind }: { entries: NavigationEntry[]; pathname: string; showKind?: boolean }) {
-  const t = useT().nav;
+  const messages = useT();
+  const t = messages.nav;
   if (!entries.length) return <p className="nav-panel-empty">{t.empty}</p>;
   return (
     <ul className="nav-entries">
@@ -87,7 +89,7 @@ function EntryList({ entries, pathname, showKind }: { entries: NavigationEntry[]
         <li key={entry.id}>
           <PanelLink href={entry.href} className="nav-entry" current={pathname === entry.href}>
             <time dateTime={entry.created}>{monthDay(entry.created)}</time>
-            <span className="nav-entry-title">{entry.title}</span>
+            <span className="nav-entry-title">{entry.locked && <LockedMark label={messages.entry.locked} />}{entry.title}</span>
             {showKind && <span className="nav-entry-kind">{entry.kind === "post" ? t.posts : t.notes}</span>}
           </PanelLink>
         </li>

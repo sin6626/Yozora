@@ -45,7 +45,7 @@ import {
   PartialNoteDto,
   SetNotePublishStatusDto,
 } from './note.schema'
-import { NoteService, publicNoteCondition } from './note.service'
+import { listedNoteCondition, NoteService } from './note.service'
 import { isNoteVisibleToVisitors } from './note-visibility.util'
 
 type NoteListItem = {
@@ -79,8 +79,8 @@ export class NoteController {
     lang?: string,
   ) {
     const { password, single: isSingle, prefer } = query
-    // 相邻手记只连访客能读的，加密和定时公开的标题也不露
-    const condition = isAuthenticated ? {} : publicNoteCondition()
+    // 相邻手记：带密码的也连上，但只给标题等（redactLockedNotes）；定时公开的到点前不露
+    const condition = isAuthenticated ? {} : listedNoteCondition()
 
     if (!isAuthenticated && this.noteService.checkNoteIsSecret(current)) {
       current.text = ''
@@ -151,7 +151,10 @@ export class NoteController {
     if (currentData.password) {
       currentData.password = '*'
     }
-    return { data: applyContentPreference(currentData, prefer), next, prev }
+    const [prevItem, nextItem] = isAuthenticated
+      ? [prev, next]
+      : await Promise.all([prev, next].map(async (item) => (item ? (await this.noteService.redactLockedNotes([item]))[0] : item)))
+    return { data: applyContentPreference(currentData, prefer), next: nextItem, prev: prevItem }
   }
 
   @Get('/')
@@ -171,6 +174,13 @@ export class NoteController {
     @Query() query: NoteQueryDto,
     @Lang() lang?: string,
   ) {
+    const result = await this.findNotes(isAuthenticated, query, lang)
+    // 访客：带密码的只留标题等，放在最后做，摘要、译文都不会漏出来
+    if (!isAuthenticated && result.docs?.length) result.docs = await this.noteService.redactLockedNotes(result.docs)
+    return result
+  }
+
+  private async findNotes(isAuthenticated: boolean, query: NoteQueryDto, lang?: string) {
     const {
       size,
       select,
@@ -186,7 +196,7 @@ export class NoteController {
     }
 
     if (!isAuthenticated) {
-      Object.assign(condition, this.noteService.publicNoteQueryCondition)
+      Object.assign(condition, listedNoteCondition())
     }
 
     // When withSummary, ensure text is fetched for translation + fallback, will be stripped later
@@ -402,9 +412,9 @@ export class NoteController {
     const half = size >> 1
     const { id } = params
     const select = 'nid _id title slug created isPublished modified'
-    const condition = isAuthenticated ? {} : publicNoteCondition()
+    const condition = isAuthenticated ? {} : listedNoteCondition()
 
-    // 访客只能从自己能读的手记查前后；加密、定时公开的连标题都不给
+    // 访客：带密码的也列出来但只给标题等（下面 redactLockedNotes）；定时公开的到点前连标题都不给
     const currentDocument = await this.noteService.model
       .findOne({ _id: id, ...condition })
       .select(select)
@@ -469,6 +479,7 @@ export class NoteController {
         return item
       },
     })
+    if (!isAuthenticated) data = await this.noteService.redactLockedNotes(data)
 
     return { data, size: data.length }
   }
@@ -625,7 +636,7 @@ export class NoteController {
     } = query
     const condition: QueryFilter<NoteModel> = isAuthenticated
       ? {}
-      : publicNoteCondition()
+      : listedNoteCondition()
 
     const result = await this.noteService.getNotePaginationByTopicId(
       id,
@@ -660,6 +671,8 @@ export class NoteController {
       },
     })
     result.docs = translatedDocs as typeof result.docs
+    // 访客：带密码的只留标题等，访客用 select 多要正文也拿不到
+    if (!isAuthenticated) result.docs = await this.noteService.redactLockedNotes(result.docs)
 
     return result
   }

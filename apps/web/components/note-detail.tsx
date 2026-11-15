@@ -1,5 +1,6 @@
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import Link from "./locale-provider";
+import LockedMark from "./locked-mark";
 import { notFound, unstable_rethrow } from "next/navigation";
 import { getNote } from "../lib/blog-data";
 import { formatDate } from "../lib/date";
@@ -73,8 +74,8 @@ export default async function NoteDetail({ params }: { params: Promise<{ nid: st
         {note.topic && <Suspense><NoteTopicCard topic={note.topic} noteId={note.id} /></Suspense>}
         {(note.newer || note.older) && (
           <nav className="neighbor-nav" aria-label={t.notes.neighbors}>
-            {note.newer ? <Link href={`/notes/${note.newer.nid}`}><span className="neighbor-label"><ArrowLeft size={14} aria-hidden="true" />{t.list.newer}</span><span className="neighbor-title">{note.newer.title}</span></Link> : <span />}
-            {note.older ? <Link className="is-older" href={`/notes/${note.older.nid}`}><span className="neighbor-label">{t.list.older}<ArrowRight size={14} aria-hidden="true" /></span><span className="neighbor-title">{note.older.title}</span></Link> : <span />}
+            {note.newer ? <Link href={`/notes/${note.newer.nid}`}><span className="neighbor-label"><ArrowLeft size={14} aria-hidden="true" />{t.list.newer}</span><span className="neighbor-title">{note.newer.locked && <LockedMark label={t.entry.locked} />}{note.newer.title}</span></Link> : <span />}
+            {note.older ? <Link className="is-older" href={`/notes/${note.older.nid}`}><span className="neighbor-label">{t.list.older}<ArrowRight size={14} aria-hidden="true" /></span><span className="neighbor-title">{note.older.locked && <LockedMark label={t.entry.locked} />}{note.older.title}</span></Link> : <span />}
           </nav>
         )}
         <Suspense fallback={<p className="post-meta" role="status">{t.list.loadingComments}</p>}>

@@ -26,7 +26,8 @@ export async function NoteEntry({ note, headingLevel = 2 }: { note: NoteEntryDat
       lang={note.original ? "zh-CN" : undefined}
       serif
       excerpt={note.excerpt}
-      stats={note.stats}
+      stats={note.stats ?? undefined}
+      locked={note.locked}
       featured={note.bookmark ? list.memory : undefined}
       tags={note.topic ? <EntryTag>{note.topic}</EntryTag> : undefined}
       meta={note.mood || note.weather ? <>

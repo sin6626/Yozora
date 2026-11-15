@@ -35,16 +35,28 @@ import { DraftService } from '../draft/draft.service'
 import { SlugTrackerService } from '../slug-tracker/slug-tracker.service'
 import { NoteModel } from './note.model'
 
-// 访客能看到的手记：已发布、没有密码、没有定时公开或公开时间已到（publicAt）。手记列表、搜索、前台 RSS 都用它。
+const reachedPublicAt = (now: Date) => ({ $or: [{ publicAt: null }, { publicAt: { $exists: false } }, { publicAt: { $lte: now } }] })
+
+// 访客能读的手记：已发布、没有密码、没有定时公开或公开时间已到（publicAt）。正文类的地方用它：最新一篇、搜索、RSS、最近动态、AI 摘要。
 export function publicNoteCondition(now = new Date()) {
   return {
     isPublished: true,
     $and: [
       { $or: [{ password: '' }, { password: undefined }, { password: null }] },
-      { $or: [{ publicAt: null }, { publicAt: { $exists: false } }, { publicAt: { $lte: now } }] },
+      reachedPublicAt(now),
     ],
   }
 }
+
+// 访客列表里能出现的手记（2026-11-15 站长定）：已发布、到了公开时间；带密码的也列出来，但只给标题等几项（redactLockedNotes），
+// 正文要输密码才能读。手记列表、话题列表、时间线、前后手记用它。定时公开的到点前仍然整篇不露。
+export function listedNoteCondition(now = new Date()) {
+  return { isPublished: true, $and: [reachedPublicAt(now)] }
+}
+
+// 带密码的手记在访客列表里只留这些：标题、日期、心情天气、话题、回忆项、阅读点赞数。正文、摘要、图片、附加字段、位置、密码一律不给，
+// 访客用 select 多要也一样（按白名单留，不按黑名单删）。
+const lockedNoteFields = ['_id', 'id', 'nid', 'title', 'created', 'modified', 'mood', 'weather', 'topic', 'topicId', 'bookmark', 'count', 'isPublished', 'isTranslated', 'translationMeta'] as const
 
 @Injectable()
 export class NoteService {
@@ -71,6 +83,35 @@ export class NoteService {
   // 每次读取都按当前时间算（原来是写死在服务启动那一刻、还按不存在的旧字段 secret 过滤，定时公开的手记会提前出现）
   public get publicNoteQueryCondition() {
     return publicNoteCondition()
+  }
+
+  // 访客列表用：把带密码的那几篇换成只有 lockedNoteFields 的条目并标上 locked: true。哪些有密码在库里查，不把密码读进文档
+  // （password 默认不读，读出来的文档上看不出有没有密码）。
+  public async redactLockedNotes<T extends object>(items: T[]): Promise<T[]> {
+    const idOf = (item: T) => String((item as { _id?: unknown })._id ?? (item as { id?: unknown }).id ?? '')
+    const ids = items.map(idOf).filter(isMongoId)
+    if (!ids.length) return items
+    const lockedIds = new Set(
+      (await this.noteModel.find({ _id: { $in: ids }, password: { $nin: [null, ''] } }, '_id').lean()).map((doc) => String(doc._id)),
+    )
+    if (!lockedIds.size) return items
+    return items.map((item) => {
+      const id = idOf(item)
+      if (!lockedIds.has(id)) return item
+      const source = typeof (item as { toObject?: unknown }).toObject === 'function' ? (item as unknown as { toObject: () => Record<string, unknown> }).toObject() : (item as Record<string, unknown>)
+      const entry: Record<string, unknown> = { id, locked: true }
+      for (const key of lockedNoteFields) if (source[key] !== undefined) entry[key] = source[key]
+      return entry as T
+    })
+  }
+
+  // 时间线里的手记（aggregate 的 getTimeline 用）：列表规则同 listedNoteCondition，只取标题、日期和拼链接的字段，带密码的标 locked
+  public async getTimelineNotes(condition: QueryFilter<NoteModel> = {}, sortBy: 1 | -1 = 1) {
+    const notes = await this.noteModel
+      .find({ ...listedNoteCondition(), ...condition }, '_id nid title weather mood created modified bookmark')
+      .sort({ created: sortBy })
+      .lean()
+    return this.redactLockedNotes(notes)
   }
 
   public checkNoteIsSecret(note: NoteModel) {

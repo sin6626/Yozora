@@ -540,7 +540,9 @@ describe('NoteController (e2e)', async () => {
   // 2026-11-12: a visitor could read a locked note in full (text, rich content, the plain password, location)
   // via GET /notes/:id, and see it in topic lists, neighbour lists and the "latest note" id.
   // Only GET /notes/nid/:nid with the right password may reveal a locked note to a visitor.
-  describe('visitors never see locked or scheduled notes', () => {
+  // 2026-11-15 站长定：带密码的手记照常出现在列表、时间线、前后手记里（标题加一把锁），正文、摘要、位置、密码都不给；
+  // 详情仍要密码。定时公开的到点前仍然整篇不露。
+  describe('visitors see locked notes as title-only entries and scheduled notes not at all', () => {
     const topicId = new Types.ObjectId().toString()
     const coordinates = { latitude: 22.5, longitude: 113.9 }
     const lexical = JSON.stringify({ root: { children: [], type: 'root', version: 1 } })
@@ -550,7 +552,7 @@ describe('NoteController (e2e)', async () => {
 
     beforeAll(async () => {
       open = await model.create({ title: 'Open diary', text: 'open body', topicId, isPublished: true, location: 'Campus', coordinates, created: new Date('2030-01-01T00:00:00.000Z') })
-      locked = await model.create({ title: 'Locked diary', text: 'locked body', contentFormat: 'lexical', content: lexical, password: 'pw12', topicId, isPublished: true, location: 'Dorm', coordinates, created: new Date('2030-01-02T00:00:00.000Z') })
+      locked = await model.create({ title: 'Locked diary', text: 'locked body', images: [{ src: 'https://img.test/locked-photo.jpg', width: 10, height: 10 }], meta: JSON.stringify({ cover: 'https://img.test/locked-cover.jpg' }), contentFormat: 'lexical', content: lexical, password: 'pw12', topicId, isPublished: true, location: 'Dorm', coordinates, mood: 'calm', created: new Date('2030-01-02T00:00:00.000Z') })
       scheduled = await model.create({ title: 'Scheduled diary', text: 'future body', contentFormat: 'lexical', content: lexical, publicAt: new Date(Date.now() + 86_400_000), topicId, isPublished: true, created: new Date('2030-01-03T00:00:00.000Z') })
     })
     afterAll(async () => {
@@ -558,7 +560,12 @@ describe('NoteController (e2e)', async () => {
     })
 
     const get = (url: string, headers = {}) => proxy.app.inject({ method: 'GET', url: `${apiRoutePrefix}${url}`, headers })
-    const leaks = (body: string) => ['locked body', 'pw12', 'Dorm', 'Locked diary', 'future body'].filter((s) => body.includes(s))
+    const leaks = (body: string) => ['locked body', 'locked-photo', 'locked-cover', 'pw12', 'Dorm', 'future body', 'Scheduled diary'].filter((s) => body.includes(s))
+    const hidden = ['text', 'content', 'summary', 'location', 'coordinates', 'password', 'images', 'meta']
+    const expectTitleOnly = (item: any) => {
+      expect(item).toMatchObject({ title: 'Locked diary', nid: locked.nid, locked: true })
+      for (const key of hidden) expect(item).not.toHaveProperty(key)
+    }
 
     test('GET /notes/:id refuses a locked note and never returns password or location', async () => {
       expect((await get(`/notes/${locked.id}`)).statusCode).toBe(403)
@@ -573,24 +580,46 @@ describe('NoteController (e2e)', async () => {
       expect(owner.json().location).toBe('Dorm')
     })
 
-    test('GET /notes/topics/:id lists only notes a visitor may read', async () => {
-      const res = await get(`/notes/topics/${topicId}?size=50`)
+    test('GET /notes lists the locked note title-only (even when a visitor asks for more) and never the scheduled one', async () => {
+      const res = await get('/notes?size=50&select=title nid text content summary location coordinates %2Bpassword password images meta mood')
       expect(res.statusCode).toBe(200)
-      expect(res.json().data.map((n) => n.title)).toEqual(['Open diary'])
+      const data = res.json().data
+      expectTitleOnly(data.find((n: any) => n.title === 'Locked diary'))
+      expect(data.find((n: any) => n.title === 'Locked diary').mood).toBe('calm')
+      expect(data.find((n: any) => n.title === 'Open diary')).not.toHaveProperty('locked')
       expect(leaks(res.body)).toEqual([])
     })
 
-    test('GET /notes/list/:id skips locked neighbours and reveals nothing about a locked note', async () => {
+    test('GET /notes/topics/:id lists the locked note title-only, even when a visitor asks for its content', async () => {
+      const res = await get(`/notes/topics/${topicId}?size=50&select=title nid text content summary location %2Bpassword password`)
+      expect(res.statusCode).toBe(200)
+      expect(res.json().data.map((n: any) => n.title).sort()).toEqual(['Locked diary', 'Open diary'])
+      expectTitleOnly(res.json().data.find((n: any) => n.title === 'Locked diary'))
+      expect(leaks(res.body)).toEqual([])
+    })
+
+    test('GET /notes/list/:id shows a locked neighbour by title only', async () => {
       const around = await get(`/notes/list/${open.id}?size=10`)
+      expectTitleOnly(around.json().data.find((n: any) => n.title === 'Locked diary'))
       expect(leaks(around.body)).toEqual([])
       const self = await get(`/notes/list/${locked.id}?size=10`)
-      expect(self.json()).toEqual({ data: [], size: 0 })
+      expectTitleOnly(self.json().data.find((n: any) => n.title === 'Locked diary'))
+      expect(leaks(self.body)).toEqual([])
     })
 
-    test('GET /notes/nid/:nid of a public note links past locked neighbours', async () => {
+    test('GET /notes/nid/:nid of a public note links its locked neighbour by title only', async () => {
       const res = await get(`/notes/nid/${open.nid}`)
       expect(res.statusCode).toBe(200)
+      expectTitleOnly(res.json().prev)
       expect(leaks(res.body)).toEqual([])
+    })
+
+    test('the timeline lists the locked note with a lock and leaves the scheduled one out', async () => {
+      const notes = await proxy.app.get(NoteService).getTimelineNotes({}, -1)
+      const item = notes.find((n: any) => n.title === 'Locked diary')
+      expectTitleOnly(JSON.parse(JSON.stringify(item)))
+      expect(notes.find((n: any) => n.title === 'Open diary')).not.toHaveProperty('locked')
+      expect(leaks(JSON.stringify(notes))).toEqual([])
     })
 
     test('GET /notes/nid/:nid of a scheduled note hides the rich content as well as the text', async () => {

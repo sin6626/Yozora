@@ -9,6 +9,7 @@ import { getLocale, getT } from "../lib/i18n/server";
 import { excerpt } from "../lib/excerpt";
 import { postHref } from "./post-list";
 import RecentActivityList, { RecentActivityItems } from "./recent-activity";
+import LockedMark from "./locked-mark";
 import Reveal from "./reveal";
 import TechStack from "./tech-stack";
 import "./corners.css";
@@ -57,7 +58,8 @@ function Section<T>({ title, note, allHref, allLabel, failed, items, empty, clas
 
 // 竖向时间线的一条：前面一颗小星，标题在左，附加信息和日期靠右；整条可点。
 // index：在列表里的序号，滚进视野时一条比一条晚一点出现（reveal-on-view.tsx）
-function TimelineItem({ href, created, title, meta, serif, pinned, original, index }: {
+// locked：带密码的手记，标题前一把小锁（值是给读屏念的“需要密码”）
+function TimelineItem({ href, created, title, meta, serif, pinned, original, locked, index }: {
   index: number;
   href: string | null;
   created: string;
@@ -66,11 +68,13 @@ function TimelineItem({ href, created, title, meta, serif, pinned, original, ind
   serif?: boolean;
   pinned?: boolean;
   original?: boolean;
+  locked?: string;
 }) {
   return (
     <Reveal as="li" index={index} className={pinned ? "home-timeline-item is-pinned" : "home-timeline-item"}>
       <span className="home-timeline-node" aria-hidden="true" />
       <span className={serif ? "home-timeline-title is-serif" : "home-timeline-title"} lang={original ? "zh-CN" : undefined}>
+        {locked && <LockedMark label={locked} />}
         {href ? <Link className="card-link" href={href}>{title}</Link> : title}
       </span>
       <span className="home-timeline-meta">
@@ -118,7 +122,7 @@ async function HomeLatestLive() {
 
 // 左栏上下放文章和手记；右栏按 2:3 上下分成碎碎念和“最近发生的事”；两栏下面是技术栈滚动条。
 async function HomeColumns({ posts, notes, murmurs, activity }: { posts: Posts | null; notes: Notes | null; murmurs: Murmurs | null; activity: ReactNode }) {
-  const t = (await getT()).home;
+  const { home: t, entry } = await getT();
   const section = (copy: { title: string; note: string; empty: string }) => ({ ...copy, allLabel: t.all, failed: t.loadFailed(copy.title) });
   return (
     <div className="home-columns">
@@ -152,6 +156,7 @@ async function HomeColumns({ posts, notes, murmurs, activity }: { posts: Posts |
                   created={note.created}
                   title={note.title}
                   original={note.original}
+                  locked={note.locked ? entry.locked : undefined}
                   serif
                   meta={<span>{[note.mood, note.weather].filter(Boolean).join(" · ") || note.topic}</span>}
                 />

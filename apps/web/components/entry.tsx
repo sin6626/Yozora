@@ -3,6 +3,7 @@ import Link from "./locale-provider";
 import type { CSSProperties, ReactNode } from "react";
 import type { ListExcerpt } from "../lib/blog-data";
 import { formatDate } from "../lib/date";
+import LockedMark from "./locked-mark";
 import { getLocale, getT } from "../lib/i18n/server";
 import "./corners.css";
 
@@ -17,7 +18,8 @@ const orbitTail = Array.from({ length: 10 }, (_, index) => (index + 1) / 10);
 // lang：外文页面上这篇还没有译文时传 "zh-CN"，标题和摘录标明是中文原文。
 // featured：置顶文章、标记过的手记（后台“回忆项”）要显示的那行小字（“置顶”/“回忆”）。有它时是“星轨 + 微光”（2026-11-01 用户在 /debug 选定）：
 // 一圈几乎看不见的细线框，一颗带尾迹的小星沿着框绕（画在和框重合的 SVG 圆角矩形上，转弯也贴着框）；标题上方一行小字，标题是月光色、隔一会儿扫过一道微光。
-export default async function Entry({ href, title, created, tags, meta, excerpt, stats, hashtags, serif, featured, headingLevel = 2, lang }: {
+// locked：带密码的手记，标题前一把小锁，摘要的位置换成一行“上了锁，输入密码才能读”（2026-11-15 站长定“标题加锁”）。
+export default async function Entry({ href, title, created, tags, meta, excerpt, stats, hashtags, serif, featured, locked, headingLevel = 2, lang }: {
   href: string | null;
   title: string;
   created: string;
@@ -28,6 +30,7 @@ export default async function Entry({ href, title, created, tags, meta, excerpt,
   hashtags?: string[];
   serif?: boolean;
   featured?: string;
+  locked?: boolean;
   headingLevel?: 2 | 3;
   lang?: string;
 }) {
@@ -51,10 +54,11 @@ export default async function Entry({ href, title, created, tags, meta, excerpt,
       <div className="entry-body">
         {featured && <p className="entry-label"><Sparkle size={10} strokeWidth={2.25} aria-hidden="true" />{featured}</p>}
         <div className="entry-heading">
-          <Heading className="entry-title" lang={lang}>{href ? <Link className="card-link" href={href}>{title}</Link> : title}</Heading>
+          <Heading className="entry-title" lang={lang}>{locked && <LockedMark label={t.locked} />}{href ? <Link className="card-link" href={href}>{title}</Link> : title}</Heading>
           {tags}
         </div>
-        {summary && (
+        {locked && <p className="entry-excerpt">{t.lockedHint}</p>}
+        {summary && !locked && (
           <p className="entry-excerpt" lang={lang}>
             {summary.source === "ai" && <span className="entry-ai" title={t.aiSummary}><Sparkles size={12} strokeWidth={2} aria-hidden="true" /><span className="sr-only">{t.aiSummaryPrefix}</span></span>}
             {summary.text}

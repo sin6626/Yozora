@@ -1,0 +1,12 @@
+/* 带密码手记标题前的小锁：跟着文字大小、淡一些，和标题之间留一点空（locked-mark.tsx） */
+.locked-mark {
+  display: inline-flex;
+  margin-inline-end: 0.35em;
+  color: var(--muted-foreground);
+  vertical-align: -0.1em;
+}
+
+.locked-mark svg {
+  width: 0.85em;
+  height: 0.85em;
+}

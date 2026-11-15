@@ -27,7 +27,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: path("thinking") },
     ...navigation.pageMeta.map((page) => ({ url: path(page.slug) })),
     ...categories.map((category) => ({ url: path("categories", category.slug) })),
-    ...timeline.map((item) => item.kind === "post"
+    // 带密码的手记（时间线里标 locked）不收：正文要密码，页面上只有一把锁
+    ...timeline.filter((item) => !(item.kind === "note" && item.locked)).map((item) => item.kind === "post"
       ? { url: path("posts", item.category.slug, item.slug), lastModified: item.created }
       : { url: path("notes", String(item.nid)), lastModified: item.created }),
   ];

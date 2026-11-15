@@ -4,6 +4,7 @@ import { getNotesByTopic, getTimeline, getTopics } from "../lib/blog-data";
 import { formatDate } from "../lib/date";
 import { getLocale, getT } from "../lib/i18n/server";
 import { aroundCurrent, type BannerType, type NoteBanner as Banner } from "../lib/note-extras";
+import LockedMark from "./locked-mark";
 import "./note-extras.css";
 
 // 手记详情的头图（后台“日记设置 → 封面图”，meta.cover）：标题上方，底部渐隐。纯装饰，读屏跳过。
@@ -59,7 +60,7 @@ export async function NoteTopicCard({ topic: ref, noteId }: { topic: TopicRef; n
         <ol className="note-stars" aria-label={t.notes.topicRecent}>
           {recent.map((note) => (
             <li key={note.id}>
-              <Link href={`/notes/${note.nid}`}><span className="note-stars-title" lang={note.titleLang}>{note.title}</span><time dateTime={note.created}>{formatDate(note.created)}</time></Link>
+              <Link href={`/notes/${note.nid}`}><span className="note-stars-title" lang={note.titleLang}>{note.locked && <LockedMark label={t.entry.locked} />}{note.title}</span><time dateTime={note.created}>{formatDate(note.created)}</time></Link>
             </li>
           ))}
         </ol>
@@ -84,7 +85,7 @@ export async function NoteTimeline({ noteId }: { noteId: string }) {
           {notes.map((note) => (
             <li key={note.id}>
               <Link href={`/notes/${note.nid}`} aria-current={note.id === noteId ? "page" : undefined} title={note.title}>
-                <span className="note-stars-title" lang={note.titleLang}>{note.title}</span>
+                <span className="note-stars-title" lang={note.titleLang}>{note.locked && <LockedMark label={t.entry.locked} />}{note.title}</span>
               </Link>
             </li>
           ))}

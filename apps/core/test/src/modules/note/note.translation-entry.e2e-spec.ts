@@ -41,6 +41,8 @@ describe('NoteController translation entry (e2e)', () => {
             publicNoteQueryCondition: {
               isPublished: true,
             },
+            // 带密码手记的处理在 note.controller.e2e-spec 里测，这里只测翻译
+            redactLockedNotes: async (items: unknown[]) => items,
           },
         },
         {

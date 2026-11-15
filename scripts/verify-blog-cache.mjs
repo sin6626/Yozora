@@ -108,7 +108,7 @@ assert.equal(notes.data[0].topic, '近况')
 assert.equal('password' in notes.data[0] || 'text' in notes.data[0], false)
 const noteDetail = await cache.getNote(5)
 assert.equal('password' in noteDetail || 'liked' in noteDetail || 'content' in noteDetail, false)
-assert.equal(JSON.stringify(noteDetail.newer), JSON.stringify({ nid: 6, title: '较新' }))
+assert.equal(JSON.stringify(noteDetail.newer), JSON.stringify({ nid: 6, title: '较新', locked: false }))
 assert.equal(noteDetail.older, null)
 assert.equal(JSON.stringify(noteDetail.topic), JSON.stringify({ id: 't1', name: '近况', slug: 'now' }), '详情里的话题带 id 和 slug，可以取话题卡片、链回话题筛选')
 // 后台手记 meta 的头图与横幅，解析成普通 JSON 放进详情（"use cache" 只能返回普通对象）
@@ -254,6 +254,29 @@ for (const file of files) {
   if (!/getApiClient\(/.test(text)) continue
   assert.ok(!text.includes('"use server"'), `${file} 是服务端函数（访客能触发），要用 getLiveApiClient`)
   assert.ok(text.includes('"use cache"'), `${file} 用了不带读者 IP 的 getApiClient，却不在 "use cache" 里`)
+}
+// 带密码的手记（2026-11-15 站长定“标题加锁”）：Core 的列表、话题、时间线、前后手记里给 locked: true，只有标题等几项。
+// 列表条目标出 locked、不给摘要和阅读时长（会透露篇幅）；时间线、话题、前后手记带 locked；RSS 不收
+{
+  const lockedNote = { id: 'locked-id', nid: 12, title: '上锁的', created: '2026-11-11', mood: '平静', weather: '阴', topic: note.topic, count: { read: 3, like: 1 }, locked: true }
+  const saved = { list: api.note.getList, topic: api.note.getNoteByTopicId, nid: api.note.getNoteByNid, timeline: api.aggregate.getTimeline }
+  api.note.getList = async () => ({ data: [lockedNote, note], pagination: { total: 2, totalPage: 1 } })
+  api.note.getNoteByTopicId = async () => ({ data: [lockedNote], pagination: { total: 1 } })
+  api.note.getNoteByNid = async () => ({ data: note, prev: { id: 'locked-id', nid: 12, title: '上锁的', locked: true }, next: null })
+  api.aggregate.getTimeline = async () => ({ data: { posts: [], notes: [lockedNote, note] } })
+  const listed = (await cache.getNotes(1)).data
+  const entry = listed.find((item) => item.id === 'locked-id')
+  assert.equal(entry.title, '上锁的')
+  assert.equal(entry.locked, true, '列表条目标出上了锁')
+  assert.equal(entry.excerpt, null, '上锁的手记不给摘要')
+  assert.equal(entry.stats, null, '上锁的手记不给阅读时长')
+  assert.equal(listed.find((item) => item.id === 'note-id').locked, false)
+  assert.ok(!(await cache.getFeedItems()).some((item) => item.title === '上锁的'), 'RSS 不收上锁的手记')
+  assert.equal((await cache.getTimeline()).find((item) => item.id === 'locked-id')?.locked, true, '时间线条目带 locked')
+  assert.equal((await cache.getNotesByTopic('t1')).data[0].locked, true, '话题列表带 locked')
+  assert.equal((await cache.getNote(13)).newer.locked, true, '前后手记带 locked')
+  Object.assign(api.note, { getList: saved.list, getNoteByTopicId: saved.topic, getNoteByNid: saved.nid })
+  api.aggregate.getTimeline = saved.timeline
 }
 console.log('verify-blog-cache: ok')
 

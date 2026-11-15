@@ -298,6 +298,9 @@ const zh = {
     minutes: msg<[count: number]>("约 {count} 分钟"),
     reads: "阅读",
     likes: "喜欢",
+    // 带密码的手记：标题前小锁给读屏念的话，和列表里代替摘要的一行（components/locked-mark.tsx、entry.tsx）
+    locked: "需要密码",
+    lockedHint: "上了锁，输入密码才能读",
   },
   posts: {
     title: "文章",
