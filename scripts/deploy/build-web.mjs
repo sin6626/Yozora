@@ -17,7 +17,9 @@ if (!checkout || !output) {
   console.error("用法：node scripts/deploy/build-web.mjs <代码目录> <输出 .tgz>");
   process.exit(1);
 }
-const apiUrl = process.env.DEPLOY_API_URL || "https://api.sin6626.me/api/v2";
+// 浏览器连 Core 的地址（会写进预渲染页面，容器运行时的 MIX_SPACE_API_URL 必须一样）。2026-11-16 主域名换成 Yozora 后走主域名的 /api/v2：
+// 登录时防伪 Cookie 和 GitHub/Google 回调（后台 serverUrl = https://sin6626.me/api/v2）在同一个域名下，读者登录才能成功；用 api 子域名会 state_mismatch。
+const apiUrl = process.env.DEPLOY_API_URL || "https://sin6626.me/api/v2";
 const sshTarget = process.env.DEPLOY_SSH || "root@38.95.74.213";
 const sshKey = process.env.DEPLOY_SSH_KEY || join(homedir(), ".ssh/id_ed25519_windows");
 const apiHost = `${new URL(apiUrl).hostname}:443`;

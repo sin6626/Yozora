@@ -1,5 +1,7 @@
 # 灰度上线：新前台先放在 beta 子域名上自己用
 
+> 2026-11-16 已正式切换：主域名 sin6626.me 是 Yozora，beta.sin6626.me 301 到主域名，旧 Shiro 已停（文件保留）。见文末“正式切换”一节。以下是灰度期间的记录。
+
 2026-11-02 用户定：新前台和旧 Shiro 放在同一台服务器，新前台用子域名（下面写作 `beta.你的域名`），只给自己用、不让搜索引擎收录；线上 Core 换成本仓库的版本，新旧两个前台读同一份线上数据。主域名继续是旧 Shiro，自己用一两周没问题再切换。
 
 Agent 不使用聊天里给的 root 密码。站长把本机公钥装进了服务器，Agent 用这把密钥登录：只读检查随时可做，改线上数据、配置、服务之前先说清要执行什么和怎么回滚，站长同意后再执行。
@@ -333,7 +335,7 @@ MIX_SPACE_API_URL=https://Core的公网地址 SITE_NOINDEX=1 pnpm build
 - 遇到问题截图记下来，带回本仓库修。`pnpm e2e` 是对着本地开发服务写的，不要对线上跑。
 - 回滚：beta 前台直接停掉 pm2 进程即可；Core 出问题就换回原来的版本、必要时恢复第 1 步的备份。
 
-## 正式切换（以后）
+## 正式切换（计划，2026-11-16 已按“保留 /api/v2 转发”做完，见文末）
 
 主域名指向新前台、去掉 `SITE_NOINDEX`、后台“网站地址”改成主域名、Webhook 地址改到主域名、停掉旧 Shiro。
 
@@ -674,4 +676,33 @@ W=/root/mx-space/yozora-web
 # 先核对 current 仍是 782837b；回到 5e8b859（锁页没有返回），再往前是 b9f89e9（没有返回链接，容器 yozora-web-pre-5e8b859）
 docker stop yozora-web && docker rename yozora-web yozora-web-782837b-stopped
 ln -sfn $W/releases/5e8b859 $W/current && docker rename yozora-web-pre-782837b yozora-web && docker start yozora-web
+```
+
+## 2026-11-16 已做：主域名换成 Yozora，下掉旧 Shiro（91774a7）
+
+站长说“现在切换”后执行。Core、后台、数据库内容都没动（只改了 Webhook 地址）。
+
+做法是“保留 `/api/v2` 转发”：1Panel 主域名站点里 `/api/v2`、`/socket.io` 两条原样交给 Core，只把其余全部（`proxy/root.conf`）从 Shiro 的 4860 改到新前台的 2324。所以 GitHub、Google 登录回调（后台 serverUrl `https://sin6626.me/api/v2`）、退订邮件链接、库里存死的 `sin6626.me/api/v2/objects/...` 旧图片地址都照常可用，OAuth 应用不用改。后台“网站地址”本来就是 `https://sin6626.me`。
+
+- **浏览器连 Core 改走主域名**：前台构建和容器运行时的 `MIX_SPACE_API_URL` 都改成 `https://sin6626.me/api/v2`（原来是 `https://api.sin6626.me/api/v2`）。原因：Better Auth 登录第一步把防伪 Cookie（`__Secure-better-auth.state`）记在收到请求的域名下，回调落在 serverUrl 的域名；以前前台向 api 子域名发登录请求、回调却在主域名，Cookie 带不过去，会 state_mismatch（读代码推断，beta 期间 Core 日志里没有失败记录，可能没人试过）。现在两边都是 sin6626.me。`build-web.mjs` 的默认地址已改成主域名，**以后构建与 `switch-web.sh` 的 `-e MIX_SPACE_API_URL` 必须一致**。主域名 `/api/v2` 转发里旧 Shiro 留下的评论改写规则只匹配 `/api/v2/comments/<id>` 的 GET/POST，新前台发的评论（`/comments/guest|reader/...`）和置顶（PATCH）不受影响。
+- **可以被收录**：`build-web.mjs` 不再写死 `SITE_NOINDEX=1`，容器也不再设 `SITE_NOINDEX`、`BETA_SHARE_URLS`（灰度用的分享实测开关随之不生效，代码还在 `lib/indexing.ts`）。robots 允许、给出 `https://sin6626.me/sitemap.xml`，页面没有 noindex。
+- **旧 Shiro 地址永久跳转**（`next.config.ts` 的 `redirects`，e2e `legacy-urls.mjs`）：`/feed` → `/feed.xml`、`/sitemap` → `/sitemap.xml`、`/notes/topics` → `/notes`、`/notes/topics/<话题>` → `/notes?topic=<话题>`、`/posts/<分类>` → `/categories/<分类>`、`/projects/<id>` → `/projects`。取自主域名 access.log 里旧 Shiro 真实有访问的路径（`/feed` 约 160 次）；`/og`、`/login`、`/preview`、`/dashboard` 没跳。
+- 备份 `/root/backups/yozora-91774a7/`：整库（39 个集合，2.2MB，试还原通过）、`web.env`、容器参数、两个站点改前的 `root.conf`、PM2 的 `dump.pm2`。脚本 `backup.sh`、`switch-web.sh`、`switch-domain.sh`、`finish.sh` 和日志都在这里，每个失败都会自动换回原样。坑：远程命令写成 `cat > 文件 && … && nohup … &` 时整串都进了后台，后台进程的输入是 /dev/null，上传的脚本成了空文件（什么都没执行）；上传和 `nohup` 要分开写。
+- 顺序：前台容器换成 `releases/91774a7`（以 782837b 为 `--copy-dest`，`server.js`、`BUILD_ID` 哈希一致，停机约 3 秒，此时只有 beta 指着它）→ 主域名 `root.conf` 4860 → 2324，`openresty -t` 后 reload（不停机）→ Webhook 地址改成 `https://sin6626.me/api/webhooks/mix-space`（PATCH 后的 health_check 200，重发一次 OPTION_UPDATE 200）→ beta 的 `root.conf` 改成 `return 301 https://sin6626.me$request_uri;`（证书续期的 acme 路径不受影响）→ `pm2 stop mx-shiro && pm2 save`（重启服务器也不会再起来）。
+- 验证（公网）：`legacy-urls.mjs` 对 `https://sin6626.me` 通过；首页、/en、文章列表、手记、robots、站点地图、RSS、`/api/v2/ping` 200；beta 301 到主域名同一路径；登录第一步 200，state Cookie 是 sin6626.me 的 host-only Cookie，GitHub 的 redirect_uri 是 `https://sin6626.me/api/v2/auth/callback/github`（同一域名）；主域名 `/socket.io` WebSocket 握手 101；无头浏览器打开 5 个页面无脚本报错、无 noindex，浏览器发给 Core 的 pageview、“正在听”都走 `sin6626.me/api/v2`。停掉 Shiro 后服务器可用内存从约 755MB 到约 945MB，前台容器约 193MB / 400MB。**还要站长自己用 GitHub 真实登录一次**确认整条登录流程。
+- 留给站长：1Panel 网站页面里主域名反代目标应显示 2324（Agent 直接改的配置文件，推测 1Panel 读的就是这些文件，看一眼确认；若显示 4860，别在那里点保存）。Shiro 的 `/root/mx-space/shiro-release`、`/root/mx-space/shiro`（1.5G）和 PM2 里的 `mx-shiro`、`mx-yun` 记录，要不要删由站长定。可以去 Google Search Console 等提交 `https://sin6626.me/sitemap.xml`。
+
+回滚（回到旧 Shiro，约十几秒）：
+
+```bash
+B=/root/backups/yozora-91774a7; O=1Panel-openresty-LH5o; export PATH=/root/.nvm/versions/node/v18.20.8/bin:$PATH
+pm2 start mx-shiro && pm2 save
+cp -p $B/main-root.conf.before /opt/1panel/www/sites/sin6626.me/proxy/root.conf
+cp -p $B/beta-root.conf.before /opt/1panel/www/sites/beta.sin6626.me/proxy/root.conf
+docker exec $O openresty -t && docker exec $O openresty -s reload
+# Webhook 地址在后台改回 https://beta.sin6626.me/api/webhooks/mix-space
+# 前台换回灰度版 782837b（带 noindex、连 api 子域名）：
+W=/root/mx-space/yozora-web
+docker stop yozora-web && docker rename yozora-web yozora-web-91774a7-stopped
+ln -sfn $W/releases/782837b $W/current && docker rename yozora-web-pre-91774a7 yozora-web && docker start yozora-web
 ```
