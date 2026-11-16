@@ -1,6 +1,6 @@
 import { Copy as CopyIcon, Github as GithubIcon } from 'lucide-vue-next'
 import { NButton, NForm, NFormItem, NInput, NSwitch } from 'naive-ui'
-import { defineComponent, ref, watchEffect } from 'vue'
+import { computed, defineComponent, onMounted, ref, watchEffect } from 'vue'
 import { toast } from 'vue-sonner'
 import type { AuthSocialProviders } from '~/utils/authjs/auth'
 import type { FormInst } from 'naive-ui/lib'
@@ -10,6 +10,7 @@ import { API_URL } from '~/constants/env'
 import { authClient } from '~/utils/authjs/auth'
 
 import { useInjectOauthData } from '../providers/oauth'
+import { oauthCallbackUrl } from './oauth-callback'
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" class="size-5">
@@ -97,8 +98,14 @@ export const createProvideSectionComponent = (
         toast.success('保存成功')
       }
 
+      const serverUrl = ref('')
+      onMounted(async () => {
+        serverUrl.value = (await optionsApi.getUrl().catch(() => null))?.serverUrl ?? ''
+      })
+      const callbackUrl = computed(() => oauthCallbackUrl(serverUrl.value, API_URL, type))
+
       const copyCallbackUrl = async () => {
-        const url = `${API_URL}/auth/callback/${type}`
+        const url = callbackUrl.value
         try {
           await navigator.clipboard.writeText(url)
           toast.success('已复制到剪贴板')
@@ -171,7 +178,7 @@ export const createProvideSectionComponent = (
             </div>
             <div class="flex items-center gap-2">
               <span class="flex-1 truncate font-mono text-xs text-neutral-600 dark:text-neutral-400">
-                {API_URL}/auth/callback/{type}
+                {callbackUrl.value}
               </span>
               <button
                 type="button"
