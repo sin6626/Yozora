@@ -105,7 +105,17 @@ export function useLoginError(source: LoginError["source"]) {
 }
 
 // 跳到第三方授权页，完成后 Core 再把访客送回发起登录的页面（hash 给 "comments" 时回到评论区）。
-export async function signIn(apiUrl: string, provider: LoginProvider, hash?: string) {
+// 同一时间只发一次登录请求：每次请求 Core 都会重新下发防伪 Cookie，连点两下时第二次覆盖第一次，
+// 浏览器跳去授权的却是第一次的地址，回来就 state_mismatch（2026-11-16 线上 Google 登录）。这次结束（成功或失败）后才能再发。检查 scripts/verify-sign-in-once.mjs
+let signingIn: Promise<void> | null = null;
+export function signIn(apiUrl: string, provider: LoginProvider, hash?: string) {
+  signingIn ??= startSignIn(apiUrl, provider, hash).finally(() => {
+    signingIn = null;
+  });
+  return signingIn;
+}
+
+async function startSignIn(apiUrl: string, provider: LoginProvider, hash?: string) {
   const page = new URL(realHref());
   for (const key of loginParams) page.searchParams.delete(key);
   if (hash !== undefined) page.hash = hash;

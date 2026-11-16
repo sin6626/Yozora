@@ -194,7 +194,7 @@ const zh = {
     close: "关闭",
   },
   loginErrors: {
-    state_mismatch: msg<[name?: string]>("这次登录已经失效（登录页被重复打开，或浏览器没带上登录用的 Cookie），请重新登录一次。反复出现时，确认博客和 Core 都用 127.0.0.1 打开、浏览器没有拦截本站 Cookie。"),
+    state_mismatch: msg<[name?: string]>("这次登录已经失效（登录页被重复打开，或浏览器没带上登录用的 Cookie），请重新登录一次。反复出现时，确认浏览器没有拦截本站的 Cookie。"),
     access_denied: msg<[name: string]>("你取消了 {name} 授权。"),
     invalid_code: msg<[name: string]>("{name} 授权码无效或已过期，请重新登录。"),
     account_not_linked: msg<[name: string]>("这个 {name} 账号的邮箱已被其他账号使用，没能自动关联。"),
