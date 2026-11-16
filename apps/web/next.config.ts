@@ -14,6 +14,17 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   // 开发期默认会把服务端函数的参数打到终端日志，加密手记的密码也会被打出来，关掉。
   logging: { serverFunctions: false },
+  // 主域名原来是旧 Shiro：它有、我们没有的地址永久跳到对应页面（RSS 订阅、搜索引擎收录的话题页和分类页），e2e legacy-urls.mjs
+  async redirects() {
+    return [
+      { source: "/feed", destination: "/feed.xml", permanent: true },
+      { source: "/sitemap", destination: "/sitemap.xml", permanent: true },
+      { source: "/notes/topics", destination: "/notes", permanent: true },
+      { source: "/notes/topics/:slug", destination: "/notes?topic=:slug", permanent: true },
+      { source: "/posts/:category", destination: "/categories/:category", permanent: true },
+      { source: "/projects/:id", destination: "/projects", permanent: true },
+    ];
+  },
   partialPrefetching: true,
   turbopack: {
     rules: {
