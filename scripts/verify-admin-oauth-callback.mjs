@@ -33,4 +33,12 @@ const section = read('apps/admin/src/views/setting/tabs/sections/oauth.tsx')
 assert.ok(!/\$\{API_URL\}\/auth\/callback|\{API_URL\}\/auth\/callback/.test(section), '卡片不再按后台自己的 API_URL 拼回调地址')
 assert.ok((section.match(/oauthCallbackUrl\(/g) ?? []).length >= 1 && section.includes('optionsApi.getUrl()'), '卡片读网站设置的 serverUrl 并用 oauthCallbackUrl 拼')
 
+// 网站设置接口的真实形状：Core 返回 { data: { server_url, … } }，后台的 request 转成驼峰但不解包对象，getUrl 要自己拆
+const optionsCode = ts.transpileModule(read('apps/admin/src/api/options.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
+const optionsModule = { exports: {} }
+const fakeRequest = { request: { get: async () => ({ data: { webUrl: 'https://sin6626.me', serverUrl: 'https://sin6626.me/api/v2', wsUrl: 'https://sin6626.me', adminUrl: 'x' } }) } }
+vm.runInNewContext(optionsCode, { module: optionsModule, exports: optionsModule.exports, require: (id) => (id === '~/utils/request' ? fakeRequest : {}) })
+const urls = await optionsModule.exports.optionsApi.getUrl()
+assert.equal(urls.serverUrl, 'https://sin6626.me/api/v2', 'getUrl 拆开 { data } 拿到 serverUrl')
+
 console.log('PASS 后台 OAuth 回调地址按 Core 的 serverUrl 显示')

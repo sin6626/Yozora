@@ -6,6 +6,13 @@ export interface SystemOptions {
   [key: string]: any
 }
 
+interface UrlOptions {
+  webUrl: string
+  adminUrl: string
+  serverUrl: string
+  wsUrl: string
+}
+
 export interface EmailTemplateResponse {
   template: string
   props: any
@@ -18,14 +25,11 @@ export const optionsApi = {
   // 获取指定配置（后端直接返回配置对象）
   get: <T = any>(key: string) => request.get<T>(`/options/${key}`),
 
-  // 获取 URL 配置
-  getUrl: () =>
-    request.get<{
-      webUrl: string
-      adminUrl: string
-      serverUrl: string
-      wsUrl: string
-    }>('/options/url'),
+  // 获取 URL 配置。Core 把这个对象包在 { data: … } 里，request 只解包数组，这里自己拆（检查 scripts/verify-admin-oauth-callback.mjs）
+  getUrl: async () => {
+    const res = await request.get<UrlOptions | { data: UrlOptions }>('/options/url')
+    return 'data' in res ? res.data : res
+  },
 
   // 更新指定配置
   patch: (key: string, data: any) =>
