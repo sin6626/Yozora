@@ -706,3 +706,11 @@ W=/root/mx-space/yozora-web
 docker stop yozora-web && docker rename yozora-web yozora-web-91774a7-stopped
 ln -sfn $W/releases/782837b $W/current && docker rename yozora-web-pre-91774a7 yozora-web && docker start yozora-web
 ```
+
+## 2026-11-16 已做：后台 OAuth 卡片显示 Core 实际用的回调地址（16cdf23）
+
+站长配 Google 登录时发现：后台“设置 → 账号安全 → OAuth”卡片上的 Callback URL 写的是 `https://api.sin6626.me/api/v2/auth/callback/google`，是后台按自己所在的域名拼的；Core 发给 GitHub、Google 的回调其实按“网站设置”的 API 地址（serverUrl，线上 `https://sin6626.me/api/v2`）拼（`auth.middleware.ts`），照着卡片填进 Google 控制台会 `redirect_uri_mismatch`。现在卡片读 `/options/url` 的 serverUrl 显示（`sections/oauth-callback.ts`，检查 `scripts/verify-admin-oauth-callback.mjs`）。
+
+- 只换后台：本机 `pnpm --filter mx-admin build`，`dist` 以线上 `admin/` 为 `--copy-dest` 传到 `admin-yozora-16cdf23`，再把 `admin/` 改名 `admin-before-16cdf23`、新目录改名 `admin/`；`index.html` SHA-256 `7b1b9c8a…` 与本机一致，`/proxy/qaqdmin` 200，线上 `setting` 脚本里是新的拼法。没有重启 Core。
+- 回滚：`D=/root/mx-space/core/data/mx-space; mv $D/admin $D/admin-yozora-16cdf23 && mv $D/admin-before-16cdf23 $D/admin`。
+- 已知：卡片上的“验证连接”在后台里发起登录（请求发到 api 子域名），回调却落在主域名，同样会 state_mismatch；确认登录要在 sin6626.me 上真实登录一次。
