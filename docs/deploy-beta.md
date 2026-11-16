@@ -715,3 +715,11 @@ ln -sfn $W/releases/782837b $W/current && docker rename yozora-web-pre-91774a7 y
 - 第一版上线后卡片仍显示 api 子域名：Core 的 `/options/url` 返回 `{ data: {…} }`，后台的 request 只解包数组，`getUrl()` 拿不到 serverUrl、退回了后台地址（`special-button/preview.tsx` 的 webUrl 同样受影响）。f6b2799 让 `getUrl` 自己拆 `data`，检查同一个脚本加了这种返回形状；线上 `admin/` 换成 f6b2799 构建（`index.html` `972f7a21…`），16cdf23 构建改名 `admin-yozora-16cdf23`。
 - 回滚到改之前：`D=/root/mx-space/core/data/mx-space; mv $D/admin $D/admin-yozora-f6b2799 && mv $D/admin-before-16cdf23 $D/admin`。
 - 已知：卡片上的“验证连接”在后台里发起登录（请求发到 api 子域名），回调却落在主域名，同样会 state_mismatch；确认登录要在 sin6626.me 上真实登录一次。
+
+## 2026-11-16 已做：读者登录连点两下导致 state_mismatch（a2e3687）
+
+站长在主域名用 Google 登录，回来报 state_mismatch，报错里还写着给本地开发看的“用 127.0.0.1 打开”。主域名访问日志：14:09:11、14:09:12 连着两次 `POST /api/v2/auth/sign-in/social`，14:10:34 一次 Google 回调。连点两下时按钮还没变成禁用，发了两次登录请求，第二次重新下发的防伪 Cookie 覆盖了第一次，浏览器跳去授权的却是第一次的地址。和切换域名无关（两次请求、回调都在 sin6626.me）。
+
+- 修复：`reader-session.ts` 的 `signIn` 同一时间只发一次请求，这次结束（成功或失败）后才能再发；检查 `scripts/verify-sign-in-once.mjs`（改前失败，已并入 `pnpm verify`）。state_mismatch 文案去掉 127.0.0.1，改为“确认浏览器没有拦截本站的 Cookie”，已 `push-i18n-source --prod`（改过 1 条，英日译文由 Core 重新生成）。
+- 只换前台：`releases/a2e3687`（以 91774a7 为 `--copy-dest`，`server.js` 哈希一致），`switch-web.sh` 由 91774a7 的只换版本号生成，停机约 3 秒。没有改数据，所以没做整库备份；`/root/backups/yozora-a2e3687/` 里有 `web.env.before` 和容器参数。
+- 回滚：`W=/root/mx-space/yozora-web; docker stop yozora-web && docker rename yozora-web yozora-web-a2e3687-stopped && ln -sfn $W/releases/91774a7 $W/current && docker rename yozora-web-pre-a2e3687 yozora-web && docker start yozora-web`。
