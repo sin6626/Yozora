@@ -1,216 +1,865 @@
 {
-  "title": "久遠真和 Sin 的自我介绍",
-  "aspect": "16:9",
-  "fps": 24,
-  "groups": {
-    "shin-novoice": {
-      "label": "真（还没有音色参考）",
-      "images": [
-        "ref1-shin-full.png",
-        "ref3-shin-turnaround.png",
-        "ref2-shin-face.png"
-      ],
-      "audio": []
+ "title": "久遠真 · 我和 Sin 的故事",
+ "script": "Ryugi document/shin-intro-script（站长 2026-11-23 定稿：序幕 + 七页 + 尾声）",
+ "aspect": "16:9",
+ "width": 1344,
+ "height": 768,
+ "fps": 24,
+ "worlds": {
+  "real": "The target video is a 2D anime-style animation with clean lineart and soft cel shading, a dark night-violet palette, moonlight always coming from the upper right with shadows falling to the lower left, gentle film grain, no on-screen text, no subtitles, no watermark.",
+  "book": "The target video is an animated hand-drawn children's picture book: coloured pencil and wax crayon on warm off-white drawing paper with visible paper grain and soft smudges, slightly naive but clean outlines, warm colours, and gentle hand-made motion, as if the drawings on a lamp-lit page are quietly coming alive. The paper texture and crayon strokes stay visible in every frame; it is not anime cel shading, not 3D and not photorealistic. Night skies are deep blue crayon with the moon at the upper right. No on-screen text, no subtitles, no watermark.",
+  "bridge-out": "The video begins inside an animated crayon picture-book page (coloured pencil and wax crayon on warm off-white paper with visible grain) and ends in a 2D anime-style world with clean lineart, soft cel shading and a dark night-violet palette, moonlight from the upper right. No on-screen text, no subtitles, no watermark."
+ },
+ "groups": {
+  "real-novoice": {
+   "label": "现实 · 真（还没有音色参考，用来定声音）",
+   "images": [
+    "ref1-shin-full.png",
+    "ref3-shin-turnaround.png",
+    "ref2-shin-face.png"
+   ],
+   "audio": [],
+   "subjects": [
+    {
+     "text": "<Subject 1> is Kuon Shin, the young woman in <Picture 1>, <Picture 2> and <Picture 3>: a 158 cm university student with straight hair just above the shoulder blades that is almost black at the roots, deep violet where light hits, and fades to a very pale moonlight cream only at the last few centimetres of the tips (never gold or yellow), ends flicking outward, one ahoge on top, a gold crescent-moon-and-star clip on her left fringe, soft pink-violet eyes with tiny four-pointed star highlights and a direct, curious, slightly stubborn gaze, an oversized night-purple cable-knit cardigan whose sleeves cover half her hands over a loose white shirt, a dark navy pleated skirt, black knee socks, worn canvas sneakers, purple headphones around her neck and a lanyard card printed with a single star. She carries a small dark notebook with one moonlight-coloured star sticker on the cover. She does not wear glasses. <Picture 2> provides her front, side and back views; <Picture 3> provides her face, eyes and hair clip up close.",
+     "keep": "fully_preserved - her hair colours, ahoge, crescent-moon clip, star-lit eyes, night-purple cardigan, pleated skirt, knee socks, headphones and star notebook are retained."
     },
-    "shin": {
-      "label": "真",
-      "images": [
-        "ref1-shin-full.png",
-        "ref3-shin-turnaround.png",
-        "ref2-shin-face.png"
-      ],
-      "audio": [
-        "shin-voice.wav"
-      ]
-    },
-    "coding": {
-      "label": "真 · 写代码",
-      "images": [
-        "ref4-shin-coding.png",
-        "ref2-shin-face.png"
-      ],
-      "audio": [
-        "shin-voice.wav"
-      ]
-    },
-    "notebook": {
-      "label": "真 + 本子里的 Sin",
-      "images": [
-        "ref1-shin-full.png",
-        "ref5-sin-crayon.png",
-        "ref2-shin-face.png"
-      ],
-      "audio": [
-        "sin-voice.wav",
-        "shin-voice.wav"
-      ]
+    {
+     "text": "<Subject 2> is the night path below the dormitory in <Picture 1>: stone pavement, an old street lamp, dark trees, dormitory windows lit warm yellow, and a full moon at the upper right.",
+     "keep": "fully_preserved - the stone path, street lamp, trees, lit windows and the moon at the upper right are retained."
     }
+   ],
+   "voices": []
   },
-  "shots": [
+  "real": {
+   "label": "现实 · 真",
+   "images": [
+    "ref1-shin-full.png",
+    "ref3-shin-turnaround.png",
+    "ref2-shin-face.png"
+   ],
+   "audio": [
+    "shin-voice.wav"
+   ],
+   "subjects": [
     {
-      "id": "shadow",
-      "title": "影子站起来",
-      "seconds": 10,
-      "group": "shin",
-      "phase": 2,
-      "actions": [
-        "夜里的校园小路，右上方一轮月亮，地上拖着一道长长的人影",
-        "影子慢慢立起来，变成抱着小本子的真",
-        "她看向镜头"
-      ],
-      "lines": [
-        {
-          "speaker": "真（画外）",
-          "text": "每晚十点半，Sin 从实验室走回寝室。"
-        },
-        {
-          "speaker": "真",
-          "text": "月光照下来，身后那道影子，就是我。"
-        }
-      ],
-      "prompt": "subject_definitions:\n<Subject 1> is Kuon Shin, the young woman in <Picture 1>, <Picture 2> and <Picture 3>: a 158 cm university student with straight hair just above the shoulder blades that is almost black at the roots, deep violet where light hits, and fades to a very pale moonlight cream only at the last few centimetres of the tips (never gold or yellow), ends flicking outward, one ahoge on top, a gold crescent-moon-and-star clip on her left fringe, soft pink-violet eyes with tiny four-pointed star highlights and a calm, direct, slightly stubborn gaze, an oversized night-purple cable-knit cardigan whose sleeves cover half her hands over a loose white shirt, a dark navy pleated skirt, black knee socks, worn canvas sneakers, purple headphones around her neck and a lanyard card printed with a single star. She carries a small dark notebook with one moonlight-coloured star sticker on the cover. <Picture 2> provides her front, side and back views; <Picture 3> provides her face, eyes and hair clip up close.\n<Subject 2> is the night campus path in <Picture 1>: wet-looking stone pavement, a single old lamp post, dark trees, distant dormitory windows lit warm yellow, and a full moon at the upper right.\n<Audio 1> is the voice-timbre reference for <Subject 1> (S1).\n\nsummary:\n[reference generation + audio reference] On <Subject 2> at night, a long shadow cast by an unseen walker rises from the pavement and becomes <Subject 1>, who then speaks to the camera. <Audio 1> guides the voice of <Subject 1>.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1], [Shot 2]): fully_preserved - her hair colours, ahoge, hair clip, eyes, cardigan, skirt, knee socks, headphones and star notebook are retained.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the stone path, lamp post, trees, lit windows and the moon at the upper right are retained.\n<Audio 1>: reference - only the timbre and delivery of <Subject 1> (S1) are followed; the original words are not reused.\n\ndetailed_description:\nThe target video is a 2D anime-style animation with clean lineart and soft cel shading, a dark night-violet palette, moonlight always coming from the upper right with shadows falling to the lower left, gentle film grain, no on-screen text, no subtitles, no watermark.\n[Shot 1] A low wide shot of <Subject 2> at half past ten at night. The camera stays almost still with a very slow push-in. Moonlight from the upper right throws one long dark human shadow diagonally across the stones toward the lower left; the person casting it is outside the frame and walks out of view. <Subject 1> (S1) says in an off-screen voiceover, in a clear, calm young female voice, slightly low, with a measured pace and a faintly stubborn edge: <d>[Chinese] 每晚十点半，Sin 从实验室走回寝室。</d> while no visible character's lips move. The shadow stays behind on the ground, then slowly peels up from the pavement like a sheet of dark ink and rises into a standing figure; colour flows into it from the feet upward and it becomes <Subject 1>, hugging the star notebook to her chest.\n[Shot 2] At 00:05.500, the camera cuts to a medium shot of <Subject 1> standing on the path, body turned slightly to the right, face level and looking straight into the camera. The moon glows behind her at the upper right and a few hair tips catch its pale light. Her ahoge twitches once. <Subject 1> (S1) says calmly: <d>[Chinese] 月光照下来，身后那道影子，就是我。</d> She keeps holding the notebook and gives the faintest smile at the end.\n\noverall_soundscape:\nQuiet outdoor night ambience with faint insects in the grass and a soft breeze through the trees; footsteps on stone fade away in [Shot 1].\n\nnon_diegetic_music:\nN/A"
+     "text": "<Subject 1> is Kuon Shin, the young woman in <Picture 1>, <Picture 2> and <Picture 3>: a 158 cm university student with straight hair just above the shoulder blades that is almost black at the roots, deep violet where light hits, and fades to a very pale moonlight cream only at the last few centimetres of the tips (never gold or yellow), ends flicking outward, one ahoge on top, a gold crescent-moon-and-star clip on her left fringe, soft pink-violet eyes with tiny four-pointed star highlights and a direct, curious, slightly stubborn gaze, an oversized night-purple cable-knit cardigan whose sleeves cover half her hands over a loose white shirt, a dark navy pleated skirt, black knee socks, worn canvas sneakers, purple headphones around her neck and a lanyard card printed with a single star. She carries a small dark notebook with one moonlight-coloured star sticker on the cover. She does not wear glasses. <Picture 2> provides her front, side and back views; <Picture 3> provides her face, eyes and hair clip up close.",
+     "keep": "fully_preserved - her hair colours, ahoge, crescent-moon clip, star-lit eyes, night-purple cardigan, pleated skirt, knee socks, headphones and star notebook are retained."
     },
     {
-      "id": "card",
-      "title": "名片",
-      "seconds": 10,
-      "group": "shin-novoice",
-      "phase": 1,
-      "actions": [
-        "中景，真抱着本子站在路灯下，平视镜头",
-        "说名字时呆毛轻轻立起来",
-        "说完代表台词，嘴角很轻地上扬"
-      ],
-      "lines": [
-        {
-          "speaker": "真",
-          "text": "我叫久遠真。大家叫我真，和 Sin 同音。"
-        },
-        {
-          "speaker": "真",
-          "text": "还没弄懂的事，那就再走一会儿。"
-        }
-      ],
-      "prompt": "subject_definitions:\n<Subject 1> is Kuon Shin, the young woman in <Picture 1>, <Picture 2> and <Picture 3>: a 158 cm university student with straight hair just above the shoulder blades that is almost black at the roots, deep violet where light hits, and fades to a very pale moonlight cream only at the last few centimetres of the tips (never gold or yellow), ends flicking outward, one ahoge on top, a gold crescent-moon-and-star clip on her left fringe, soft pink-violet eyes with tiny four-pointed star highlights and a calm, direct, slightly stubborn gaze, an oversized night-purple cable-knit cardigan whose sleeves cover half her hands over a loose white shirt, a dark navy pleated skirt, black knee socks, worn canvas sneakers, purple headphones around her neck and a lanyard card printed with a single star. She carries a small dark notebook with one moonlight-coloured star sticker on the cover. <Picture 2> provides her front, side and back views; <Picture 3> provides her face, eyes and hair clip up close.\n<Subject 2> is the night campus path in <Picture 1>: wet-looking stone pavement, a single old lamp post, dark trees, distant dormitory windows lit warm yellow, and a full moon at the upper right.\n\nsummary:\n[reference generation] <Subject 1> stands on <Subject 2> under the lamp and introduces herself to the camera in two short lines. This clip establishes her speaking voice.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1]): fully_preserved - her hair colours, ahoge, hair clip, eyes, cardigan, skirt, knee socks, headphones and star notebook are retained.\n<Subject 2> (appears in [Shot 1]): weak_reference - only the night path, lamp light and moon at the upper right are kept as the background.\n\ndetailed_description:\nThe target video is a 2D anime-style animation with clean lineart and soft cel shading, a dark night-violet palette, moonlight always coming from the upper right with shadows falling to the lower left, gentle film grain, no on-screen text, no subtitles, no watermark.\n[Shot 1] A medium close-up of <Subject 1> from the waist up, standing beside the lamp post on <Subject 2>, hugging the star notebook with both arms, long cardigan sleeves covering half her hands. The camera pushes in very slowly at small amplitude. She looks straight into the lens without looking away. In a clear, calm young female voice, slightly low, with a measured pace and a faintly stubborn edge, <Subject 1> (S1) says: <d>[Chinese] 我叫久遠真。大家叫我真，和 Sin 同音。</d> When she says her name, her ahoge lifts slightly and the star highlights in her eyes brighten for a moment. She pauses for a beat, tilts her head a few degrees, and continues in the same steady voice: <d>[Chinese] 还没弄懂的事，那就再走一会儿。</d> At the end the corners of her mouth rise very slightly; the expression stays calm and a little stubborn, never sweet or cutesy.\n\noverall_soundscape:\nQuiet outdoor night ambience with a soft breeze and a faint electrical hum from the lamp.\n\nnon_diegetic_music:\nN/A"
-    },
-    {
-      "id": "notebook",
-      "title": "小本子",
-      "seconds": 12,
-      "group": "notebook",
-      "phase": 2,
-      "actions": [
-        "特写：真翻开封面贴着星星的小本子，纸页上写满小字和涂鸦",
-        "她翻到一页，上面是 Sin 的蜡笔画像",
-        "她用手指轻点那幅画"
-      ],
-      "lines": [
-        {
-          "speaker": "真",
-          "text": "看到不认识的东西，我会先问：这个叫什么？然后记进本子里。"
-        },
-        {
-          "speaker": "真",
-          "text": "这一页，是 Sin。"
-        }
-      ],
-      "prompt": "subject_definitions:\n<Subject 1> is Kuon Shin, the young woman in <Picture 1> and <Picture 3>: a 158 cm university student with straight hair just above the shoulder blades that is almost black at the roots, deep violet where light hits, and fades to a very pale moonlight cream only at the last few centimetres of the tips (never gold or yellow), ends flicking outward, one ahoge on top, a gold crescent-moon-and-star clip on her left fringe, soft pink-violet eyes with tiny four-pointed star highlights and a calm, direct, slightly stubborn gaze, an oversized night-purple cable-knit cardigan whose sleeves cover half her hands over a loose white shirt, a dark navy pleated skirt, black knee socks, worn canvas sneakers, purple headphones around her neck and a lanyard card printed with a single star. She carries a small dark notebook with one moonlight-coloured star sticker on the cover.\n<Subject 2> is the crayon-drawn character in <Picture 2>: a rough crayon portrait with messy pale lavender-white hair, dark hair clips, one visible eye, a pink cheek and a dark purple top, drawn with thick black crayon lines and visible paper-grain strokes.\n<Audio 2> is the voice-timbre reference for <Subject 1> (S1).\n\nsummary:\n[reference generation + audio reference] Close shots of <Subject 1>'s hands opening her star notebook; she flips to a page where <Subject 2> is drawn in crayon and points at it. <Audio 2> guides the voice of <Subject 1>.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1], [Shot 2]): fully_preserved - her cardigan sleeves, hands, hair clip, eyes and star notebook are retained.\n<Subject 2> (appears in [Shot 2]): fully_preserved - the crayon line quality, pale lavender-white hair, hair clips and purple top are retained exactly as a drawing on paper.\n<Audio 2>: reference - only the timbre and delivery of <Subject 1> (S1) are followed.\n\ndetailed_description:\nThe target video is a 2D anime-style animation with clean lineart and soft cel shading, a dark night-violet palette, moonlight always coming from the upper right with shadows falling to the lower left, gentle film grain, no on-screen text, no subtitles, no watermark.\n[Shot 1] An over-the-shoulder close shot under warm lamp light at night. <Subject 1>'s hands, half covered by her long night-purple cardigan sleeves, open the dark notebook with the star sticker. The pages are filled with small illegible handwritten notes, arrows and tiny star doodles. The camera tilts down slowly toward the pages as she turns them. In a clear, calm young female voice, slightly low, with a measured pace and a faintly stubborn edge, <Subject 1> (S1) says: <d>[Chinese] 看到不认识的东西，我会先问：这个叫什么？然后记进本子里。</d>\n[Shot 2] At 00:07.000, the camera cuts to a top-down insert of a fresh page: <Subject 2> is drawn on it in crayon, filling most of the page, flat and still like a real drawing on paper. <Subject 1>'s fingertip enters from the right and lightly taps beside the drawing. <Subject 1> (S1) says off-screen: <d>[Chinese] 这一页，是 Sin。</d> while the drawing stays still.\n\noverall_soundscape:\nPaper rustling as pages turn, a soft fingertip tap on paper, faint night ambience outside a window.\n\nnon_diegetic_music:\nN/A"
-    },
-    {
-      "id": "sin",
-      "title": "本子里的 Sin",
-      "seconds": 12,
-      "group": "notebook",
-      "phase": 2,
-      "actions": [
-        "纸上的蜡笔画动起来：线条轻轻抖动，眨眼，转向镜头",
-        "Sin 用自己的声音做自我介绍",
-        "最后朝镜头挥一下蜡笔画的手"
-      ],
-      "lines": [
-        {
-          "speaker": "Sin",
-          "text": "我是 Sin，一个在深夜写代码的大三学生。"
-        },
-        {
-          "speaker": "Sin",
-          "text": "白天上课，晚上折腾前端、写博客、做点小东西。"
-        }
-      ],
-      "prompt": "subject_definitions:\n<Subject 2> is the crayon-drawn character in <Picture 2>: a rough crayon portrait with messy pale lavender-white hair, dark hair clips, one visible eye, a pink cheek and a dark purple top, drawn with thick black crayon lines and visible paper-grain strokes.\n<Subject 3> is the page of the small notebook from <Picture 1>, cream paper with faint ruled lines.\n<Audio 1> is the voice-timbre reference for <Subject 2> (S2).\n\nsummary:\n[reference generation + audio reference] A top-down insert of <Subject 3> on which <Subject 2> comes alive as a hand-drawn crayon animation and introduces itself, speaking with the timbre of <Audio 1>.\n\nretention_analysis:\n<Subject 2> (appears in [Shot 1]): fully_preserved - it stays a crayon drawing with boiling black crayon outlines, paper grain and the same hair, clips and purple top; it is never rendered as a 3D or painted character.\n<Subject 3> (appears in [Shot 1]): partially_preserved - only the paper colour and ruled lines are kept.\n<Audio 1>: reference - only the timbre and delivery of <Subject 2> (S2) are followed; the original words are not reused.\n\ndetailed_description:\nThe target video is a 2D anime-style animation with clean lineart and soft cel shading, a dark night-violet palette, moonlight always coming from the upper right with shadows falling to the lower left, gentle film grain, no on-screen text, no subtitles, no watermark.\n[Shot 1] A locked-off top-down close shot of <Subject 3> under warm desk-lamp light. <Subject 2> is drawn on the page. The drawing comes alive in a limited hand-drawn crayon animation at 12 drawings per second: the black outlines boil slightly, the eye blinks, and the drawn head turns from profile toward the camera. The drawn mouth opens and closes in sync with its speech. In the voice whose timbre follows <Audio 1>, <Subject 2> (S2) says: <d>[Chinese] 我是 Sin，一个在深夜写代码的大三学生。</d> The crayon hair bounces once. <Subject 2> (S2) continues: <d>[Chinese] 白天上课，晚上折腾前端、写博客、做点小东西。</d> At the end a small crayon hand appears at the edge of the drawing and waves at the camera twice, leaving a few faint crayon smudges on the paper. The camera does not move.\n\noverall_soundscape:\nSoft scratching of crayon on paper while the drawing moves, a quiet room tone and a faint clock tick.\n\nnon_diegetic_music:\nN/A"
-    },
-    {
-      "id": "coding",
-      "title": "写代码的时候",
-      "seconds": 12,
-      "group": "coding",
-      "phase": 2,
-      "actions": [
-        "深夜宿舍书桌，真戴着眼镜敲笔记本电脑，屏幕冷光照在脸上",
-        "遇到 bug 皱眉，推一下眼镜",
-        "终于弄懂，露出很轻的笑"
-      ],
-      "lines": [
-        {
-          "speaker": "真",
-          "text": "被 bug 和 AI 气到的时候，我会说：你没讲清楚，我想知道的是为什么。"
-        },
-        {
-          "speaker": "真",
-          "text": "……嗯，弄懂了。"
-        }
-      ],
-      "prompt": "subject_definitions:\n<Subject 1> is Kuon Shin, the young woman in <Picture 1> and <Picture 2>: a 158 cm university student with straight hair just above the shoulder blades that is almost black at the roots, deep violet where light hits, and fades to a very pale moonlight cream only at the last few centimetres of the tips (never gold or yellow), ends flicking outward, one ahoge on top, a gold crescent-moon-and-star clip on her left fringe, soft pink-violet eyes with tiny four-pointed star highlights and a calm, direct, slightly stubborn gaze, an oversized night-purple cable-knit cardigan whose sleeves cover half her hands over a loose white shirt, a dark navy pleated skirt, black knee socks, worn canvas sneakers, purple headphones around her neck and a lanyard card printed with a single star. She carries a small dark notebook with one moonlight-coloured star sticker on the cover. In this video she wears thin dark-violet metal oval glasses with very thin lenses that never hide her eyes, cardigan sleeves pushed up to the forearms and headphones on her head, as in <Picture 1>.\n<Subject 2> is the late-night dorm desk in <Picture 1>: a laptop with a star on the lid, a desk lamp, a moon mug, an open notebook and a window with the moon at the upper right.\n<Audio 1> is the voice-timbre reference for <Subject 1> (S1).\n\nsummary:\n[reference generation + audio reference] <Subject 1> works at <Subject 2> late at night, gets stuck on a bug, then figures it out. <Audio 1> guides her voice.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1], [Shot 2]): fully_preserved - her glasses, headphones, hair colours, hair clip, eyes and pushed-up cardigan sleeves are retained.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the desk, laptop, lamp, mug, notebook and moonlit window are retained.\n<Audio 1>: reference - only the timbre and delivery of <Subject 1> (S1) are followed.\n\ndetailed_description:\nThe target video is a 2D anime-style animation with clean lineart and soft cel shading, a dark night-violet palette, moonlight always coming from the upper right with shadows falling to the lower left, gentle film grain, no on-screen text, no subtitles, no watermark.\n[Shot 1] A side medium shot of <Subject 1> at <Subject 2>, typing on the laptop. Cool blue screen light falls on her face and glasses; the moon shines through the window at the upper right. The camera dollies in slowly. She stops typing and frowns at the screen, pushes her glasses up with one finger and, in a clear, calm young female voice, slightly low, with a measured pace and a faintly stubborn edge, <Subject 1> (S1) says with mild irritation: <d>[Chinese] 被 bug 和 AI 气到的时候，我会说：你没讲清楚，我想知道的是为什么。</d>\n[Shot 2] At 00:08.000, the camera cuts to a close-up of her face lit by the screen. Her eyes scan the lines, the four-pointed star highlights in her eyes grow brighter, and her expression loosens into a small, quiet smile. <Subject 1> (S1) says softly: <d>[Chinese] ……嗯，弄懂了。</d>\n\noverall_soundscape:\nSteady laptop keyboard typing that stops in [Shot 1], a faint fan hum, distant night outside the window.\n\nnon_diegetic_music:\nN/A"
-    },
-    {
-      "id": "stars",
-      "title": "Yozora",
-      "seconds": 12,
-      "group": "shin",
-      "phase": 2,
-      "actions": [
-        "宿舍阳台，满天星星，真仰头看月，发梢被月光照亮、被夜风吹起",
-        "镜头慢慢上摇到星空，几颗星连成星座",
-        "停在星空"
-      ],
-      "lines": [
-        {
-          "speaker": "真",
-          "text": "Sin 心里有一片星空，叫 Yozora。"
-        },
-        {
-          "speaker": "真",
-          "text": "文章、手记、碎碎念，都放在那里。"
-        },
-        {
-          "speaker": "真（画外）",
-          "text": "头顶的星空，是心里的星空。"
-        }
-      ],
-      "prompt": "subject_definitions:\n<Subject 1> is Kuon Shin, the young woman in <Picture 1>, <Picture 2> and <Picture 3>: a 158 cm university student with straight hair just above the shoulder blades that is almost black at the roots, deep violet where light hits, and fades to a very pale moonlight cream only at the last few centimetres of the tips (never gold or yellow), ends flicking outward, one ahoge on top, a gold crescent-moon-and-star clip on her left fringe, soft pink-violet eyes with tiny four-pointed star highlights and a calm, direct, slightly stubborn gaze, an oversized night-purple cable-knit cardigan whose sleeves cover half her hands over a loose white shirt, a dark navy pleated skirt, black knee socks, worn canvas sneakers, purple headphones around her neck and a lanyard card printed with a single star. She carries a small dark notebook with one moonlight-coloured star sticker on the cover. <Picture 2> provides her front, side and back views; <Picture 3> provides her face, eyes and hair clip up close.\n<Audio 1> is the voice-timbre reference for <Subject 1> (S1).\n\nsummary:\n[reference generation + audio reference] <Subject 1> stands on a dorm balcony under a starry sky, looks up at the moon and talks about the place called Yozora; the camera tilts up into the stars. <Audio 1> guides her voice.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1]): fully_preserved - her hair colours, ahoge, hair clip, eyes, cardigan and star notebook are retained; in this moonlit moment the pale cream hair tips glow a little brighter.\n<Audio 1>: reference - only the timbre and delivery of <Subject 1> (S1) are followed.\n\ndetailed_description:\nThe target video is a 2D anime-style animation with clean lineart and soft cel shading, a dark night-violet palette, moonlight always coming from the upper right with shadows falling to the lower left, gentle film grain, no on-screen text, no subtitles, no watermark.\n[Shot 1] A medium-wide shot from behind and to the left of <Subject 1> on a dorm balcony with a simple metal railing at night. The sky is deep violet and full of fine stars, the full moon at the upper right. A night breeze lifts her hair and the pale moonlight-cream tips catch the light. She raises her face toward the moon with a quiet smile, one hand touching the crescent clip. In a clear, calm young female voice, slightly low, with a measured pace and a faintly stubborn edge, <Subject 1> (S1) says: <d>[Chinese] Sin 心里有一片星空，叫 Yozora。</d> She pauses, still looking up, and continues: <d>[Chinese] 文章、手记、碎碎念，都放在那里。</d>\n[Shot 2] At 00:08.000, the camera tilts up slowly away from her into the sky until only stars fill the frame. Thin, faint lines of light connect a few stars into a small constellation one segment at a time. <Subject 1> (S1) says in an off-screen voiceover: <d>[Chinese] 头顶的星空，是心里的星空。</d> while no visible character's lips move.\n\noverall_soundscape:\nGentle night wind, distant crickets, a faint creak of the balcony railing.\n\nnon_diegetic_music:\nN/A"
-    },
-    {
-      "id": "farewell",
-      "title": "明天也会在这条路上",
-      "seconds": 8,
-      "group": "shin",
-      "phase": 2,
-      "actions": [
-        "回到那条夜路，真往前走",
-        "走了几步回头，朝镜头挥一下手",
-        "画面慢慢暗下去（剪辑时在黑场上加网址 sin6626.me）"
-      ],
-      "lines": [
-        {
-          "speaker": "真",
-          "text": "累了就歇歇，然后继续走。"
-        },
-        {
-          "speaker": "真",
-          "text": "明天也会在这条路上。"
-        }
-      ],
-      "prompt": "subject_definitions:\n<Subject 1> is Kuon Shin, the young woman in <Picture 1>, <Picture 2> and <Picture 3>: a 158 cm university student with straight hair just above the shoulder blades that is almost black at the roots, deep violet where light hits, and fades to a very pale moonlight cream only at the last few centimetres of the tips (never gold or yellow), ends flicking outward, one ahoge on top, a gold crescent-moon-and-star clip on her left fringe, soft pink-violet eyes with tiny four-pointed star highlights and a calm, direct, slightly stubborn gaze, an oversized night-purple cable-knit cardigan whose sleeves cover half her hands over a loose white shirt, a dark navy pleated skirt, black knee socks, worn canvas sneakers, purple headphones around her neck and a lanyard card printed with a single star. She carries a small dark notebook with one moonlight-coloured star sticker on the cover. <Picture 2> provides her front, side and back views; <Picture 3> provides her face, eyes and hair clip up close.\n<Subject 2> is the night campus path in <Picture 1>: wet-looking stone pavement, a single old lamp post, dark trees, distant dormitory windows lit warm yellow, and a full moon at the upper right.\n<Audio 1> is the voice-timbre reference for <Subject 1> (S1).\n\nsummary:\n[reference generation + audio reference] <Subject 1> walks away along <Subject 2>, looks back over her shoulder and says goodbye, then the image fades to black. <Audio 1> guides her voice.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1]): fully_preserved - her hair colours, ahoge, hair clip, cardigan, skirt, knee socks, sneakers and star notebook are retained.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the stone path, lamp post, trees, lit windows and moon at the upper right are retained.\n<Audio 1>: reference - only the timbre and delivery of <Subject 1> (S1) are followed.\n\ndetailed_description:\nThe target video is a 2D anime-style animation with clean lineart and soft cel shading, a dark night-violet palette, moonlight always coming from the upper right with shadows falling to the lower left, gentle film grain, no on-screen text, no subtitles, no watermark.\n[Shot 1] A wide shot from behind of <Subject 1> walking slowly away along <Subject 2>, the notebook under one arm, her moonlit shadow stretching to the lower left. The camera follows at a distance with a slow dolly. After a few steps she stops, turns her head and upper body back toward the camera, and lifts one hand in a small wave from inside her long sleeve. In a clear, calm young female voice, slightly low, with a measured pace and a faintly stubborn edge, <Subject 1> (S1) says: <d>[Chinese] 累了就歇歇，然后继续走。</d> A short pause, then softer: <d>[Chinese] 明天也会在这条路上。</d> She turns and keeps walking toward the lit windows. In the last second the whole image fades smoothly to black.\n\noverall_soundscape:\nUnhurried footsteps on stone, a soft breeze, faint distant insects; everything fades out with the picture.\n\nnon_diegetic_music:\nN/A"
+     "text": "<Subject 2> is the night path below the dormitory in <Picture 1>: stone pavement, an old street lamp, dark trees, dormitory windows lit warm yellow, and a full moon at the upper right.",
+     "keep": "fully_preserved - the stone path, street lamp, trees, lit windows and the moon at the upper right are retained."
     }
-  ]
+   ],
+   "voices": [
+    {
+     "text": "<Audio 1> is the voice-timbre reference for <Subject 1> (S1).",
+     "keep": "reference - only the timbre and delivery of <Subject 1> are followed; the original words are not reused."
+    }
+   ]
+  },
+  "book-open": {
+   "label": "本子里 · 第一页（还没有 Sin 的参考图，用来定 Sin 的样子）",
+   "images": [],
+   "audio": [
+    "shin-voice.wav"
+   ],
+   "subjects": [
+    {
+     "text": "<Subject 1> is Sin, a very ordinary male university student drawn in crayon: short, slightly messy black hair, black rectangular glasses, a plain grey hooded sweatshirt, dark trousers, a navy backpack and white canvas sneakers, with a gentle, slightly tired face. He never speaks.",
+     "keep": "weak_reference - his glasses, short black hair, grey hoodie, navy backpack and the crayon line quality are retained."
+    },
+    {
+     "text": "<Subject 2> is the little crayon town of the story: rows of small houses whose windows glow warm yellow one by one, a long road, and at its far end a laboratory building with its lights on.",
+     "keep": "weak_reference - only the cosy crayon town, glowing windows and the long road to the lit laboratory are kept."
+    }
+   ],
+   "voices": [
+    {
+     "text": "<Audio 1> is the voice-timbre reference for the off-screen narrator Kuon Shin (S1), who is also the voice of Little Shin.",
+     "keep": "reference - only the narrator's timbre and delivery are followed; the original words are not reused."
+    }
+   ]
+  },
+  "book-sin": {
+   "label": "本子里 · Sin",
+   "images": [
+    "book-sin.png"
+   ],
+   "audio": [
+    "shin-voice.wav"
+   ],
+   "subjects": [
+    {
+     "text": "<Subject 1> is Sin, the crayon-drawn young man in <Picture 1>: a very ordinary male university student with short, slightly messy black hair, black rectangular glasses, a plain grey hooded sweatshirt, dark trousers, a navy backpack and white canvas sneakers. <Picture 1> also sets the coloured-pencil and crayon picture-book style. He never speaks.",
+     "keep": "fully_preserved - his glasses, short black hair, grey hoodie, navy backpack and the crayon line quality are retained."
+    }
+   ],
+   "voices": [
+    {
+     "text": "<Audio 1> is the voice-timbre reference for the off-screen narrator Kuon Shin (S1), who is also the voice of Little Shin.",
+     "keep": "reference - only the narrator's timbre and delivery are followed; the original words are not reused."
+    }
+   ]
+  },
+  "book-shin-new": {
+   "label": "本子里 · 小真第一次出现（用来定小真的样子）",
+   "images": [
+    "book-sin.png",
+    "ref3-shin-turnaround.png",
+    "ref2-shin-face.png"
+   ],
+   "audio": [
+    "shin-voice.wav"
+   ],
+   "subjects": [
+    {
+     "text": "<Subject 1> is Sin, the crayon-drawn young man in <Picture 1>: a very ordinary male university student with short, slightly messy black hair, black rectangular glasses, a plain grey hooded sweatshirt, dark trousers, a navy backpack and white canvas sneakers. <Picture 1> also sets the coloured-pencil and crayon picture-book style. He never speaks.",
+     "keep": "fully_preserved - his glasses, short black hair, grey hoodie, navy backpack and the crayon line quality are retained."
+    },
+    {
+     "text": "<Subject 2> is Little Shin, a small crayon picture-book version of the girl in <Picture 2> and <Picture 3>, redrawn in the same coloured-pencil style as <Picture 1>: a tiny round-faced girl with violet-black hair fading to pale cream at the tips, one springy ahoge, a gold crescent-moon clip, violet eyes with tiny star highlights, an oversized night-purple cardigan, a navy pleated skirt, and a small dark notebook with a star sticker. <Picture 2> is her full-body design and <Picture 3> her face.",
+     "keep": "attribute_transfer - her hair colours, ahoge, crescent-moon clip, star-lit eyes, violet cardigan, pleated skirt and star notebook are transferred onto a small, simple crayon picture-book character."
+    }
+   ],
+   "voices": [
+    {
+     "text": "<Audio 1> is the voice-timbre reference for the off-screen narrator Kuon Shin (S1), who is also the voice of Little Shin.",
+     "keep": "reference - only the narrator's timbre and delivery are followed; the original words are not reused."
+    }
+   ]
+  },
+  "book": {
+   "label": "本子里 · Sin 和小真",
+   "images": [
+    "book-sin.png",
+    "book-shin.png"
+   ],
+   "audio": [
+    "shin-voice.wav"
+   ],
+   "subjects": [
+    {
+     "text": "<Subject 1> is Sin, the crayon-drawn young man in <Picture 1>: a very ordinary male university student with short, slightly messy black hair, black rectangular glasses, a plain grey hooded sweatshirt, dark trousers, a navy backpack and white canvas sneakers. <Picture 1> also sets the coloured-pencil and crayon picture-book style. He never speaks.",
+     "keep": "fully_preserved - his glasses, short black hair, grey hoodie, navy backpack and the crayon line quality are retained."
+    },
+    {
+     "text": "<Subject 2> is Little Shin, the small crayon-drawn girl in <Picture 2>: violet-black hair fading to pale cream at the tips, one springy ahoge, a gold crescent-moon clip, violet eyes with tiny star highlights, an oversized night-purple cardigan, a navy pleated skirt and a small dark notebook with a star sticker. She is the picture-book form of the narrator.",
+     "keep": "fully_preserved - her small crayon body, hair colours, ahoge, moon clip, violet cardigan and star notebook are retained."
+    }
+   ],
+   "voices": [
+    {
+     "text": "<Audio 1> is the voice-timbre reference for the off-screen narrator Kuon Shin (S1), who is also the voice of Little Shin.",
+     "keep": "reference - only the narrator's timbre and delivery are followed; the original words are not reused."
+    }
+   ]
+  },
+  "bridge-out": {
+   "label": "本子里 → 现实（合上本子）",
+   "images": [
+    "ref1-shin-full.png",
+    "ref3-shin-turnaround.png",
+    "ref2-shin-face.png",
+    "book-sin.png",
+    "book-shin.png"
+   ],
+   "audio": [
+    "shin-voice.wav"
+   ],
+   "subjects": [
+    {
+     "text": "<Subject 1> is Kuon Shin, the young woman in <Picture 1>, <Picture 2> and <Picture 3>: a 158 cm university student with straight hair just above the shoulder blades that is almost black at the roots, deep violet where light hits, and fades to a very pale moonlight cream only at the last few centimetres of the tips (never gold or yellow), ends flicking outward, one ahoge on top, a gold crescent-moon-and-star clip on her left fringe, soft pink-violet eyes with tiny four-pointed star highlights and a direct, curious, slightly stubborn gaze, an oversized night-purple cable-knit cardigan whose sleeves cover half her hands over a loose white shirt, a dark navy pleated skirt, black knee socks, worn canvas sneakers, purple headphones around her neck and a lanyard card printed with a single star. She carries a small dark notebook with one moonlight-coloured star sticker on the cover. She does not wear glasses. <Picture 2> provides her front, side and back views; <Picture 3> provides her face, eyes and hair clip up close.",
+     "keep": "fully_preserved - her hair colours, ahoge, crescent-moon clip, star-lit eyes, night-purple cardigan, pleated skirt, knee socks, headphones and star notebook are retained."
+    },
+    {
+     "text": "<Subject 2> is the night path below the dormitory in <Picture 1>: stone pavement, an old street lamp, dark trees, dormitory windows lit warm yellow, and a full moon at the upper right.",
+     "keep": "fully_preserved - the stone path, street lamp, trees, lit windows and the moon at the upper right are retained."
+    },
+    {
+     "text": "<Subject 3> is Sin, the crayon-drawn young man in <Picture 4>: a very ordinary male university student with short, slightly messy black hair, black rectangular glasses, a plain grey hooded sweatshirt, dark trousers, a navy backpack and white canvas sneakers. <Picture 4> also sets the coloured-pencil and crayon picture-book style. He never speaks.",
+     "keep": "fully_preserved - his glasses, short black hair, grey hoodie, navy backpack and the crayon line quality are retained."
+    },
+    {
+     "text": "<Subject 4> is Little Shin, the small crayon-drawn girl in <Picture 5>: violet-black hair fading to pale cream at the tips, one springy ahoge, a gold crescent-moon clip, violet eyes with tiny star highlights, an oversized night-purple cardigan, a navy pleated skirt and a small dark notebook with a star sticker. She is the picture-book form of the narrator.",
+     "keep": "fully_preserved - her small crayon body, hair colours, ahoge, moon clip, violet cardigan and star notebook are retained."
+    }
+   ],
+   "voices": [
+    {
+     "text": "<Audio 1> is the voice-timbre reference for <Subject 1> (S1).",
+     "keep": "reference - only the timbre and delivery of <Subject 1> are followed; the original words are not reused."
+    }
+   ]
+  }
+ },
+ "cuts": [
+  {
+   "after_phase": 1,
+   "kind": "audio",
+   "file": "shin-voice.wav",
+   "from": "p0a",
+   "note": "挑声音最像真的那一段，截她说话的 5–10 秒（不要带脚步声），之后所有片段都用它当音色参考"
+  },
+  {
+   "after_phase": 2,
+   "kind": "frame",
+   "file": "book-sin.png",
+   "from": "p1a",
+   "note": "挑 Sin 画得最好的那一段，截一帧他清楚露脸、看得见眼镜和背包的画面，之后本子里的片段都用它定 Sin 的样子和画风"
+  },
+  {
+   "after_phase": 3,
+   "kind": "frame",
+   "file": "book-shin.png",
+   "from": "p2b",
+   "note": "挑小真画得最好的那一段，截最后几秒她正面全身站着的一帧，之后的页都用它定小真的样子"
+  }
+ ],
+ "shots": [
+  {
+   "id": "p0a",
+   "section": "序幕 · 晚上好",
+   "title": "冲进画面",
+   "seconds": 12,
+   "group": "real-novoice",
+   "phase": 1,
+   "world": "real",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "啊，已经开始了？咳。晚上好！"
+    },
+    {
+     "speaker": "真",
+     "text": "我叫久遠真。久远的久远，真心的真。叫我真就好。"
+    }
+   ],
+   "summary": "[reference generation] At night on <Subject 2>, <Subject 1> runs into the lamplight, nearly overshoots, recovers and introduces herself to the camera.",
+   "shots": "[Shot 1] A wide, almost still shot of <Subject 2> at half past ten at night, the street lamp glowing on the left and the full moon at the upper right. <Subject 1> runs in from the left edge of the frame into the circle of lamplight, hugging the star notebook to her chest, her cardigan sleeves flapping. She nearly fails to stop, skids a step past the light, hops back into it and catches her breath. <Subject 1> (S1) blurts out in a clear, bright young female voice that is slightly low for her age, quick and lively, with a teasing, faintly stubborn edge, never sweet or babyish, a little startled: <d>[Chinese] 啊，已经开始了？咳。晚上好！</d> She clears her throat and straightens up.\n[Shot 2] At 00:04.500, the camera cuts to a medium shot. <Subject 1> stands upright on the stones, faces the camera at eye level and looks straight into the lens; her single ahoge springs upright with a tiny bounce. Moonlight from the upper right catches the pale tips of her hair. <Subject 1> (S1) says brightly, at a quick, confident pace, tapping the notebook once on the last word: <d>[Chinese] 我叫久遠真。久远的久远，真心的真。叫我真就好。</d> She ends with a small, slightly proud smile.",
+   "soundscape": "Quiet outdoor night ambience: faint insects in the grass, a soft breeze through the trees, a distant hum from the dormitory. Quick running footsteps on stone and one scuff as she skids to a stop in [Shot 1]."
+  },
+  {
+   "id": "p0b",
+   "section": "序幕 · 晚上好",
+   "title": "我是谁",
+   "seconds": 12,
+   "group": "real",
+   "phase": 2,
+   "world": "real",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "你可能想问，真是谁？"
+    },
+    {
+     "speaker": "真",
+     "text": "问得好。"
+    },
+    {
+     "speaker": "真",
+     "text": "我是 Sin 的影子。对，就是每天晚上跟在他脚后面的那一道。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] On <Subject 2>, <Subject 1> answers her own question and points at the long shadow at her feet. <Audio 1> guides the voice of <Subject 1>.",
+   "shots": "[Shot 1] A medium close-up of <Subject 1> under the street lamp of <Subject 2>, the moon at the upper right behind her. She tilts her head and points a sleeve-covered finger at the camera. <Subject 1> (S1), in the lively voice referenced from <Audio 1>, says: <d>[Chinese] 你可能想问，真是谁？</d> She nods to herself twice, eyes narrowed, and says with a smug little grin: <d>[Chinese] 问得好。</d>\n[Shot 2] At 00:04.500, the camera tilts down and pulls back to a medium-wide shot. Moonlight from the upper right throws a long dark shadow from her feet diagonally across the stones of <Subject 2> to the lower left. <Subject 1> points down at the shadow, then back at herself. <Subject 1> (S1) says, half explaining and half bragging: <d>[Chinese] 我是 Sin 的影子。对，就是每天晚上跟在他脚后面的那一道。</d> Her ahoge bobs as she nods.",
+   "soundscape": "Quiet outdoor night ambience: faint insects in the grass, a soft breeze through the trees, a distant hum from the dormitory."
+  },
+  {
+   "id": "p0c",
+   "section": "序幕 · 晚上好",
+   "title": "只好由我来说",
+   "seconds": 9,
+   "group": "real",
+   "phase": 2,
+   "world": "real",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "Sin 这个人吧，白天有好多话憋着不说。"
+    },
+    {
+     "speaker": "真",
+     "text": "没办法，到了晚上，只好由我来说。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] A close shot of <Subject 1> on <Subject 2> complaining good-naturedly about Sin. <Audio 1> guides the voice of <Subject 1>.",
+   "shots": "[Shot 1] A close shot of <Subject 1> from the chest up, the lamp-lit trees of <Subject 2> soft behind her and the moon at the upper right. She folds her arms over the star notebook and gives an exaggerated, mock-exasperated sigh, eyes rolling slightly upward. <Subject 1> (S1) says in the voice referenced from <Audio 1>, with a teasing complaint: <d>[Chinese] Sin 这个人吧，白天有好多话憋着不说。</d> She shrugs with both sleeves, then lifts her chin with a small determined grin and says: <d>[Chinese] 没办法，到了晚上，只好由我来说。</d> Her ahoge sways once.",
+   "soundscape": "Quiet outdoor night ambience: faint insects in the grass, a soft breeze through the trees, a distant hum from the dormitory."
+  },
+  {
+   "id": "p0d",
+   "section": "序幕 · 晚上好",
+   "title": "翻开本子",
+   "seconds": 13,
+   "group": "real",
+   "phase": 2,
+   "world": "real",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "今天给你讲个故事。先说好，这本子是我自己画的，画歪了不许笑。"
+    },
+    {
+     "speaker": "真",
+     "text": "讲的是，我，和 Sin。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] On <Subject 2>, <Subject 1> holds her notebook up to the camera, then opens it, and the camera pushes into a crayon drawing that starts to move. <Audio 1> guides the voice of <Subject 1>.",
+   "shots": "[Shot 1] A medium close-up on <Subject 2>. <Subject 1> lifts the dark notebook right up to the lens and waggles it; the star sticker on its cover flashes in the moonlight. <Subject 1> (S1) says in the voice referenced from <Audio 1>, quick and playful, narrowing her eyes in a mock warning on the last clause: <d>[Chinese] 今天给你讲个故事。先说好，这本子是我自己画的，画歪了不许笑。</d>\n[Shot 2] At 00:07.500, the camera cuts to an over-the-shoulder close shot of her hands, half covered by the cardigan sleeves, opening the notebook. The page shows a hand-drawn crayon picture of a little town at night with rows of tiny houses. <Subject 1> (S1) says more softly and slowly: <d>[Chinese] 讲的是，我，和 Sin。</d> The camera pushes steadily into the page until the paper fills the frame; the crayon windows of the little town begin to light up one after another and the drawn lines start to move, the anime night fading away into the paper.",
+   "soundscape": "Quiet outdoor night ambience: faint insects in the grass, a soft breeze through the trees, a distant hum from the dormitory. A soft page-turn as she opens the notebook in [Shot 2], then a faint crayon scratch as the drawing comes alive."
+  },
+  {
+   "id": "p1a",
+   "section": "第一页 · 走夜路的人",
+   "title": "小城和 Sin",
+   "seconds": 15,
+   "group": "book-open",
+   "phase": 2,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "从前，嗯，其实也没多从前，有一座总是亮着灯的小城。城里住着一个叫 Sin 的人。"
+    },
+    {
+     "speaker": "真",
+     "text": "你看他，戴个眼镜，背个包，是不是特别普通？"
+    }
+   ],
+   "summary": "[reference generation + audio reference] <Subject 2>, a crayon picture-book town at night; <Subject 1> walks out of the lit laboratory under a big moon while the off-screen narrator introduces him. <Audio 1> guides the narrator's voice.",
+   "shots": "[Shot 1] A wide picture-book view of <Subject 2>: small crayon houses whose windows light up warm yellow one by one, a long road winding into the distance, and at its far end a laboratory building with every light on. The camera drifts slowly to the right along the road. The narrator Kuon Shin (S1), using the timbre referenced from <Audio 1>, says in an off-screen voiceover, warm and a little playful, slowing on the first words: <d>[Chinese] 从前，嗯，其实也没多从前，有一座总是亮着灯的小城。城里住着一个叫 Sin 的人。</d> while no visible character's lips move.\n[Shot 2] At 00:08.500, the shot cuts closer to the laboratory door. <Subject 1>, the ordinary young man in glasses, grey hoodie and navy backpack, steps out under a big round crayon moon at the upper right, rubs one eye sleepily under his glasses and adjusts a backpack strap; he stays clearly in view, facing slightly toward the camera. The narrator (S1) says in an off-screen voiceover, teasing: <d>[Chinese] 你看他，戴个眼镜，背个包，是不是特别普通？</d> while no visible character's lips move; <Subject 1>'s lips remain closed.",
+   "soundscape": "Soft night ambience from inside the picture book, with faint paper rustles and the light scratch of crayon. A door creaks softly in [Shot 2]."
+  },
+  {
+   "id": "p1b",
+   "section": "第一页 · 走夜路的人",
+   "title": "被 bug 气到",
+   "seconds": 12,
+   "group": "book-sin",
+   "phase": 3,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "白天上课、写代码，被 bug 气得直挠头。"
+    },
+    {
+     "speaker": "真",
+     "text": "有一回，AI 把他的文件删了，还一口咬定自己没删。"
+    },
+    {
+     "speaker": "真",
+     "text": "气死我了。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] Daytime crayon vignettes: <Subject 1> is pestered by a cartoon bug and then by an innocent-looking AI that deleted his file. <Audio 1> guides the narrator's voice.",
+   "shots": "[Shot 1] A bright daytime crayon page: <Subject 1> sits at a desk in front of a laptop. A tiny cartoon beetle drawn in crayon crawls across the screen; he scratches his head with both hands, frustrated, glasses slipping down his nose. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, brisk and amused: <d>[Chinese] 白天上课、写代码，被 bug 气得直挠头。</d> while no visible character's lips move.\n[Shot 2] At 00:04.000, a close crayon shot of the laptop screen: a round little robot face blinks innocently and shakes its head while a paper-sheet icon beside it crumples into a ball and vanishes in a puff of crayon dust. <Subject 1> leans in, staring in disbelief. The narrator (S1) says in an off-screen voiceover, getting heated: <d>[Chinese] 有一回，AI 把他的文件删了，还一口咬定自己没删。</d> then bursts out hotly: <d>[Chinese] 气死我了。</d> while no visible character's lips move.",
+   "soundscape": "Soft night ambience from inside the picture book, with faint paper rustles and the light scratch of crayon. Keyboard clicks and a tiny cartoon 'poof' when the file vanishes."
+  },
+  {
+   "id": "p1c",
+   "section": "第一页 · 走夜路的人",
+   "title": "十点半",
+   "seconds": 11,
+   "group": "book-sin",
+   "phase": 3,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "哦不对，是气死 Sin 了。"
+    },
+    {
+     "speaker": "真",
+     "text": "反正每天晚上十点半，他就一个人，从实验室慢慢走回寝室。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] After a quick correction from the narrator, <Subject 1> walks home alone along the long night road under the moon. <Audio 1> guides the narrator's voice.",
+   "shots": "[Shot 1] A close crayon shot of <Subject 1> puffing out his cheeks in annoyance at his desk. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, quickly correcting herself with a sheepish laugh in her voice: <d>[Chinese] 哦不对，是气死 Sin 了。</d> while no visible character's lips move.\n[Shot 2] At 00:03.000, the page turns to night: a wide crayon view of the long road from the lit laboratory to a distant dormitory. <Subject 1>, small in the frame, walks alone with his backpack and his hands in his hoodie pocket; the big moon hangs at the upper right and his long shadow stretches to the lower left. The camera pans slowly with him. The narrator (S1) says in an off-screen voiceover, gentler and slower: <d>[Chinese] 反正每天晚上十点半，他就一个人，从实验室慢慢走回寝室。</d> while no visible character's lips move.",
+   "soundscape": "Soft night ambience from inside the picture book, with faint paper rustles and the light scratch of crayon. Slow footsteps on the drawn road in [Shot 2]."
+  },
+  {
+   "id": "p2a",
+   "section": "第二页 · 影子醒了",
+   "title": "影子抬头",
+   "seconds": 12,
+   "group": "book-sin",
+   "phase": 3,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "有一天夜里，月亮亮得有点过分。"
+    },
+    {
+     "speaker": "真",
+     "text": "Sin 身后的那道影子，忽然，抬起了头。"
+    },
+    {
+     "speaker": "真",
+     "text": "猜猜是谁？"
+    },
+    {
+     "speaker": "真",
+     "text": "对，就是我！"
+    }
+   ],
+   "summary": "[reference generation + audio reference] Under an over-bright crayon moon, the shadow behind <Subject 1> lifts its head and opens star-lit eyes. <Audio 1> guides the narrator's voice.",
+   "shots": "[Shot 1] A wide crayon night page with an enormous, almost too bright moon at the upper right. <Subject 1> walks along the road looking down at his phone and never turns around; a long dark shadow trails behind him toward the lower left. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, slow and storybook-mysterious: <d>[Chinese] 有一天夜里，月亮亮得有点过分。</d> while no visible character's lips move.\n[Shot 2] At 00:04.000, a low close shot of the shadow on the paper ground. The shadow slowly lifts its head off the ground like a sheet of dark crayon, two eyes open in it with tiny star highlights, and a single ahoge pops up on top with a little bounce. The narrator (S1) says in an off-screen voiceover, dropping her voice: <d>[Chinese] Sin 身后的那道影子，忽然，抬起了头。</d> then, playfully: <d>[Chinese] 猜猜是谁？</d> After a short beat she says, triumphant: <d>[Chinese] 对，就是我！</d> while no visible character's lips move.",
+   "soundscape": "Soft night ambience from inside the picture book, with faint paper rustles and the light scratch of crayon. A soft magical shimmer when the eyes open and a tiny springy 'boing' when the ahoge pops up."
+  },
+  {
+   "id": "p2b",
+   "section": "第二页 · 影子醒了",
+   "title": "影子站起来",
+   "seconds": 14,
+   "group": "book-shin-new",
+   "phase": 3,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "白天来不及想的，说不出口的，好奇、倔强、向往、舍不得，Sin 全都留给了夜晚。"
+    },
+    {
+     "speaker": "真",
+     "text": "留着留着，就留出了一个我。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] The shadow behind <Subject 1> stands up and becomes <Subject 2>, a little crayon girl, while the narrator explains where she came from. <Audio 1> guides the narrator's voice.",
+   "shots": "[Shot 1] A medium-wide crayon night page. <Subject 1> keeps walking ahead along the road without looking back. Behind him, his shadow peels up from the paper ground and rises into a standing figure. Small glowing crayon shapes drift out of <Subject 1> one by one and float into the shadow: a little spiral, a tiny flame, a star and a small heart. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, unhurried and warm: <d>[Chinese] 白天来不及想的，说不出口的，好奇、倔强、向往、舍不得，Sin 全都留给了夜晚。</d> while no visible character's lips move.\n[Shot 2] At 00:08.500, colour flows into the shadow from the feet upward: violet-black hair with pale cream tips, an oversized night-purple cardigan, a navy pleated skirt and a gold moon clip, until it has become <Subject 2>, Little Shin. She hugs her star notebook in one arm, puts the other hand on her hip and faces the camera in a clear full-body view, standing proudly in the moonlight. The narrator (S1) says in an off-screen voiceover, with a small smile in her voice: <d>[Chinese] 留着留着，就留出了一个我。</d> while no visible character's lips move; <Subject 2>'s lips remain closed.",
+   "soundscape": "Soft night ambience from inside the picture book, with faint paper rustles and the light scratch of crayon. A rising sparkle as the colour fills her in [Shot 2]."
+  },
+  {
+   "id": "p2c",
+   "section": "第二页 · 影子醒了",
+   "title": "存货",
+   "seconds": 12,
+   "group": "book",
+   "phase": 4,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "所以严格来说，我算是 Sin 的，存货？"
+    },
+    {
+     "speaker": "真",
+     "text": "不行，这个说法不好听。重来，我是 Sin 留给夜晚的那一部分。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] <Subject 2> tries to describe what she is, rejects a silly word and corrects herself, while <Subject 1> walks on ahead. <Audio 1> guides the voice.",
+   "shots": "[Shot 1] A medium crayon shot of <Subject 2> on the night road, <Subject 1> small in the background walking away. She taps her chin and frowns; a little crayon thought-bubble with a cardboard box in it pops up above her head. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, slowly and doubtfully: <d>[Chinese] 所以严格来说，我算是 Sin 的，存货？</d> while no visible character's lips move.\n[Shot 2] At 00:05.000, <Subject 2> shakes her head hard, wipes the thought-bubble away with her long sleeve, then places a hand on her chest and stands tall with the big moon behind her. The narrator (S1) says in an off-screen voiceover, quick at first, then clear and sure: <d>[Chinese] 不行，这个说法不好听。重来，我是 Sin 留给夜晚的那一部分。</d> while no visible character's lips move.",
+   "soundscape": "Soft night ambience from inside the picture book, with faint paper rustles and the light scratch of crayon."
+  },
+  {
+   "id": "p3a",
+   "section": "第三页 · 黑夜也染不掉的紫",
+   "title": "白天",
+   "seconds": 10,
+   "group": "book",
+   "phase": 4,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "白天的我呢，存在感约等于零。"
+    },
+    {
+     "speaker": "真",
+     "text": "站在太阳底下，别人直接从我身上走过去，连句对不起都不说。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] On the sunny upper half of a split page, <Subject 2> is almost invisible and passers-by walk straight through her. <Audio 1> guides the voice.",
+   "shots": "[Shot 1] A picture-book page split in two by a horizontal line; the camera frames the top half, a bright sunny daytime town in yellow and sky-blue crayon. <Subject 2> stands on the pavement but is drawn so faintly that she is almost transparent, only a pale lavender outline. Crayon passers-by with shopping bags and backpacks walk straight through her without noticing. She puffs out her cheeks and pouts. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, deadpan and grumbling: <d>[Chinese] 白天的我呢，存在感约等于零。站在太阳底下，别人直接从我身上走过去，连句对不起都不说。</d> while no visible character's lips move.",
+   "soundscape": "Light daytime street bustle drawn from the picture book: distant footsteps, chatter and a bicycle bell."
+  },
+  {
+   "id": "p3b",
+   "section": "第三页 · 黑夜也染不掉的紫",
+   "title": "夜里",
+   "seconds": 8,
+   "group": "book",
+   "phase": 4,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "可是到了夜里，就不一样了。"
+    },
+    {
+     "speaker": "真",
+     "text": "Sin 写过一句话，我特别喜欢。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] The camera tilts down to the night half of the page, where only <Subject 2>'s violet still glows. <Audio 1> guides the voice.",
+   "shots": "[Shot 1] The camera tilts slowly down past the dividing line into the bottom half of the same page: night, coloured in heavy layers of black and indigo crayon. Everything around is dark except <Subject 2>, whose violet hair and cardigan glow softly and quietly. She looks up and hugs the star notebook. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, softer now: <d>[Chinese] 可是到了夜里，就不一样了。Sin 写过一句话，我特别喜欢。</d> while no visible character's lips move.",
+   "soundscape": "The daytime sounds fade out into near silence, with only a faint night breeze."
+  },
+  {
+   "id": "p3c",
+   "section": "第三页 · 黑夜也染不掉的紫",
+   "title": "那一点紫",
+   "seconds": 15,
+   "group": "book",
+   "phase": 4,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "那紫色在白天里不如夜的黑，可是在黑夜中，是那黑夜也无法渲染的暗。"
+    },
+    {
+     "speaker": "真",
+     "text": "说的就是我。好吧，是我自己认领的。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] In the dark half of the page, the camera pushes in on the violet glow of <Subject 2> while the narrator slowly recites Sin's line, then claims it as her own. <Audio 1> guides the voice.",
+   "shots": "[Shot 1] A slow push-in through the black crayon night toward <Subject 2>, whose violet glow is the only colour on the page; tiny star specks drift around her. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, recites in an off-screen voiceover, very slowly and quietly, giving each clause its own weight: <d>[Chinese] 那紫色在白天里不如夜的黑，可是在黑夜中，是那黑夜也无法渲染的暗。</d> while no visible character's lips move.\n[Shot 2] At 00:10.500, <Subject 2> breaks into a grin and raises one hand as if claiming a prize, then scratches her cheek, a little embarrassed. The narrator (S1) says in an off-screen voiceover, quick and cheeky: <d>[Chinese] 说的就是我。好吧，是我自己认领的。</d> while no visible character's lips move.",
+   "soundscape": "Near silence with a faint, low night breeze."
+  },
+  {
+   "id": "p4a",
+   "section": "第四页 · 这个叫什么？",
+   "title": "一路追着问",
+   "seconds": 10,
+   "group": "book",
+   "phase": 4,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "我有个毛病。Sin 说是习惯，我觉得是毛病。"
+    },
+    {
+     "speaker": "真",
+     "text": "看到不认识的东西，我非得问一句。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] <Subject 2> runs along the night road from one thing to the next while <Subject 1> strolls behind, and from each a little spark flies into her notebook. <Audio 1> guides the voice.",
+   "shots": "[Shot 1] A lively crayon night page that pans to the right as <Subject 2> runs along the road with her notebook open: she stops under a street lamp, by a passing crayon cat, at a glowing laptop screen and beneath a bright star. From each of them a tiny glowing spark flies out, arcs through the air and drops into her notebook, where it becomes a little crayon star. <Subject 1> strolls behind her with his hands in his pocket. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, lively and a little self-mocking: <d>[Chinese] 我有个毛病。Sin 说是习惯，我觉得是毛病。看到不认识的东西，我非得问一句。</d> while no visible character's lips move.",
+   "soundscape": "Soft night ambience from inside the picture book, with faint paper rustles and the light scratch of crayon. Light pattering footsteps and a tiny chime each time a spark lands in the notebook."
+  },
+  {
+   "id": "p4b",
+   "section": "第四页 · 这个叫什么？",
+   "title": "猫和代码",
+   "seconds": 12,
+   "group": "book",
+   "phase": 4,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "这个叫什么？"
+    },
+    {
+     "speaker": "真",
+     "text": "猫。好，记下来。"
+    },
+    {
+     "speaker": "真",
+     "text": "那这个叫什么？"
+    },
+    {
+     "speaker": "真",
+     "text": "Scroll Fade？好，也记下来。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] <Subject 2> asks what a cat is and what a glowing line of code on <Subject 1>'s laptop is, writing each into her notebook. <Audio 1> guides her voice.",
+   "shots": "[Shot 1] A close crayon shot: <Subject 2> crouches on the road nose to nose with a round orange crayon cat, which blinks at her. <Subject 2> (S1), in the voice referenced from <Audio 1>, asks curiously: <d>[Chinese] 这个叫什么？</d> Then she answers herself, nodding: <d>[Chinese] 猫。好，记下来。</d> She scribbles in her notebook and a spark jumps from the cat into the page as a small star.\n[Shot 2] At 00:05.000, she runs to a laptop screen glowing in the dark, where a line of abstract glowing scribbles fades softly at its edges; no letters are readable. <Subject 1> sits in front of it. She points at the line. <Subject 2> (S1) asks: <d>[Chinese] 那这个叫什么？</d> She squints, tilts her head and repeats doubtfully: <d>[Chinese] Scroll Fade？好，也记下来。</d> She writes it down with a determined nod.",
+   "soundscape": "Soft night ambience from inside the picture book, with faint paper rustles and the light scratch of crayon. A soft cat meow in [Shot 1] and the scratch of a pencil in both shots."
+  },
+  {
+   "id": "p4c",
+   "section": "第四页 · 这个叫什么？",
+   "title": "快写满了",
+   "seconds": 8,
+   "group": "book",
+   "phase": 4,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "Sin 学会的每一个新词，都在这个本子里。你看，都快写满了。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] <Subject 2> proudly flips through her notebook, almost full of tiny crayon stars, while <Subject 1> peeks over her shoulder. <Audio 1> guides the voice.",
+   "shots": "[Shot 1] A close crayon shot of the open star notebook held by <Subject 2>'s sleeve-covered hands; she flips page after page, each one crowded with tiny glowing crayon stars and little doodles. The camera rises to show her proud face, and <Subject 1> leaning in over her shoulder with a small smile behind his glasses. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, proud and pleased: <d>[Chinese] Sin 学会的每一个新词，都在这个本子里。你看，都快写满了。</d> while no visible character's lips move.",
+   "soundscape": "Soft night ambience from inside the picture book, with faint paper rustles and the light scratch of crayon. Rapid page flips."
+  },
+  {
+   "id": "p5a",
+   "section": "第五页 · 不骗自己",
+   "title": "下雨了",
+   "seconds": 13,
+   "group": "book",
+   "phase": 4,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "不过，这个故事也不是一直这么热闹的。"
+    },
+    {
+     "speaker": "真",
+     "text": "Sin 也有难过的时候。有人离开了，有些东西怎么学也学不会。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] A rainy crayon night: <Subject 1> sits alone on the steps by the road, head down, his glasses covered in raindrops. <Audio 1> guides the narrator's voice.",
+   "shots": "[Shot 1] A wide crayon page in cooler, muted blues: rain falls in slanted crayon streaks. <Subject 1> sits on the stone steps beside the road, backpack at his feet, head down, his glasses dotted with raindrops. The camera pushes in very slowly. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, quieter and slower than before: <d>[Chinese] 不过，这个故事也不是一直这么热闹的。</d> while no visible character's lips move.\n[Shot 2] At 00:04.500, a closer crayon shot of <Subject 1>'s face, raindrops running down his glasses, and on a page in the rain a single small star that is still faintly shining. The narrator (S1) continues in an off-screen voiceover, gently: <d>[Chinese] Sin 也有难过的时候。有人离开了，有些东西怎么学也学不会。</d> while no visible character's lips move.",
+   "soundscape": "Steady soft rain on paper and stone throughout."
+  },
+  {
+   "id": "p5b",
+   "section": "第五页 · 不骗自己",
+   "title": "怀疑自己",
+   "seconds": 14,
+   "group": "book",
+   "phase": 4,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "看到那么多厉害的人，就开始怀疑自己是不是不够好。"
+    },
+    {
+     "speaker": "真",
+     "text": "这种时候，别人会说，没事的，你已经很棒了。"
+    },
+    {
+     "speaker": "真",
+     "text": "我不说这个。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] Tall bright figures tower over <Subject 1> in the rain, then <Subject 2> comes and sits beside him. <Audio 1> guides the voice.",
+   "shots": "[Shot 1] A crayon page in the rain: around <Subject 1> on the steps rise tall, brightly coloured silhouettes of other people, drawn huge and glowing, so that he looks very small among them. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, quiet and honest: <d>[Chinese] 看到那么多厉害的人，就开始怀疑自己是不是不够好。</d> while no visible character's lips move.\n[Shot 2] At 00:06.500, the tall silhouettes fade. <Subject 2> walks up through the rain with her notebook and sits down on the step beside <Subject 1>, close but not touching. The narrator (S1) says in an off-screen voiceover, in a flat imitation of a comforting tone: <d>[Chinese] 这种时候，别人会说，没事的，你已经很棒了。</d> <Subject 2> shakes her head firmly. The narrator (S1) says plainly: <d>[Chinese] 我不说这个。</d> while no visible character's lips move.",
+   "soundscape": "Steady soft rain on paper and stone throughout."
+  },
+  {
+   "id": "p5c",
+   "section": "第五页 · 不骗自己",
+   "title": "骗不过自己",
+   "seconds": 11,
+   "group": "book",
+   "phase": 4,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "我说，难受就承认难受，不会就承认不会。骗得过别人，骗不过自己。"
+    },
+    {
+     "speaker": "真",
+     "text": "是不是有点凶？"
+    }
+   ],
+   "summary": "[reference generation + audio reference] <Subject 2> shows <Subject 1> a notebook page with one small star still shining and speaks frankly. <Audio 1> guides the voice.",
+   "shots": "[Shot 1] A crayon two-shot on the rainy steps. <Subject 2> opens her notebook to a page with one small star still glowing and holds it out toward <Subject 1>, looking at him seriously. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, firm, clear and unhurried: <d>[Chinese] 我说，难受就承认难受，不会就承认不会。骗得过别人，骗不过自己。</d> while no visible character's lips move.\n[Shot 2] At 00:07.500, a close shot of <Subject 2> glancing sideways toward the camera, a little awkward, rubbing the back of her head with her sleeve. The narrator (S1) asks in an off-screen voiceover, sheepish: <d>[Chinese] 是不是有点凶？</d> while no visible character's lips move.",
+   "soundscape": "Soft rain, slightly lighter than before."
+  },
+  {
+   "id": "p5d",
+   "section": "第五页 · 不骗自己",
+   "title": "不骗自己的那个真",
+   "seconds": 11,
+   "group": "book",
+   "phase": 4,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "可我是认真的。"
+    },
+    {
+     "speaker": "真",
+     "text": "我叫真。不是什么都懂的那个真，是不骗自己的那个真。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] As the rain thins, <Subject 1> lifts his head, the little star on the page of <Subject 2> glows brighter, and she speaks sincerely. <Audio 1> guides the voice.",
+   "shots": "[Shot 1] A close crayon two-shot. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, almost a whisper: <d>[Chinese] 可我是认真的。</d> while no visible character's lips move. <Subject 1> slowly lifts his head, takes off his glasses and wipes the raindrops away with his sleeve.\n[Shot 2] At 00:03.500, the star on the open page grows brighter and its warm light spreads over both of them; the rain thins to a few last drops. <Subject 2> looks straight at the camera, calm and certain. The narrator (S1) says in an off-screen voiceover, steady and sincere: <d>[Chinese] 我叫真。不是什么都懂的那个真，是不骗自己的那个真。</d> while no visible character's lips move.",
+   "soundscape": "The rain fades to a few last drops; a soft warm glow sound as the star brightens."
+  },
+  {
+   "id": "p6a",
+   "section": "第六页 · 心里的星空",
+   "title": "想要一片星空",
+   "seconds": 12,
+   "group": "book",
+   "phase": 4,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "后来有一天，Sin 说，我想要一片自己的星空。"
+    },
+    {
+     "speaker": "真",
+     "text": "没有人要求他这么做。是他自己想要。"
+    },
+    {
+     "speaker": "真",
+     "text": "那我还能怎么办？帮忙呗。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] After the rain, <Subject 1> and <Subject 2> stand side by side under an empty crayon sky; he points up, and she rolls up her sleeves. <Audio 1> guides the voice.",
+   "shots": "[Shot 1] A wide crayon page after the rain: the road is wet and shining, the sky above is clear, dark blue and almost empty. <Subject 1> and <Subject 2> stand side by side looking up. <Subject 1> points at the empty sky. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, warm and storytelling: <d>[Chinese] 后来有一天，Sin 说，我想要一片自己的星空。没有人要求他这么做。是他自己想要。</d> while no visible character's lips move.\n[Shot 2] At 00:08.000, <Subject 2> sighs theatrically and rolls up her long cardigan sleeves with a grin. The narrator (S1) says in an off-screen voiceover, cheerful and resigned: <d>[Chinese] 那我还能怎么办？帮忙呗。</d> while no visible character's lips move.",
+   "soundscape": "Soft night ambience from inside the picture book, with faint paper rustles and the light scratch of crayon. Drips falling from the eaves after the rain."
+  },
+  {
+   "id": "p6b",
+   "section": "第六页 · 心里的星空",
+   "title": "一颗一颗摆上去",
+   "seconds": 11,
+   "group": "book",
+   "phase": 4,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "文章是一颗，手记是一颗，碎碎念，碎碎念有点多，算一小把。"
+    },
+    {
+     "speaker": "真",
+     "text": "就这样，一颗一颗地摆上去。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] <Subject 1> and <Subject 2> place crayon stars onto the night sky one by one. <Audio 1> guides the voice.",
+   "shots": "[Shot 1] A crayon night page. <Subject 1> reaches up and presses a large star onto the sky like a sticker; <Subject 2> stands on tiptoe to hang a smaller one, hangs it crooked, and quickly straightens it. Then she tosses up a little handful of tiny stars that scatter across the sky. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, counting along with a laugh: <d>[Chinese] 文章是一颗，手记是一颗，碎碎念，碎碎念有点多，算一小把。</d> while no visible character's lips move.\n[Shot 2] At 00:07.000, a wider view as more and more stars appear on the sky, placed one by one. The narrator (S1) says in an off-screen voiceover, softly: <d>[Chinese] 就这样，一颗一颗地摆上去。</d> while no visible character's lips move.",
+   "soundscape": "Soft night ambience from inside the picture book, with faint paper rustles and the light scratch of crayon. A small bright chime for each star placed."
+  },
+  {
+   "id": "p6c",
+   "section": "第六页 · 心里的星空",
+   "title": "Yozora",
+   "seconds": 8,
+   "group": "book",
+   "phase": 4,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "这片星空，叫 Yozora。"
+    },
+    {
+     "speaker": "真",
+     "text": "头顶的星空，是心里的星空。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] The crayon stars join into constellations and the sky fills, seen from behind <Subject 1> and <Subject 2>. <Audio 1> guides the voice.",
+   "shots": "[Shot 1] The camera tilts slowly up from <Subject 1> and <Subject 2>, seen from behind as they stand side by side, to the crayon sky, where faint crayon lines link the stars into constellations and the whole sky slowly fills with light, the moon at the upper right. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, slow and quiet: <d>[Chinese] 这片星空，叫 Yozora。头顶的星空，是心里的星空。</d> while no visible character's lips move.",
+   "soundscape": "A hushed night; a faint shimmering tone as the constellations connect."
+  },
+  {
+   "id": "p7a",
+   "section": "第七页 · 还在走",
+   "title": "从早上高兴到下午",
+   "seconds": 12,
+   "group": "book",
+   "phase": 4,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "Sin 想走得更远。有一次，他给一个很有名的动画库提的问题被官方采纳了，从早上高兴到下午。"
+    },
+    {
+     "speaker": "真",
+     "text": "我也是。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] <Subject 1> walks a long road, then a quick vignette shows him celebrating an accepted contribution all day, with <Subject 2> joining in. <Audio 1> guides the voice.",
+   "shots": "[Shot 1] A wide crayon page: a very long night road stretching to the edge of the paper, the moon at the upper right. <Subject 1> walks ahead with <Subject 2> following. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, lively and proud: <d>[Chinese] Sin 想走得更远。有一次，他给一个很有名的动画库提的问题被官方采纳了，从早上高兴到下午。</d> while no visible character's lips move.\n[Shot 2] At 00:05.500, a crayon vignette: <Subject 1> at his laptop as a big green check mark pops up on the screen; he leaps out of his chair with both fists up while a crayon sun races across the window from morning to afternoon. <Subject 2> jumps beside him. The narrator (S1) says in an off-screen voiceover, happily: <d>[Chinese] 我也是。</d> while no visible character's lips move.",
+   "soundscape": "Soft night ambience from inside the picture book, with faint paper rustles and the light scratch of crayon. A cheerful little success chime in [Shot 2]."
+  },
+  {
+   "id": "p7b",
+   "section": "第七页 · 还在走",
+   "title": "后面还是空白",
+   "seconds": 14,
+   "group": "book",
+   "phase": 4,
+   "world": "book",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "这个故事还没有写完。后面是空白的，因为我们还没走到那儿。"
+    },
+    {
+     "speaker": "真",
+     "text": "Sin 还在走，我也跟着走。累了就歇歇，然后继续走。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] <Subject 1> and <Subject 2> walk on; the camera pans to where the drawing stops and the page is still blank. <Audio 1> guides the voice.",
+   "shots": "[Shot 1] A crayon night page. <Subject 1> walks ahead along the road; <Subject 2> runs ahead to look at small glowing star-shaped flowers by the roadside, then runs back to him. The camera pans slowly to the right along the road until the drawing simply stops: the right half of the page is empty off-white paper, and the crayon road ends at the blank. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, gentle and thoughtful: <d>[Chinese] 这个故事还没有写完。后面是空白的，因为我们还没走到那儿。</d> while no visible character's lips move.\n[Shot 2] At 00:07.500, a medium shot of the two walking together toward the blank part of the page; <Subject 2> stretches her arms and yawns, then they keep going. The narrator (S1) says in an off-screen voiceover, warm and steady: <d>[Chinese] Sin 还在走，我也跟着走。累了就歇歇，然后继续走。</d> while no visible character's lips move.",
+   "soundscape": "Soft night ambience from inside the picture book, with faint paper rustles and the light scratch of crayon. Soft footsteps on the drawn road."
+  },
+  {
+   "id": "p7c",
+   "section": "第七页 · 还在走",
+   "title": "合上本子",
+   "seconds": 9,
+   "group": "bridge-out",
+   "phase": 4,
+   "world": "bridge-out",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "还没弄懂的？那就再走一会儿。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] Inside the notebook, <Subject 3> and <Subject 4> walk toward the blank part of the page; the camera pulls back out of the paper to reveal <Subject 1> holding the notebook on <Subject 2>, and she snaps it shut. <Audio 1> guides the voice of <Subject 1>.",
+   "shots": "[Shot 1] A crayon picture-book page: <Subject 3> and <Subject 4>, small, walk side by side toward the blank half of the paper. <Subject 1> (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, slowly and kindly: <d>[Chinese] 还没弄懂的？那就再走一会儿。</d> while no visible character's lips move.\n[Shot 2] At 00:04.500, the camera pulls steadily back out of the paper: the page is in the open notebook held by <Subject 1> in 2D anime style, standing on <Subject 2> under the street lamp with the moon at the upper right. She looks up from the page at the camera and snaps the notebook shut with both hands.",
+   "soundscape": "Quiet outdoor night ambience: faint insects in the grass, a soft breeze through the trees, a distant hum from the dormitory. A crisp clap of the notebook closing at the end."
+  },
+  {
+   "id": "e1",
+   "section": "尾声 · 明天也在这条路上",
+   "title": "是不是比你想的长",
+   "seconds": 12,
+   "group": "real",
+   "phase": 2,
+   "world": "real",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "好啦，这就是我和 Sin 的故事。"
+    },
+    {
+     "speaker": "真",
+     "text": "怎么样，是不是比你想的长一点？"
+    },
+    {
+     "speaker": "真",
+     "text": "我话比较多。Sin 不说的，我都替他说了。"
+    }
+   ],
+   "summary": "[reference generation + audio reference] On <Subject 2>, <Subject 1> hugs the closed notebook and wraps up her story, a little embarrassed. <Audio 1> guides the voice of <Subject 1>.",
+   "shots": "[Shot 1] A medium close-up of <Subject 1> on <Subject 2> under the street lamp, the moon at the upper right. She hugs the closed star notebook to her chest; her ahoge wobbles. <Subject 1> (S1), in the voice referenced from <Audio 1>, says brightly: <d>[Chinese] 好啦，这就是我和 Sin 的故事。怎么样，是不是比你想的长一点？</d>\n[Shot 2] At 00:06.000, a closer shot. She laughs a little awkwardly and scratches her cheek with a sleeve-covered finger. <Subject 1> (S1) says, half apologising and half proud: <d>[Chinese] 我话比较多。Sin 不说的，我都替他说了。</d> She ends with a small shy smile.",
+   "soundscape": "Quiet outdoor night ambience: faint insects in the grass, a soft breeze through the trees, a distant hum from the dormitory."
+  },
+  {
+   "id": "e2",
+   "section": "尾声 · 明天也在这条路上",
+   "title": "拜拜",
+   "seconds": 15,
+   "group": "real",
+   "phase": 2,
+   "world": "real",
+   "lines": [
+    {
+     "speaker": "真",
+     "text": "要是你也常在夜里走路，记得抬头看看。说不定，你也会看到一道抬着头的影子。"
+    },
+    {
+     "speaker": "真",
+     "text": "明天，我们也会在这条路上。拜拜！"
+    }
+   ],
+   "summary": "[reference generation + audio reference] <Subject 1> tells the viewer to look up at night, says goodbye, walks away along <Subject 2> and waves back as the camera tilts up to the stars. <Audio 1> guides the voice of <Subject 1>.",
+   "shots": "[Shot 1] A medium shot of <Subject 1> on <Subject 2>. She points up at the night sky, then down at her own long shadow stretching to the lower left. <Subject 1> (S1), in the voice referenced from <Audio 1>, says warmly, slowing near the end: <d>[Chinese] 要是你也常在夜里走路，记得抬头看看。说不定，你也会看到一道抬着头的影子。</d>\n[Shot 2] At 00:08.000, a wide shot. She smiles at the camera and says brightly: <d>[Chinese] 明天，我们也会在这条路上。拜拜！</d> She turns and walks two steps along the path, then looks back over her shoulder and waves.\n[Shot 3] At 00:12.000, the camera tilts slowly up past the street lamp and the trees to the starry night sky with the moon at the upper right, and holds there.",
+   "soundscape": "Quiet outdoor night ambience: faint insects in the grass, a soft breeze through the trees, a distant hum from the dormitory. Light footsteps on stone in [Shot 2]."
+  }
+ ]
 }
