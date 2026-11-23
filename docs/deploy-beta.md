@@ -745,3 +745,12 @@ ln -sfn $W/releases/782837b $W/current && docker rename yozora-web-pre-91774a7 y
 - **线上片段**：用 `.local/publish.json` 的线上令牌 `PUT /snippets/:id`（带 `baseRaw`）给 theme/yozora 加了 `custom.scripts`（beacon，`type: "module"`，`data-cf-beacon`），其他几项不变；改前原文 `.local/backups/snippet-yozora-before-custom-prod-20261123.json`。Webhook 让前台立即换上。
 - 验证：公网页面 `<head>` 有 beacon；无头浏览器打开首页再站内跳到 /posts，向 `cloudflareinsights.com/cdn-cgi/rum` 的上报都是 204，地址只有 `/` 和 `/posts`；页面无报错。
 - 回滚前台：`W=/root/mx-space/yozora-web; docker stop yozora-web && docker rename yozora-web yozora-web-808866d-stopped && ln -sfn $W/releases/4214422 $W/current && docker rename yozora-web-pre-808866d yozora-web && docker start yozora-web`。只想停掉统计：在后台“配置与云函数”里删掉 theme/yozora 的 `custom`。
+
+## 2026-11-23 已做：AI 翻译用 DeepSeek 思考模型时全部失败（86d8ee6）
+
+站长在后台新建 Yozora、Ottie 两个作品后，英文、日文页面上它们仍是中文。Core 日志：`i18n batch failed … 400 Thinking mode does not support this tool_choice`。后台的翻译模型是 DeepSeek 的 `deepseek-flash`：DeepSeek 默认开思考模式（[官方文档](https://api-docs.deepseek.com/guides/thinking_mode)，默认等级 high），思考模式能调用工具，但不接受“强制调用指定工具”；Core 的结构化输出（`generateStructured`）正是强制调用 `structured_output`。翻译、i18n、摘要在 `ai.prompts.ts` 里本来都设 `reasoningEffort: 'none'`，但 Core 遇到 `'none'` 只是不传参数，DeepSeek 就按默认开了思考。后台没有调思考等级的设置。
+
+- 修复：`openai-compatible.runtime.ts` 的 `reasoningParams`：要思考时照旧传 `reasoning_effort`；`'none'` 且服务地址是 `*.deepseek.com` 时传 `thinking: { type: 'disabled' }`，别的服务不加参数（OpenAI 等不认这个参数）。文字生成、流式生成、结构化输出三处都用它。测试 `apps/core/test/src/modules/ai/openai-compatible-thinking.spec.ts`（改前失败）。上线前用线上的 DeepSeek 配置发了一条最小请求（关思考 + 强制调用工具），200 且调用了工具。
+- 只换 Core：`/root/mx-space/core-image-86d8ee6/`（以 b9f89e9 的 `out/` 为 `--copy-dest`），镜像 `yozora/mx-server:86d8ee6`；备份 `/root/backups/yozora-86d8ee6/`（39 个集合 2.5MB，试还原通过），`backup.sh`、`switch-core.sh` 由 b9f89e9 的只换版本号生成。停机 17 秒，healthy，清了 `mx-api-cache:*`。
+- 验证：后台令牌调 `POST /ai/i18n/generate` 重跑，`created 16, failed 0`（两个作品名称和简介 × 英日 8 条，另外 8 条是之前同样没翻成的界面文字）；`/en/projects`、`/ja/projects` 上两个作品是英文、日文；切换后 Core 日志没有 i18n 失败。首页、作品页、手记、`/api/v2/ping` 200。
+- 回滚：`cp -p /root/backups/yozora-86d8ee6/compose-before.yml /root/mx-space/core/docker-compose.yml && cd /root/mx-space/core && docker compose up -d --no-deps app`（回到 `yozora/mx-server:b9f89e9`）。
