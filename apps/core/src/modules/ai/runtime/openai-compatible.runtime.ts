@@ -12,6 +12,7 @@ import type {
   GenerateTextResult,
   GenerateTextStreamOptions,
   ModelInfo,
+  ReasoningEffort,
   RuntimeConfig,
   RuntimeProviderInfo,
   TextStreamChunk,
@@ -20,6 +21,7 @@ import type {
 export class OpenAICompatibleRuntime extends BaseRuntime {
   readonly providerInfo: RuntimeProviderInfo
   private readonly client: OpenAI
+  private readonly deepseek: boolean
 
   constructor(config: RuntimeConfig) {
     super()
@@ -30,6 +32,7 @@ export class OpenAICompatibleRuntime extends BaseRuntime {
     }
 
     const baseURL = this.resolveBaseURL(config)
+    this.deepseek = new URL(baseURL).hostname.endsWith('deepseek.com')
     this.client = new OpenAI({
       apiKey: config.apiKey,
       baseURL,
@@ -50,6 +53,14 @@ export class OpenAICompatibleRuntime extends BaseRuntime {
       )
     }
     return this.normalizeEndpoint(config.endpoint)
+  }
+
+  // DeepSeek turns thinking mode on by default, and thinking mode rejects a forced tool_choice
+  // ("Thinking mode does not support this tool_choice"), which structured output relies on.
+  // So 'none' has to switch thinking off explicitly there; other services get no extra parameter.
+  private reasoningParams(effort?: ReasoningEffort) {
+    if (effort && effort !== 'none') return { reasoning_effort: effort }
+    return this.deepseek ? { thinking: { type: 'disabled' as const } } : {}
   }
 
   private normalizeEndpoint(endpoint: string): string {
@@ -76,18 +87,13 @@ export class OpenAICompatibleRuntime extends BaseRuntime {
       ? messages.map((m) => ({ role: m.role, content: m.content }))
       : [{ role: 'user', content: prompt! }]
 
-    const openaiReasoningEffort =
-      reasoningEffort && reasoningEffort !== 'none'
-        ? reasoningEffort
-        : undefined
-
     return this.withRetry(async () => {
       const response = await this.client.chat.completions.create({
         model: this.providerInfo.model,
         messages: chatMessages,
         temperature,
         max_tokens: maxTokens,
-        reasoning_effort: openaiReasoningEffort,
+        ...this.reasoningParams(reasoningEffort),
       } as OpenAI.ChatCompletionCreateParamsNonStreaming)
 
       const choice = response.choices[0]
@@ -125,13 +131,6 @@ export class OpenAICompatibleRuntime extends BaseRuntime {
     }
     messages.push({ role: 'user', content: prompt })
 
-    // Map reasoningEffort to OpenAI's reasoning_effort parameter
-    // 'none' means no reasoning, so we don't pass the parameter
-    const openaiReasoningEffort =
-      reasoningEffort && reasoningEffort !== 'none'
-        ? reasoningEffort
-        : undefined
-
     const toolConfig = {
       tools: [
         {
@@ -166,7 +165,7 @@ export class OpenAICompatibleRuntime extends BaseRuntime {
           messages: conversationMessages,
           temperature,
           max_tokens: maxTokens,
-          reasoning_effort: openaiReasoningEffort,
+          ...this.reasoningParams(reasoningEffort),
           ...toolConfig,
         } as OpenAI.ChatCompletionCreateParamsNonStreaming)
 
@@ -223,11 +222,6 @@ export class OpenAICompatibleRuntime extends BaseRuntime {
       ? messages.map((m) => ({ role: m.role, content: m.content }))
       : [{ role: 'user', content: prompt! }]
 
-    const openaiReasoningEffort =
-      reasoningEffort && reasoningEffort !== 'none'
-        ? reasoningEffort
-        : undefined
-
     const response = await this.client.chat.completions.create(
       {
         model: this.providerInfo.model,
@@ -235,7 +229,7 @@ export class OpenAICompatibleRuntime extends BaseRuntime {
         temperature,
         max_tokens: maxTokens,
         stream: true,
-        reasoning_effort: openaiReasoningEffort,
+        ...this.reasoningParams(reasoningEffort),
       } as OpenAI.ChatCompletionCreateParams & { stream: true },
       { signal },
     )
