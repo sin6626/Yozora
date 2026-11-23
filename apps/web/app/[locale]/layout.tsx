@@ -13,6 +13,7 @@ import SiteHeader from "@/components/site-header";
 import Starfield from "@/components/starfield";
 import PageView from "@/components/page-view";
 import AddressTyping from "@/components/address-typing";
+import { typingGuardScript } from "@/lib/address-typing";
 import PageTransition from "@/components/page-transition";
 import OwnerPresence from "@/components/owner-presence";
 import HeaderSearch from "@/components/header-search";
@@ -158,6 +159,8 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <style dangerouslySetInnerHTML={{ __html: swarmCoverStyle }} />
         <script dangerouslySetInnerHTML={{ __html: swarmIntroScript(locale === defaultLocale ? "/" : `/${locale}`) }} />
+        {/* 地址栏动画的中间帧不让统计脚本看到：要排在 custom 的统计脚本前面（lib/address-typing.ts） */}
+        <script dangerouslySetInnerHTML={{ __html: typingGuardScript }} />
         {/* 站长在配置片段 custom 里加的代码（统计脚本、补充样式，lib/theme-config.ts 的 parseCustomCode），排在站点样式后面 */}
         {custom.styles.map((href) => <link key={href} rel="stylesheet" href={href} />)}
         {custom.css && <style id="yozora-custom-css" dangerouslySetInnerHTML={{ __html: custom.css }} />}

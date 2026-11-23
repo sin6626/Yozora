@@ -1,7 +1,7 @@
 // 浏览器回归测试：配置片段 theme/yozora 的 custom（统计脚本、补充样式，lib/theme-config.ts 的 parseCustomCode）插进每个页面的 <head>。
 // ① css、js、styles、scripts 四种都生效；css 排在站点样式后面；脚本的 data-* 属性带上（Shiro 的 dataWebsiteId 写法），
 //    onload 这类事件属性和 javascript: 地址被丢掉；
-// ② 统计脚本像 Umami 一样包住 history 按地址变化记访问：站内跳转时地址栏动画（lib/address-typing.ts）的中间帧 /p /po… 不能被它记成页面，
+// ② 统计脚本像 Umami 一样包住 history、或像 Cloudflare 一样听 navigate 事件按地址变化记访问：站内跳转时地址栏动画（lib/address-typing.ts）的中间帧 /p /po… 不能被它记成页面，
 //    同时动画本身照播（用包在 History.prototype 上的记录器确认中间帧确实写过）。
 // 测试时把 custom 临时写进本地库的片段（Core 发 SNIPPET_UPDATE，Webhook 让前台缓存失效），跑完写回原样；
 // 外部地址 https://stats.e2e.test/ 在浏览器里拦下、返回假的统计脚本和样式表，不连外网。
@@ -38,10 +38,15 @@ const custom = {
     { src: "javascript:alert(1)" },
   ],
 };
-// 和 Umami 的统计脚本一样：包住 pushState / replaceState，地址（参数里的 url）变了就记一次访问
+// 统计脚本发现站内跳转的两种办法都模拟上：像 Umami 包住 pushState / replaceState（views），
+// 像 Cloudflare Web Analytics 监听 Navigation API 的 navigate 事件（navigates），地址变了就记一次访问
 const tracker = `(() => {
   const me = document.currentScript;
-  const t = window.__tracker = { site: me && me.dataset.websiteId, current: location.pathname, views: [location.pathname] };
+  const t = window.__tracker = { site: me && me.dataset.websiteId, current: location.pathname, views: [location.pathname], navigates: [location.pathname] };
+  navigation.addEventListener("navigate", (e) => {
+    const path = decodeURIComponent(new URL(e.destination.url).pathname);
+    if (e.destination.url !== location.href) t.navigates.push(path);
+  });
   for (const kind of ["pushState", "replaceState"]) {
     const original = history[kind];
     history[kind] = function (state, unused, url) {
@@ -122,8 +127,9 @@ try {
   assert.equal(await browser.evaluate(clickNav("/posts")), "/posts");
   const frames = await browser.evaluate("window.__frames");
   assert.ok(["/p", "/po", "/pos", "/post"].every((frame) => frames.includes(frame)), `地址栏动画应照播：${JSON.stringify(frames)}`);
-  const views = await browser.evaluate("window.__tracker.views");
-  assert.deepEqual(views, ["/", "/posts"], `统计只应记到真实页面，不能有中间帧：${JSON.stringify(views)}`);
+  const { views, navigates } = await browser.evaluate("window.__tracker");
+  assert.deepEqual(views, ["/", "/posts"], `包住 history 的统计只应记到真实页面，不能有中间帧：${JSON.stringify(views)}`);
+  assert.deepEqual(navigates, ["/", "/posts"], `听 navigate 事件的统计只应记到真实页面，不能有中间帧：${JSON.stringify(navigates)}`);
 
   assert.deepEqual(browser.errors, [], "不应有页面报错");
   console.log("PASS 配置片段 custom：css/js/styles/scripts 生效、属性过滤、样式排在站点样式后；统计脚本不记地址栏动画的中间帧");

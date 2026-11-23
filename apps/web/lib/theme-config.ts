@@ -157,7 +157,8 @@ export function parseSiteContent(config: unknown, lang: string, site: Record<str
 // 字段和 Shiro 的 theme.config.custom 一样，从 Shiro 搬过来的配置原样能用：
 //   css: 内联样式（一项一段，拼起来放一个 <style>，排在站点样式后面，同优先级时它赢）
 //   js: 内联脚本（一项一段，拼起来放一个 <script>）
-//   styles: 外部样式表地址；scripts: 外部脚本，{ src, async/defer, id, crossOrigin, integrity, referrerPolicy, data-* }
+//   styles: 外部样式表地址；scripts: 外部脚本，{ src, async/defer, type, id, crossOrigin, integrity, referrerPolicy, data-* }
+//   （Cloudflare Web Analytics 现在给的是 type="module"）
 // 片段只有站长能改，内联代码照原样执行；外部地址只收 http(s)，脚本属性只收上面这些（onload 这类事件属性丢掉），
 // data-* 写成 "dataWebsiteId"（Shiro 的写法）或 "data-website-id" 都行。
 export type CustomScript = Record<string, string | boolean> & { src: string };
@@ -165,7 +166,7 @@ export type CustomCode = { css: string; js: string; styles: string[]; scripts: C
 
 const httpUrl = (value: unknown) => (typeof value === "string" && /^https?:\/\//i.test(value.trim()) ? value.trim() : undefined);
 const lines = (value: unknown) => (Array.isArray(value) ? value : [value]).filter((line): line is string => typeof line === "string" && line.trim() !== "").join("\n");
-const scriptProps: Record<string, string> = { id: "id", crossorigin: "crossOrigin", integrity: "integrity", referrerpolicy: "referrerPolicy" };
+const scriptProps: Record<string, string> = { id: "id", type: "type", crossorigin: "crossOrigin", integrity: "integrity", referrerpolicy: "referrerPolicy" };
 
 function customScript(value: unknown): CustomScript | undefined {
   if (!isObject(value)) return undefined;

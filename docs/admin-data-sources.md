@@ -31,7 +31,7 @@
 | 页脚那句话、萌备号 | 片段 `footer.motto`、`footer.icp` | 同上 | 页脚 | 立即 |
 | 页脚星带读谁的账号 | 片段 `accounts.github`、`accounts.leetcode` | 同上 | 页脚星带；`scripts/sync-leetcode.mjs` 也读它，同步的日历记着账号，账号不一致就不用 | 立即 |
 | 首页技术栈 | 片段 `techStack`（标题、说明、图标行 `rows`） | 同上 | 首页；`rows` 清空就整块不显示 | 立即 |
-| 统计脚本、补充样式 | 片段 `custom`：`css`、`js`（内联，一项一段）、`styles`（样式表地址）、`scripts`（`{ src, defer/async, dataWebsiteId… }`），格式同 Shiro 的 custom | 同上 | 每个页面的 `<head>`；只收 http(s) 地址，脚本事件属性丢掉 | 立即 |
+| 统计脚本、补充样式 | 片段 `custom`：`css`、`js`（内联，一项一段）、`styles`（样式表地址）、`scripts`（`{ src, defer/async, type, dataWebsiteId… }`），格式同 Shiro 的 custom；线上放的是 Cloudflare Web Analytics 的 JS 片段 | 同上 | 每个页面的 `<head>`；只收 http(s) 地址，脚本事件属性丢掉 | 立即 |
 | 站点开哪些语言 | options.ai.enableI18n、i18nLanguages（Core 公开 GET /ai/i18n） | 设置 → AI → AI i18n | 语言菜单、地址前缀（proxy.ts）、sitemap、文章语言版本 | 立即（OPTION_UPDATE）；proxy 进程内最多 1 分钟 |
 | 外文：界面文字、站点文案（首屏、页脚、技术栈、站点描述、版权说明）、作品名与介绍 | translation_entries（keyPath ui.text / site.text / project.name / project.description）；中文原文：界面文字在 i18n_sources（前台推上去），其余就是上面各项的中文 | AI → i18n（逐条改、清空、生成） | 所有外文页面（Core GET /ai/i18n/:lang 一次给全） | 立即（I18N_UPDATE，后台 Webhook 要勾） |
 

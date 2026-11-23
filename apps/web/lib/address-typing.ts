@@ -52,14 +52,27 @@ function finish() {
 
 // 动画中途又有人改历史（站内再跳一次、Next 自己 replace）：先把当前这条历史记录的地址写回真实的，
 // 不然这条记录会一直停在中间帧，以后后退回来、刷新就是错的地址。
-// 中间帧用浏览器原生的 History.prototype.replaceState 写，绕过挂在 history 上的钩子：统计脚本（Umami 等）
-// 包住 replaceState 按地址变化记访问，经过它会把 /p、/po 这些中间帧记成页面（e2e custom-code.mjs）。
-// Next 自己的那层对带 __NA 的 state 本来就直接放行，绕过它没有区别。
-// ponytail: 读 location.href 晚几毫秒再上报的统计（不看 replaceState 参数的）仍可能读到中间帧，遇到了再给它们关掉动画
+// 统计脚本会把中间帧 /p、/po… 记成页面（e2e custom-code.mjs），它们发现地址变化有两种办法，这里都挡住：
+// ① Umami 等包住 history.replaceState：中间帧用浏览器原生的 History.prototype.replaceState 写，不经过这些钩子
+//   （Next 自己的那层对带 __NA 的 state 本来就直接放行，绕过它没有区别）；
+// ② Cloudflare Web Analytics 等监听 Navigation API 的 navigate 事件，地址怎么改都会触发：根布局 <head> 最前面的
+//   typingGuardScript 比任何统计脚本都先注册监听，写中间帧时（下面立的标记）stopImmediatePropagation，后注册的收不到。
+// ponytail: 读 location.href 晚几毫秒再上报的统计（既不包 history 也不听 navigate 的）仍可能读到中间帧，遇到了再给它们关掉动画
+const typingFlag = "__yozoraAddressTyping";
+export const typingGuardScript = `try{var n=window.navigation;n&&n.addEventListener("navigate",function(e){if(window.${typingFlag})e.stopImmediatePropagation()})}catch(e){}`;
+
 function install() {
   if (rawReplace) return;
   const native = History.prototype.replaceState;
-  rawReplace = (state, unused, url) => native.call(history, state, unused, url);
+  const flags = window as unknown as Record<string, boolean>;
+  rawReplace = (state, unused, url) => {
+    flags[typingFlag] = true;
+    try {
+      native.call(history, state, unused, url);
+    } finally {
+      flags[typingFlag] = false;
+    }
+  };
   const push = history.pushState.bind(history);
   const replace = history.replaceState.bind(history);
   history.pushState = (...args) => {

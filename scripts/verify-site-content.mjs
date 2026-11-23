@@ -124,13 +124,14 @@ const custom = customOf({ custom: {
   styles: ['https://cdn.example.com/a.css', 'javascript:alert(1)', '/relative.css'],
   scripts: [
     { src: ' https://cloud.umami.is/script.js ', defer: true, async: 'yes', dataWebsiteId: 'abc', 'data-domains': 'sin6626.me', onload: 'steal()', crossorigin: 'anonymous', strategy: 'lazyOnload', id: 7 },
+    { src: 'https://static.cloudflareinsights.com/beacon.min.js', type: 'module', 'data-cf-beacon': '{"token": "t"}' },
     { src: 'javascript:alert(1)' }, { defer: true }, 'https://x.example.com/y.js',
   ],
 } })
 assert.equal(custom.css, 'a { color: red }', 'css 拼成一段，空的和不是文字的丢掉')
 assert.equal(custom.js, 'window.x = 1', 'js 写成一段文字也认')
 assert.deepEqual(custom.styles, ['https://cdn.example.com/a.css'], '样式表只收 http(s) 地址')
-assert.deepEqual(custom.scripts, [{ src: 'https://cloud.umami.is/script.js', defer: true, 'data-website-id': 'abc', 'data-domains': 'sin6626.me', crossOrigin: 'anonymous' }],
+assert.deepEqual(custom.scripts, [{ src: 'https://cloud.umami.is/script.js', defer: true, 'data-website-id': 'abc', 'data-domains': 'sin6626.me', crossOrigin: 'anonymous' }, { src: 'https://static.cloudflareinsights.com/beacon.min.js', type: 'module', 'data-cf-beacon': '{"token": "t"}' }],
   '脚本：去掉空白、驼峰 data 属性换成 data-*、事件属性和不认识的属性丢掉，async 要真的是 true，没 src 或不是 http(s) 的整条丢掉')
 
 console.log('PASS site content from the theme/yozora snippet: fallback, missing, cleared leaves and groups, spaces around emphasis, per-field AI translations, tech stack, link safety, custom head code')
