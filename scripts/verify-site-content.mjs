@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict'
 import { loadI18n, runTs } from './lib/i18n-source.mjs'
 
-const { parseSiteContent } = runTs('apps/web/lib/theme-config.ts', { './i18n/msg': loadI18n().msg })
+const { parseSiteContent, parseCustomCode } = runTs('apps/web/lib/theme-config.ts', { './i18n/msg': loadI18n().msg })
 const parse = (config, lang = 'zh', site = {}) => JSON.parse(JSON.stringify(parseSiteContent(config, lang, site)))
 // 和首屏一样拼：每段去掉首尾空白放进 inline-block，首尾有空白的在块外补一个空格，浏览器再把连续空白合成一个
 const visible = (title) => title.map((part) => `${/^\s/.test(part.text) ? ' ' : ''}${part.text.trim()}${/\s$/.test(part.text) ? ' ' : ''}`).join('').replace(/\s+/g, ' ').trim()
@@ -113,4 +113,24 @@ assert.deepEqual(parse({ hero: { mascot: layers } }).hero.mascot, layers, '丛�
 assert.equal(parse({ hero: { mascot: { ...layers, front: 'javascript:alert(1)' } } }).hero.mascot, null, '有一层不是 http(s) 地址就不显示')
 assert.deepEqual(parse({ hero: { shadow: { image: 'https://s3.example.com/shin.webp', page: ' shin ' } } }).hero.shadow, { image: 'https://s3.example.com/shin.webp', page: 'shin' }, '影子：图片和后台页面的 slug')
 assert.equal(parse({ hero: { shadow: { image: 'https://s3.example.com/shin.webp', page: '../x' } } }).hero.shadow, null, 'slug 只能是一段路径')
-console.log('PASS site content from the theme/yozora snippet: fallback, missing, cleared leaves and groups, spaces around emphasis, per-field AI translations, tech stack, link safety')
+// 片段的 custom（插进 <head> 的统计脚本和补充样式，格式同 Shiro）：外部地址只收 http(s)，脚本属性只收白名单，事件属性丢掉
+const customOf = (config) => JSON.parse(JSON.stringify(parseCustomCode(config)))
+const noCustom = { css: '', js: '', styles: [], scripts: [] }
+assert.deepEqual(customOf(null), noCustom, '片段读不到时什么都不插')
+assert.deepEqual(customOf({ custom: null }), noCustom, 'custom 写成 null 时什么都不插')
+const custom = customOf({ custom: {
+  css: ['a { color: red }', '  ', 1],
+  js: 'window.x = 1',
+  styles: ['https://cdn.example.com/a.css', 'javascript:alert(1)', '/relative.css'],
+  scripts: [
+    { src: ' https://cloud.umami.is/script.js ', defer: true, async: 'yes', dataWebsiteId: 'abc', 'data-domains': 'sin6626.me', onload: 'steal()', crossorigin: 'anonymous', strategy: 'lazyOnload', id: 7 },
+    { src: 'javascript:alert(1)' }, { defer: true }, 'https://x.example.com/y.js',
+  ],
+} })
+assert.equal(custom.css, 'a { color: red }', 'css 拼成一段，空的和不是文字的丢掉')
+assert.equal(custom.js, 'window.x = 1', 'js 写成一段文字也认')
+assert.deepEqual(custom.styles, ['https://cdn.example.com/a.css'], '样式表只收 http(s) 地址')
+assert.deepEqual(custom.scripts, [{ src: 'https://cloud.umami.is/script.js', defer: true, 'data-website-id': 'abc', 'data-domains': 'sin6626.me', crossOrigin: 'anonymous' }],
+  '脚本：去掉空白、驼峰 data 属性换成 data-*、事件属性和不认识的属性丢掉，async 要真的是 true，没 src 或不是 http(s) 的整条丢掉')
+
+console.log('PASS site content from the theme/yozora snippet: fallback, missing, cleared leaves and groups, spaces around emphasis, per-field AI translations, tech stack, link safety, custom head code')

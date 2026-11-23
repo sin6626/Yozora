@@ -23,6 +23,8 @@ function text(value: unknown) {
 //   "accounts": { "github": "…", "leetcode": "…" },   页脚星带读谁的 GitHub 贡献和力扣（中国站）提交
 //   "copyright": "…",                                 开了“版权注明”的文章末尾显示的说明；一行一段，[文字](https://…) 是链接（许可协议）
 //   "techStack": { "title": "…", "description": "…", "rows": [[{ "name": "Vue", "icon": "skill-icons:vuejs-dark" }, …], …] },
+//   "custom": { "css": ["…"], "js": ["…"], "styles": ["https://…"], "scripts": [{ "src": "https://…", "defer": true, "dataWebsiteId": "…" }] },
+//                                                     插进每个页面 <head> 的自定义代码（统计脚本等），格式同 Shiro 的 custom；见 parseCustomCode
 // }
 // 规则：片段读不到、或某一项根本没写，用下面的占位（和站长 2026-10 定的文案相同）；
 // 写成空字符串、空数组或 null（包括整组写成 null）就是故意不显示，旧值不会冒回来。
@@ -148,5 +150,47 @@ export function parseSiteContent(config: unknown, lang: string, site: Record<str
       description: localized(["techStack", "description"], placeholder.techNote),
       rows: rows ? techRows(rows.value) : placeholderRows,
     },
+  };
+}
+
+// 片段的 custom：插进每个页面 <head> 的自定义代码，给统计（Umami、Cloudflare Web Analytics、Google Analytics…）和小改样式用。
+// 字段和 Shiro 的 theme.config.custom 一样，从 Shiro 搬过来的配置原样能用：
+//   css: 内联样式（一项一段，拼起来放一个 <style>，排在站点样式后面，同优先级时它赢）
+//   js: 内联脚本（一项一段，拼起来放一个 <script>）
+//   styles: 外部样式表地址；scripts: 外部脚本，{ src, async/defer, id, crossOrigin, integrity, referrerPolicy, data-* }
+// 片段只有站长能改，内联代码照原样执行；外部地址只收 http(s)，脚本属性只收上面这些（onload 这类事件属性丢掉），
+// data-* 写成 "dataWebsiteId"（Shiro 的写法）或 "data-website-id" 都行。
+export type CustomScript = Record<string, string | boolean> & { src: string };
+export type CustomCode = { css: string; js: string; styles: string[]; scripts: CustomScript[] };
+
+const httpUrl = (value: unknown) => (typeof value === "string" && /^https?:\/\//i.test(value.trim()) ? value.trim() : undefined);
+const lines = (value: unknown) => (Array.isArray(value) ? value : [value]).filter((line): line is string => typeof line === "string" && line.trim() !== "").join("\n");
+const scriptProps: Record<string, string> = { id: "id", crossorigin: "crossOrigin", integrity: "integrity", referrerpolicy: "referrerPolicy" };
+
+function customScript(value: unknown): CustomScript | undefined {
+  if (!isObject(value)) return undefined;
+  const src = httpUrl(value.src);
+  if (!src) return undefined;
+  const script: CustomScript = { src };
+  for (const [key, raw] of Object.entries(value)) {
+    const lower = key.toLowerCase();
+    if (lower === "async" || lower === "defer") {
+      if (raw === true) script[lower] = true;
+    } else if (typeof raw === "string" || typeof raw === "number" || typeof raw === "boolean") {
+      if (/^data[A-Z]/.test(key)) script[key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)] = String(raw);
+      else if (/^data-[\w-]+$/.test(lower)) script[lower] = String(raw);
+      else if (scriptProps[lower] && typeof raw === "string") script[scriptProps[lower]] = raw;
+    }
+  }
+  return script;
+}
+
+export function parseCustomCode(config: unknown): CustomCode {
+  const custom = isObject(config) && isObject(config.custom) ? config.custom : {};
+  return {
+    css: lines(custom.css),
+    js: lines(custom.js),
+    styles: (Array.isArray(custom.styles) ? custom.styles : []).flatMap((href) => httpUrl(href) ?? []),
+    scripts: (Array.isArray(custom.scripts) ? custom.scripts : []).flatMap((item) => customScript(item) ?? []),
   };
 }

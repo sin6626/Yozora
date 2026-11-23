@@ -1,5 +1,5 @@
 // 浏览器回归测试：站内跳转时地址栏路径“删旧打新”（lib/address-typing.ts，2026-11-10 站长定）。
-// 无头浏览器没有地址栏，所以在页面加载前包住 history.replaceState / pushState，记下每一次调用写进去的地址和 state：
+// 无头浏览器没有地址栏，所以在页面加载前包住 History.prototype 的 replaceState / pushState，记下每一次调用写进去的地址和 state：
 // ① 首页 → 文章：中间帧依次是 /p /po /pos /post，最后是真实地址；每次都带 Next 的 history.state（__NA），否则 Next 会当成路由更新；
 //    中间帧不发请求；访问记录（/pageview）报的路径和来源都是真实地址，不是中间帧；
 // ② 动画中途再跳一次：离开的那条历史记录写回真实地址，后退回去地址是对的；
@@ -12,14 +12,15 @@ import { clickNav } from "./helpers.mjs";
 const base = process.env.WEB_URL ?? "http://127.0.0.1:2323";
 const browser = await openBrowser({ port: 9487 });
 
+// 包在 History.prototype 上：动画的中间帧直接调原生方法（绕过挂在 history 上的统计钩子），只有原型这一层看得到
 const recorder = `{
   window.__history = [];
   for (const kind of ["replaceState", "pushState"]) {
-    const original = history[kind].bind(history);
-    history[kind] = function (state, unused, url) {
+    const original = History.prototype[kind];
+    History.prototype[kind] = function (state, unused, url) {
       const path = url == null ? location.pathname : new URL(url, location.href).pathname;
       window.__history.push({ kind, path: decodeURIComponent(path), next: !!(state && state.__NA) });
-      return original(state, unused, url);
+      return original.call(this, state, unused, url);
     };
   }
 }`;

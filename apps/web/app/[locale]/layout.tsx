@@ -16,7 +16,8 @@ import AddressTyping from "@/components/address-typing";
 import PageTransition from "@/components/page-transition";
 import OwnerPresence from "@/components/owner-presence";
 import HeaderSearch from "@/components/header-search";
-import { getOwner } from "@/lib/blog-data";
+import { getOwner, getThemeConfig } from "@/lib/blog-data";
+import { parseCustomCode } from "@/lib/theme-config";
 import { shareImage } from "@/lib/page-metadata";
 import { LocaleProvider } from "@/components/locale-provider";
 import { defaultLocale, htmlLang, ogLocale, type Locale } from "@/lib/i18n/config";
@@ -139,7 +140,8 @@ async function localeState(locale: Locale) {
 
 export default async function RootLayout({ children }: LayoutProps<"/[locale]">) {
   const locale = await getLocale();
-  const [t, state] = await Promise.all([getT(), localeState(locale)]);
+  const [t, state, theme] = await Promise.all([getT(), localeState(locale), getThemeConfig().catch(() => null)]);
+  const custom = parseCustomCode(theme);
   return (
     <html
       lang={htmlLang(locale)}
@@ -156,6 +158,11 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <style dangerouslySetInnerHTML={{ __html: swarmCoverStyle }} />
         <script dangerouslySetInnerHTML={{ __html: swarmIntroScript(locale === defaultLocale ? "/" : `/${locale}`) }} />
+        {/* 站长在配置片段 custom 里加的代码（统计脚本、补充样式，lib/theme-config.ts 的 parseCustomCode），排在站点样式后面 */}
+        {custom.styles.map((href) => <link key={href} rel="stylesheet" href={href} />)}
+        {custom.css && <style id="yozora-custom-css" dangerouslySetInnerHTML={{ __html: custom.css }} />}
+        {custom.scripts.map((script) => <script key={script.src} {...script} />)}
+        {custom.js && <script id="yozora-custom-js" dangerouslySetInnerHTML={{ __html: custom.js }} />}
       </head>
       <body>
         <LocaleProvider locale={locale} {...state}>

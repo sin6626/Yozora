@@ -51,12 +51,17 @@ function finish() {
 }
 
 // 动画中途又有人改历史（站内再跳一次、Next 自己 replace）：先把当前这条历史记录的地址写回真实的，
-// 不然这条记录会一直停在中间帧，以后后退回来、刷新就是错的地址
+// 不然这条记录会一直停在中间帧，以后后退回来、刷新就是错的地址。
+// 中间帧用浏览器原生的 History.prototype.replaceState 写，绕过挂在 history 上的钩子：统计脚本（Umami 等）
+// 包住 replaceState 按地址变化记访问，经过它会把 /p、/po 这些中间帧记成页面（e2e custom-code.mjs）。
+// Next 自己的那层对带 __NA 的 state 本来就直接放行，绕过它没有区别。
+// ponytail: 读 location.href 晚几毫秒再上报的统计（不看 replaceState 参数的）仍可能读到中间帧，遇到了再给它们关掉动画
 function install() {
   if (rawReplace) return;
-  rawReplace = history.replaceState.bind(history);
+  const native = History.prototype.replaceState;
+  rawReplace = (state, unused, url) => native.call(history, state, unused, url);
   const push = history.pushState.bind(history);
-  const replace = rawReplace;
+  const replace = history.replaceState.bind(history);
   history.pushState = (...args) => {
     finish();
     push(...args);
