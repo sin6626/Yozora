@@ -723,3 +723,14 @@ ln -sfn $W/releases/782837b $W/current && docker rename yozora-web-pre-91774a7 y
 - 修复：`reader-session.ts` 的 `signIn` 同一时间只发一次请求，这次结束（成功或失败）后才能再发；检查 `scripts/verify-sign-in-once.mjs`（改前失败，已并入 `pnpm verify`）。state_mismatch 文案去掉 127.0.0.1，改为“确认浏览器没有拦截本站的 Cookie”，已 `push-i18n-source --prod`（改过 1 条，英日译文由 Core 重新生成）。
 - 只换前台：`releases/a2e3687`（以 91774a7 为 `--copy-dest`，`server.js` 哈希一致），`switch-web.sh` 由 91774a7 的只换版本号生成，停机约 3 秒。没有改数据，所以没做整库备份；`/root/backups/yozora-a2e3687/` 里有 `web.env.before` 和容器参数。
 - 回滚：`W=/root/mx-space/yozora-web; docker stop yozora-web && docker rename yozora-web yozora-web-a2e3687-stopped && ln -sfn $W/releases/91774a7 $W/current && docker rename yozora-web-pre-a2e3687 yozora-web && docker start yozora-web`。
+
+## 2026-11-23 已做：配置片段 custom 注入统计脚本（4214422）
+
+站长说“做完直接提交推送、上线，不测试了”。只换前台，Core、后台、数据都没动。
+
+- 内容：配置片段 theme/yozora 的 `custom`（格式同 Shiro：`css`、`js`、`styles`、`scripts`）插进每个页面的 `<head>`；地址栏动画的中间帧改用原生 `History.prototype.replaceState`，Umami 这类包住 replaceState 的统计不会把 /p、/po 记成页面。线上片段里还没有 `custom`，所以页面现在和上一版一样；站长注册统计服务后把脚本贴进片段即可，SNIPPET_* 事件让前台立即生效。
+- 代码已推送到 GitHub（`fde4bf0..4214422`）。构建：本机临时 worktree `/tmp/yozora-build`，包 77MB。构建时 Next 命令行在打印完路由表后以退出码 1 停下、打印一段升级提示（本机开发服务器第一次启动也一样），原样重跑一次就通过；没有执行它提示的升级命令。
+- `releases/4214422`（以 `releases/a2e3687` 为 `--copy-dest`，`server.js`、`BUILD_ID` 哈希一致），`switch-web.sh` 由 a2e3687 的只换版本号生成，3 秒就绪。备份 `/root/backups/yozora-4214422/`（`web.env.before`、容器参数，没改数据所以没做整库备份）。
+- 验证（公网）：首页、/posts、/notes、/en、/timeline、/says、RSS、站点地图、robots 200，首页 `data-dpl-id="4214422"`、没有 `yozora-custom-*`；容器日志无报错，约 199MB / 400MB；`legacy-urls.mjs` 通过；`address-typing.mjs` 对 sin6626.me 通过一次（另两次是本机到服务器线路慢，`/pageview` 约 9 秒后才完成，超过测试为本地开发设的 1.5 秒；单独探查确认来源是真实地址 `https://sin6626.me/`）。
+- 服务器磁盘约 87%：`releases/` 里还有 5e8b859、782837b、91774a7、b9f89e9、eca3309、f6eb00f 六个旧版本和对应停着的 `yozora-web-pre-*` 容器，删不删由站长定。
+- 回滚：`W=/root/mx-space/yozora-web; docker stop yozora-web && docker rename yozora-web yozora-web-4214422-stopped && ln -sfn $W/releases/a2e3687 $W/current && docker rename yozora-web-pre-4214422 yozora-web && docker start yozora-web`。
