@@ -734,3 +734,14 @@ ln -sfn $W/releases/782837b $W/current && docker rename yozora-web-pre-91774a7 y
 - 验证（公网）：首页、/posts、/notes、/en、/timeline、/says、RSS、站点地图、robots 200，首页 `data-dpl-id="4214422"`、没有 `yozora-custom-*`；容器日志无报错，约 199MB / 400MB；`legacy-urls.mjs` 通过；`address-typing.mjs` 对 sin6626.me 通过一次（另两次是本机到服务器线路慢，`/pageview` 约 9 秒后才完成，超过测试为本地开发设的 1.5 秒；单独探查确认来源是真实地址 `https://sin6626.me/`）。
 - 服务器磁盘约 87%：`releases/` 里还有 5e8b859、782837b、91774a7、b9f89e9、eca3309、f6eb00f 六个旧版本和对应停着的 `yozora-web-pre-*` 容器，删不删由站长定。
 - 回滚：`W=/root/mx-space/yozora-web; docker stop yozora-web && docker rename yozora-web yozora-web-4214422-stopped && ln -sfn $W/releases/a2e3687 $W/current && docker rename yozora-web-pre-4214422 yozora-web && docker start yozora-web`。
+
+## 2026-11-23 已做：接入 Cloudflare Web Analytics（808866d）
+
+站长让 Agent 用 ego-lite（里面登录了 Cloudflare 和后台）把统计配好。只换前台，Core、后台没动。
+
+- **Cloudflare**：同一个账号（有 R2 和 sin6626.me 的那个）新建 Web Analytics 站点 sin6626.me，“管理站点”里选“启用并安装 JS 片段”（DNS 是灰云，自动注入不生效）。数据在 Cloudflare 后台“数据分析 → Web Analytics”看。token 是公开的（就在页面源码里）。
+- **发现的问题**：Cloudflare 的 beacon 监听 Navigation API 的 `navigate` 事件，4214422 的“原生 replaceState”挡不住，本地用真 beacon 探查时它把地址栏动画的 /p、/po、/pos、/post 都报成了页面。808866d 在 `<head>` 最前面注册监听、写中间帧时 `stopImmediatePropagation`（`lib/address-typing.ts` 的 `typingGuardScript`），探查确认修后只报真实页面；Cloudflare 的片段是 `type="module"`，`parseCustomCode` 补上了 `type`。代码已推送（`ea448a8..808866d`）。
+- `releases/808866d`（以 `releases/4214422` 为 `--copy-dest`，`server.js`、`BUILD_ID` 哈希一致），`switch-web.sh` 由 4214422 的只换版本号生成，3 秒就绪。备份 `/root/backups/yozora-808866d/`。构建时 Next 命令行又以退出码 1 打印升级提示，重跑通过。
+- **线上片段**：用 `.local/publish.json` 的线上令牌 `PUT /snippets/:id`（带 `baseRaw`）给 theme/yozora 加了 `custom.scripts`（beacon，`type: "module"`，`data-cf-beacon`），其他几项不变；改前原文 `.local/backups/snippet-yozora-before-custom-prod-20261123.json`。Webhook 让前台立即换上。
+- 验证：公网页面 `<head>` 有 beacon；无头浏览器打开首页再站内跳到 /posts，向 `cloudflareinsights.com/cdn-cgi/rum` 的上报都是 204，地址只有 `/` 和 `/posts`；页面无报错。
+- 回滚前台：`W=/root/mx-space/yozora-web; docker stop yozora-web && docker rename yozora-web yozora-web-808866d-stopped && ln -sfn $W/releases/4214422 $W/current && docker rename yozora-web-pre-808866d yozora-web && docker start yozora-web`。只想停掉统计：在后台“配置与云函数”里删掉 theme/yozora 的 `custom`。
