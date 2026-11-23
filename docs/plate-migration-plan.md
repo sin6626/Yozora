@@ -1,5 +1,7 @@
 # 用 Plate 54 换掉 Haklex：计划
 
+> **2026-11-23 暂停**：站长决定等 `plitejs`（Plate 54 的新引擎）出正式版再做，现在 beta 改了不好收拾，先继续用 Haklex。下文的盘点和步骤保留，重启时先核对 Plate 的最新版本和文档有没有变，再从第 0 步试水开始。
+
 2026-11-23 站长定：富文本编辑器从 Innei 的 Haklex（Lexical）全部换成 **Plate 54**（换了编辑器引擎的新版本），只装自己用得到的功能；编辑器做成站长自己维护的包，另外维护一个 Plate 的**实况图插件**。本文取代 [plate-content-plan.md](plate-content-plan.md)（10-22 写、10-23 暂停的旧计划，当时 Plate 还是 Slate 引擎）。
 
 ## 已经查清的事实
