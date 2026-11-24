@@ -17,7 +17,8 @@
 3. ~~**首页“影子”头像**~~（2026-11-05 已做）：首屏站长圆形头像后面藏着久遠 真的圆形头像（`apps/web/public/persona/shin-avatar.webp`，源图 `.local/persona/avatar-source.webp`），平时只在左下露一道暗边；悬停、Tab、触屏点站长头像时滑到左下、缩小亮起，点了进 `/shin`。**只在深色主题出现**（站长定）。组件 `hero-shadow.tsx`，样式 `home-hero.css`，e2e `scripts/e2e/hero-shadow.mjs`。
 4. ~~**人设页 `/shin`**~~（2026-11-05 已在本地库建好，站长授权）：后台“页面”里的“久遠 真”（slug shin，副标题“夜里的影子，求真的人”，排在关于我、关于本站之后，Markdown）。正文是 persona-shin.md 的公开版（不含出图提示词、设计禁区、站内变量名），底稿 `.local/writing/shin-page.md`；三张图（圆形头像、两张设定图）已传 dev/ 图床并登记引用。线上还没建。
 5. **用“真”替换首屏的丛雨**（站长 2026-11-05 确认要做）。丛雨是柚子社角色、首屏那张是同人图，只能个人非商用，不能当站长的 IP；同一屏放两个动漫人物也会抢戏。替换时注意：丛雨的对位按 “Sin” 三个字母调的（`apps/web/components/home-hero.css`、`home-hero.tsx` 的 MascotLayer、`apps/web/public/mascot/`、e2e `scripts/e2e/hero-mascot.mjs`），要一起改掉。
-6. 如果以后真拿她做长期 IP：找画师按设定正式重画，约稿写明买断或完整商用授权。
+6. **Live2D**（2026-11-24 只调研）：路线、素材缺口、约稿清单见 [live2d-plan.md](live2d-plan.md)，等站长决定。
+7. 如果以后真拿她做长期 IP：找画师按设定正式重画，约稿写明买断或完整商用授权。
 
 ## 不做（2026-11-05 站长定）
 
