@@ -20,6 +20,24 @@
 
 ---
 
+## 站长选的路线：不约稿，自己用 AI 做（2026-11-24，搁置）
+
+站长不找画师和工作室，要自己做；Cubism Editor 的操作打算交给 Astra（它的电脑操作能点原生软件）。站长现在没精力，**先搁置**，下面是以后接着做的待办。
+
+**已经试过、不要再走的路**：只用 WebGL 扭一整张图（`.local/live2d/` 的脚本和 Ryugi 产物 `html/shin-live2d`：Astra 出的绿幕底图 + 闭眼、笑脸两张局部图，呼吸、眨眼、发梢和呆毛飘、脸跟鼠标偏）。站长看过，说和真正的 Live2D 差很多：没有拆开的图层、没有按参数调好的网格变形，只能“晃”不能“动”。
+
+**待办（按顺序）**
+
+1. **出图（Astra 生图）**：照 `.local/intro-video/refs/` 的定稿图重新生成一张拆层用的底图：透明背景（或纯色好抠）、1280 以上、正面、嘴微微张开（方便做口型）、手不挡脸和身体、去掉挂绳和眉心小白点这类细碎东西。上次的底图 `.local/live2d/base.png` 可以当参考。
+2. **自动拆层（See-through）**：开源的单图拆层工具（[论文](https://arxiv.org/abs/2602.03749)、[代码](https://github.com/shitagaki-lab/see-through)、[ComfyUI 插件](https://github.com/jtydhr88/ComfyUI-See-through)），把一张动漫立绘拆成约 23 层（前发、后发、脸、眉毛、睫毛、眼白、眼珠、嘴、鼻子、耳朵、脖子、上衣等），被挡住的地方会补画，导出 PSD。要 NVIDIA 显卡：作者用 96GB 显存测试、一张约 2 分钟，没写最低显存（[实测](https://lilting.ch/en/articles/see-through-anime-layer-decomposition)）。先在 Colab（L4 22GB 或 A100，做自我介绍视频时用过）试能不能跑。发梢、小饰品可能要手修；**开工前先看代码和模型权重的许可证**（实测文章没写）。
+3. **自动绑定（Cubism Editor 5.1+，交给 Astra 操作）**：导入 PSD → [AI 自动生成变形器](https://docs.live2d.com/en/cubism-editor-manual/auto-generation-of-deformer/)（全身）→ 自动生成脸部变形器和脸部动作 → 自动生成头发、小物件的摆动（[5.1 新功能](https://docs.live2d.com/en/cubism-editor-manual/new-function5-1/)）→ 滑块微调 → 导出 `.moc3`、`.model3.json`、贴图、物理、表情。站长看着说哪里不对，Astra 改。
+   - 免费版限制：最多 100 个网格、50 个变形器、30 个参数、1 张 2048 贴图（[对比页](https://www.live2d.com/en/cubism/comparison/)），23 层的模型够用。
+   - **没查到这些 AI 功能是不是只有 PRO 版有**，装好后先看。不够就买 PRO 个人版（月付约 2080 日元）；42 天试用只能用于评估和学习。
+4. **放进网站**：按第四节，只放 /shin 页，用官方 Cubism Web SDK，打开 /shin 才加载。
+5. 第“要站长决定的事”里关于外包的 4–7 条不用再管；第 1–3 条（放在哪、姿势、动作和表情）自己做时照样要定。
+
+预期：会比 WebGL 原型像真正的 Live2D 很多，但自动生成的变形一般不如专业建模师细调过的，最后手感看愿意花多少时间微调。
+
 ## 一、制作流程：从立绘到能动的模型
 
 Live2D 官方教程把流程分成：处理插画 → 准备让插画动起来 → 表情 → 身体动作 → 头部 XY 转动 → 动画；网页嵌入另有一套：模型准备 → 物理 → 动作和表情 → 导出给网页用。（[官方教程目录](https://docs.live2d.com/en/cubism-editor-tutorials/top/)）
