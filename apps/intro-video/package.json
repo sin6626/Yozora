@@ -1,0 +1,19 @@
+{
+  "name": "@yozora/intro-video",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio src/index.ts --public-dir ../../.local/intro-video/public",
+    "render": "remotion render src/index.ts --public-dir ../../.local/intro-video/public"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.546",
+    "react": "19.2.9",
+    "react-dom": "19.2.9",
+    "remotion": "4.0.546",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "typescript": "^5.9.3"
+  }
+}
