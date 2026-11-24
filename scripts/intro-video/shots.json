@@ -6,7 +6,7 @@
  "height": 768,
  "fps": 24,
  "worlds": {
-  "real": "The target video is a 2D anime-style animation with clean lineart and soft cel shading, a dark night-violet palette, moonlight always coming from the upper right with shadows falling to the lower left, gentle film grain, no on-screen text, no subtitles, no watermark.",
+  "real": "The target video is a 2D chibi cartoon animation: Q-version characters about three heads tall, thin clean outlines with line-weight variation, two-tone cel shading, glossy hair highlights and layered eye highlights, matching the attached character design sheets exactly. A dark night-violet palette, moonlight always coming from the upper right with shadows falling to the lower left. Vertical 9:16 frame with the character centred. No on-screen text, no subtitles, no watermark.",
   "book": "The target video is an animated hand-drawn children's picture book: coloured pencil and wax crayon on warm off-white drawing paper with visible paper grain and soft smudges, slightly naive but clean outlines, warm colours, and gentle hand-made motion, as if the drawings on a lamp-lit page are quietly coming alive. The paper texture and crayon strokes stay visible in every frame; it is not anime cel shading, not 3D and not photorealistic. Night skies are deep blue crayon with the moon at the upper right. No on-screen text, no subtitles, no watermark.",
   "bridge-out": "The video begins inside an animated crayon picture-book page (coloured pencil and wax crayon on warm off-white paper with visible grain) and ends in a 2D anime-style world with clean lineart, soft cel shading and a dark night-violet palette, moonlight from the upper right. No on-screen text, no subtitles, no watermark."
  },
@@ -34,21 +34,21 @@
   "real": {
    "label": "现实 · 真",
    "images": [
-    "ref1-shin-full.png",
-    "ref3-shin-turnaround.png",
-    "ref2-shin-face.png"
+    "cartoon-shin-full.png",
+    "cartoon-shin-turnaround.png",
+    "cartoon-shin-face.png"
    ],
    "audio": [
     "shin-voice.wav"
    ],
    "subjects": [
     {
-     "text": "<Subject 1> is Kuon Shin, the young woman in <Picture 1>, <Picture 2> and <Picture 3>: a 158 cm university student with straight hair just above the shoulder blades that is almost black at the roots, deep violet where light hits, and fades to a very pale moonlight cream only at the last few centimetres of the tips (never gold or yellow), ends flicking outward, one ahoge on top, a gold crescent-moon-and-star clip on her left fringe, soft pink-violet eyes with tiny four-pointed star highlights and a direct, curious, slightly stubborn gaze, an oversized night-purple cable-knit cardigan whose sleeves cover half her hands over a loose white shirt, a dark navy pleated skirt, black knee socks, worn canvas sneakers, purple headphones around her neck and a lanyard card printed with a single star. She carries a small dark notebook with one moonlight-coloured star sticker on the cover. She does not wear glasses. <Picture 2> provides her front, side and back views; <Picture 3> provides her face, eyes and hair clip up close.",
-     "keep": "fully_preserved - her hair colours, ahoge, crescent-moon clip, star-lit eyes, night-purple cardigan, pleated skirt, knee socks, headphones and star notebook are retained."
+     "text": "<Subject 1> is Kuon Shin, the chibi cartoon girl in <Picture 1>, <Picture 2> and <Picture 3>: about three heads tall, violet-black hair fading to pale cream at the tips, one springy ahoge, a gold crescent-moon clip with a dangling star, big violet eyes with star highlights, an oversized night-purple cable-knit cardigan over a white shirt, a navy pleated skirt, black knee socks, purple sneakers, purple headphones with moon emblems around her neck, and a small dark notebook with a gold star sticker. She does not wear glasses. <Picture 2> gives her front, side and back views; <Picture 3> gives her face up close.",
+     "keep": "fully_preserved - her chibi proportions, line style, hair colours, ahoge, moon clip, star-lit eyes, cardigan, skirt, socks, headphones and star notebook are retained."
     },
     {
-     "text": "<Subject 2> is the night path below the dormitory in <Picture 1>: stone pavement, an old street lamp, dark trees, dormitory windows lit warm yellow, and a full moon at the upper right.",
-     "keep": "fully_preserved - the stone path, street lamp, trees, lit windows and the moon at the upper right are retained."
+     "text": "<Subject 2> is the night path below the dormitory, drawn in the same cartoon style: stone pavement, an old street lamp, dark trees, dormitory windows lit warm yellow, and a full moon at the upper right.",
+     "keep": "fully_preserved - the stone path, street lamp, trees, lit windows and the moon at the upper right stay consistent."
     }
    ],
    "voices": [
@@ -195,13 +195,6 @@
  },
  "cuts": [
   {
-   "after_phase": 1,
-   "kind": "audio",
-   "file": "shin-voice.wav",
-   "from": "p0a",
-   "note": "挑声音最像真的那一段，截她说话的 5–10 秒（不要带脚步声），之后所有片段都用它当音色参考"
-  },
-  {
    "after_phase": 2,
    "kind": "frame",
    "file": "book-sin.png",
@@ -220,9 +213,9 @@
   {
    "id": "p0a",
    "section": "序幕 · 晚上好",
-   "title": "冲进画面",
+   "title": "主持人开场",
    "seconds": 12,
-   "group": "real-novoice",
+   "group": "real",
    "phase": 1,
    "world": "real",
    "lines": [
@@ -235,9 +228,9 @@
      "text": "我叫久遠真。久远的久远，真心的真。叫我真就好。"
     }
    ],
-   "summary": "[reference generation] At night on <Subject 2>, <Subject 1> runs into the lamplight, nearly overshoots, recovers and introduces herself to the camera.",
-   "shots": "[Shot 1] A wide, almost still shot of <Subject 2> at half past ten at night, the street lamp glowing on the left and the full moon at the upper right. <Subject 1> runs in from the left edge of the frame into the circle of lamplight, hugging the star notebook to her chest, her cardigan sleeves flapping. She nearly fails to stop, skids a step past the light, hops back into it and catches her breath. <Subject 1> (S1) blurts out in a clear, bright young female voice that is slightly low for her age, quick and lively, with a teasing, faintly stubborn edge, never sweet or babyish, a little startled: <d>[Chinese] 啊，已经开始了？咳。晚上好！</d> She clears her throat and straightens up.\n[Shot 2] At 00:04.500, the camera cuts to a medium shot. <Subject 1> stands upright on the stones, faces the camera at eye level and looks straight into the lens; her single ahoge springs upright with a tiny bounce. Moonlight from the upper right catches the pale tips of her hair. <Subject 1> (S1) says brightly, at a quick, confident pace, tapping the notebook once on the last word: <d>[Chinese] 我叫久遠真。久远的久远，真心的真。叫我真就好。</d> She ends with a small, slightly proud smile.",
-   "soundscape": "Quiet outdoor night ambience: faint insects in the grass, a soft breeze through the trees, a distant hum from the dormitory. Quick running footsteps on stone and one scuff as she skids to a stop in [Shot 1]."
+   "summary": "[reference generation + audio reference] At night on <Subject 2>, <Subject 1> stands in the lamplight like a cheerful show host, notices the camera is already rolling and introduces herself. <Audio 1> guides her voice.",
+   "shots": "[Shot 1] A medium-wide, almost still shot of <Subject 2> at half past ten at night, the street lamp glowing beside her and the full moon at the upper right. <Subject 1> is already standing in the circle of lamplight, hugging the star notebook, glancing down at it. She looks up, notices the camera, blinks, then quickly straightens up like a show host going live. <Subject 1> (S1), with the timbre referenced from <Audio 1>, says at a normal speaking volume, bright and lively but never shouting, a little surprised and then composed: <d>[Chinese] 啊，已经开始了？咳。晚上好！</d> She gives a small polite bow on the greeting.\n[Shot 2] At 00:04.500, the camera cuts to a medium close-up. <Subject 1> faces the camera at eye level and looks straight into the lens; her ahoge gives a tiny bounce. Moonlight from the upper right catches the cream tips of her hair. <Subject 1> (S1) says warmly at a natural conversational volume, quick and confident like a friendly host, tapping the notebook once on the last word: <d>[Chinese] 我叫久遠真。久远的久远，真心的真。叫我真就好。</d> She ends with a small, slightly proud smile.",
+   "soundscape": "Quiet outdoor night ambience: faint insects in the grass, a soft breeze through the trees, a distant hum from the dormitory. No footsteps, no music."
   },
   {
    "id": "p0b",
