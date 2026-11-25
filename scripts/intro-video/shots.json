@@ -326,7 +326,7 @@
    "id": "p1a",
    "section": "第一页 · 走夜路的人",
    "title": "小城和 Sin",
-   "seconds": 15,
+   "seconds": 9,
    "group": "popup-sin",
    "phase": 5,
    "world": "popup",
@@ -334,14 +334,28 @@
     {
      "speaker": "真",
      "text": "从前，嗯，其实也没多从前，有一座总是亮着灯的小城。城里住着一个叫 Sin 的人。"
-    },
+    }
+   ],
+   "summary": "[reference generation + audio reference] On <Subject 2>, the paper town lights up window by window while the off-screen narrator begins the story. <Audio 1> guides the narrator's voice.",
+   "shots": "[Shot 1] A wide view of <Subject 2>. The paper houses' little windows light up warm yellow one after another, the paper moon sways gently on its wire, and the camera glides slowly to the right along the pages. The narrator Kuon Shin (S1), using the timbre referenced from <Audio 1>, says in an off-screen voiceover, warm and a little playful, slowing on the first words: <d>[Chinese] 从前，嗯，其实也没多从前，有一座总是亮着灯的小城。城里住着一个叫 Sin 的人。</d> while no visible character's lips move.",
+   "soundscape": "Soft quiet night inside the book: faint paper rustles, a tiny creak as the paper moon sways, a soft click for each window lighting up. No music."
+  },
+  {
+   "id": "p1a2",
+   "section": "第一页 · 走夜路的人",
+   "title": "Sin 出门",
+   "seconds": 6,
+   "group": "popup-sin",
+   "phase": 5,
+   "world": "popup",
+   "lines": [
     {
      "speaker": "真",
      "text": "你看他，戴个眼镜，背个包，是不是特别普通？"
     }
    ],
-   "summary": "[reference generation + audio reference] On <Subject 2>, the paper town lights up window by window, then <Subject 1> steps out of the paper laboratory while the off-screen narrator introduces him. <Audio 1> guides the narrator's voice.",
-   "shots": "[Shot 1] A wide view of <Subject 2>. The paper houses' little windows light up warm yellow one after another, the paper moon sways gently on its wire, and the camera glides slowly to the right along the pages. The narrator Kuon Shin (S1), using the timbre referenced from <Audio 1>, says in an off-screen voiceover, warm and a little playful, slowing on the first words: <d>[Chinese] 从前，嗯，其实也没多从前，有一座总是亮着灯的小城。城里住着一个叫 Sin 的人。</d> while no visible character's lips move.\n[Shot 2] At 00:08.500, the camera moves closer to the paper laboratory door. <Subject 1>, a flat paper cut-out, slides out from behind the door layer in side view, stops, rubs one eye under his glasses and hitches up a backpack strap with small puppet-like movements, then turns slightly toward the camera. The narrator (S1) says in an off-screen voiceover, teasing: <d>[Chinese] 你看他，戴个眼镜，背个包，是不是特别普通？</d> while no visible character's lips move.",
+   "summary": "[reference generation + audio reference] On <Subject 2>, <Subject 1> steps out of the paper laboratory while the off-screen narrator teases him. <Audio 1> guides the narrator's voice.",
+   "shots": "[Shot 1] The camera is close to the paper laboratory door of <Subject 2>. <Subject 1>, a flat paper cut-out, slides out from behind the door layer in side view, stops, rubs one eye under his glasses and hitches up a backpack strap with small puppet-like movements, then turns slightly toward the camera. The narrator (S1) says in an off-screen voiceover, teasing: <d>[Chinese] 你看他，戴个眼镜，背个包，是不是特别普通？</d> while no visible character's lips move.",
    "soundscape": "Soft quiet night inside the book: faint paper rustles, a tiny creak as the paper moon sways, a soft click for each window lighting up. No music."
   },
   {
