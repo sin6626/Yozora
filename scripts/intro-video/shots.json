@@ -8,7 +8,8 @@
  "worlds": {
   "real": "The target video is a 2D chibi cartoon animation: Q-version characters about three heads tall, thin clean outlines with line-weight variation, two-tone cel shading, glossy hair highlights and layered eye highlights, matching the attached character design sheets exactly. A dark night-violet palette, moonlight always coming from the upper right with shadows falling to the lower left. Vertical 9:16 frame with the character centred. No on-screen text, no subtitles, no watermark.",
   "book": "The target video is an animated hand-drawn children's picture book: coloured pencil and wax crayon on warm off-white drawing paper with visible paper grain and soft smudges, slightly naive but clean outlines, warm colours, and gentle hand-made motion, as if the drawings on a lamp-lit page are quietly coming alive. The paper texture and crayon strokes stay visible in every frame; it is not anime cel shading, not 3D and not photorealistic. Night skies are deep blue crayon with the moon at the upper right. No on-screen text, no subtitles, no watermark.",
-  "bridge-out": "The video begins inside an animated crayon picture-book page (coloured pencil and wax crayon on warm off-white paper with visible grain) and ends in a 2D anime-style world with clean lineart, soft cel shading and a dark night-violet palette, moonlight from the upper right. No on-screen text, no subtitles, no watermark."
+  "bridge-out": "The video begins inside an animated crayon picture-book page (coloured pencil and wax crayon on warm off-white paper with visible grain) and ends in a 2D anime-style world with clean lineart, soft cel shading and a dark night-violet palette, moonlight from the upper right. No on-screen text, no subtitles, no watermark.",
+  "popup": "The target video is a pop-up storybook animation: an open book floats alone in an empty, seamless deep night-indigo void with no table, lamp or room. The camera stays level with the open pages, so the pages are a thin band near the bottom of the frame and the scene rises above them. Every piece of scenery is an upright layer of paper drawn in crayon and coloured pencil, standing on the pages at several depths with thin white cut edges, small paper tabs and soft shadows; characters are flat polished chibi paper cut-outs standing upright among the layers and move in 2D side view like paper puppets. Scene changes happen by the paper layers folding down flat and new ones springing up. Warm storybook light with no visible source. Vertical 9:16. No on-screen text, no subtitles, no watermark."
  },
  "groups": {
   "real-novoice": {
@@ -191,16 +192,35 @@
      "keep": "reference - only the timbre and delivery of <Subject 1> are followed; the original words are not reused."
     }
    ]
+  },
+  "popup-sin": {
+   "label": "立体书 · Sin",
+   "images": [
+    "popup-stage.png",
+    "cartoon-sin-full.png"
+   ],
+   "audio": [
+    "shin-voice.wav"
+   ],
+   "subjects": [
+    {
+     "text": "<Subject 1> is Sin, the polished chibi boy in <Picture 2>: messy black hair with one cowlick, black rectangular glasses, plain grey hoodie, navy trousers, navy backpack, white sneakers. In the book he is a flat upright paper cut-out of exactly this design with a thin white border. He never speaks.",
+     "keep": "fully_preserved - his chibi proportions, glasses, hair, grey hoodie, navy backpack and the paper cut-out look are retained."
+    },
+    {
+     "text": "<Subject 2> is the pop-up storybook stage in <Picture 1>: an open book floating in a deep night-indigo void, upright crayon paper layers of a little town at night, a lit laboratory with a glass dome, street lamps, a wooden fence, flower bushes and a paper moon on a thin wire.",
+     "keep": "fully_preserved - the pop-up paper construction, crayon and coloured-pencil drawing style, indigo void and camera level with the pages are retained."
+    }
+   ],
+   "voices": [
+    {
+     "text": "<Audio 1> is the voice-timbre reference for the off-screen narrator Kuon Shin (S1).",
+     "keep": "reference - only the narrator's timbre and delivery are followed; the original words are not reused."
+    }
+   ]
   }
  },
  "cuts": [
-  {
-   "after_phase": 2,
-   "kind": "frame",
-   "file": "book-sin.png",
-   "from": "p1a",
-   "note": "挑 Sin 画得最好的那一段，截一帧他清楚露脸、看得见眼镜和背包的画面，之后本子里的片段都用它定 Sin 的样子和画风"
-  },
   {
    "after_phase": 3,
    "kind": "frame",
@@ -307,9 +327,9 @@
    "section": "第一页 · 走夜路的人",
    "title": "小城和 Sin",
    "seconds": 15,
-   "group": "book-open",
-   "phase": 2,
-   "world": "book",
+   "group": "popup-sin",
+   "phase": 5,
+   "world": "popup",
    "lines": [
     {
      "speaker": "真",
@@ -320,18 +340,18 @@
      "text": "你看他，戴个眼镜，背个包，是不是特别普通？"
     }
    ],
-   "summary": "[reference generation + audio reference] <Subject 2>, a crayon picture-book town at night; <Subject 1> walks out of the lit laboratory under a big moon while the off-screen narrator introduces him. <Audio 1> guides the narrator's voice.",
-   "shots": "[Shot 1] A wide picture-book view of <Subject 2>: small crayon houses whose windows light up warm yellow one by one, a long road winding into the distance, and at its far end a laboratory building with every light on. The camera drifts slowly to the right along the road. The narrator Kuon Shin (S1), using the timbre referenced from <Audio 1>, says in an off-screen voiceover, warm and a little playful, slowing on the first words: <d>[Chinese] 从前，嗯，其实也没多从前，有一座总是亮着灯的小城。城里住着一个叫 Sin 的人。</d> while no visible character's lips move.\n[Shot 2] At 00:08.500, the shot cuts closer to the laboratory door. <Subject 1>, the ordinary young man in glasses, grey hoodie and navy backpack, steps out under a big round crayon moon at the upper right, rubs one eye sleepily under his glasses and adjusts a backpack strap; he stays clearly in view, facing slightly toward the camera. The narrator (S1) says in an off-screen voiceover, teasing: <d>[Chinese] 你看他，戴个眼镜，背个包，是不是特别普通？</d> while no visible character's lips move; <Subject 1>'s lips remain closed.",
-   "soundscape": "Soft night ambience from inside the picture book, with faint paper rustles and the light scratch of crayon. A door creaks softly in [Shot 2]."
+   "summary": "[reference generation + audio reference] On <Subject 2>, the paper town lights up window by window, then <Subject 1> steps out of the paper laboratory while the off-screen narrator introduces him. <Audio 1> guides the narrator's voice.",
+   "shots": "[Shot 1] A wide view of <Subject 2>. The paper houses' little windows light up warm yellow one after another, the paper moon sways gently on its wire, and the camera glides slowly to the right along the pages. The narrator Kuon Shin (S1), using the timbre referenced from <Audio 1>, says in an off-screen voiceover, warm and a little playful, slowing on the first words: <d>[Chinese] 从前，嗯，其实也没多从前，有一座总是亮着灯的小城。城里住着一个叫 Sin 的人。</d> while no visible character's lips move.\n[Shot 2] At 00:08.500, the camera moves closer to the paper laboratory door. <Subject 1>, a flat paper cut-out, slides out from behind the door layer in side view, stops, rubs one eye under his glasses and hitches up a backpack strap with small puppet-like movements, then turns slightly toward the camera. The narrator (S1) says in an off-screen voiceover, teasing: <d>[Chinese] 你看他，戴个眼镜，背个包，是不是特别普通？</d> while no visible character's lips move.",
+   "soundscape": "Soft quiet night inside the book: faint paper rustles, a tiny creak as the paper moon sways, a soft click for each window lighting up. No music."
   },
   {
    "id": "p1b",
    "section": "第一页 · 走夜路的人",
    "title": "被 bug 气到",
    "seconds": 12,
-   "group": "book-sin",
-   "phase": 3,
-   "world": "book",
+   "group": "popup-sin",
+   "phase": 5,
+   "world": "popup",
    "lines": [
     {
      "speaker": "真",
@@ -346,18 +366,18 @@
      "text": "气死我了。"
     }
    ],
-   "summary": "[reference generation + audio reference] Daytime crayon vignettes: <Subject 1> is pestered by a cartoon bug and then by an innocent-looking AI that deleted his file. <Audio 1> guides the narrator's voice.",
-   "shots": "[Shot 1] A bright daytime crayon page: <Subject 1> sits at a desk in front of a laptop. A tiny cartoon beetle drawn in crayon crawls across the screen; he scratches his head with both hands, frustrated, glasses slipping down his nose. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, brisk and amused: <d>[Chinese] 白天上课、写代码，被 bug 气得直挠头。</d> while no visible character's lips move.\n[Shot 2] At 00:04.000, a close crayon shot of the laptop screen: a round little robot face blinks innocently and shakes its head while a paper-sheet icon beside it crumples into a ball and vanishes in a puff of crayon dust. <Subject 1> leans in, staring in disbelief. The narrator (S1) says in an off-screen voiceover, getting heated: <d>[Chinese] 有一回，AI 把他的文件删了，还一口咬定自己没删。</d> then bursts out hotly: <d>[Chinese] 气死我了。</d> while no visible character's lips move.",
-   "soundscape": "Soft night ambience from inside the picture book, with faint paper rustles and the light scratch of crayon. Keyboard clicks and a tiny cartoon 'poof' when the file vanishes."
+   "summary": "[reference generation + audio reference] A daytime pop-up page: <Subject 1> is pestered by a paper bug and then by a laptop AI that deleted his file. <Audio 1> guides the narrator's voice.",
+   "shots": "[Shot 1] The night layers fold down flat and a bright daytime pop-up springs up on <Subject 2>: an upright paper desk with a paper laptop and a stack of paper books. <Subject 1>, a flat paper cut-out in side view, sits at the desk and scratches his head with both hands, shaking like a puppet in frustration, while a tiny paper beetle slides across the laptop screen. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, brisk and amused: <d>[Chinese] 白天上课、写代码，被 bug 气得直挠头。</d> while no visible character's lips move.\n[Shot 2] At 00:04.000, the camera moves in on the paper laptop screen: a round paper robot face blinks innocently and shakes its head, while a paper document icon beside it crumples into a little paper ball and pops away in a puff of crayon dust. <Subject 1> leans in from the side, staring. The narrator (S1) says in an off-screen voiceover, getting heated: <d>[Chinese] 有一回，AI 把他的文件删了，还一口咬定自己没删。</d> then bursts out hotly: <d>[Chinese] 气死我了。</d> while no visible character's lips move.",
+   "soundscape": "Paper rustles inside the book, tiny clicky keyboard taps, a small cartoon poof when the file vanishes. No music."
   },
   {
    "id": "p1c",
    "section": "第一页 · 走夜路的人",
    "title": "十点半",
    "seconds": 11,
-   "group": "book-sin",
-   "phase": 3,
-   "world": "book",
+   "group": "popup-sin",
+   "phase": 5,
+   "world": "popup",
    "lines": [
     {
      "speaker": "真",
@@ -368,9 +388,9 @@
      "text": "反正每天晚上十点半，他就一个人，从实验室慢慢走回寝室。"
     }
    ],
-   "summary": "[reference generation + audio reference] After a quick correction from the narrator, <Subject 1> walks home alone along the long night road under the moon. <Audio 1> guides the narrator's voice.",
-   "shots": "[Shot 1] A close crayon shot of <Subject 1> puffing out his cheeks in annoyance at his desk. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, quickly correcting herself with a sheepish laugh in her voice: <d>[Chinese] 哦不对，是气死 Sin 了。</d> while no visible character's lips move.\n[Shot 2] At 00:03.000, the page turns to night: a wide crayon view of the long road from the lit laboratory to a distant dormitory. <Subject 1>, small in the frame, walks alone with his backpack and his hands in his hoodie pocket; the big moon hangs at the upper right and his long shadow stretches to the lower left. The camera pans slowly with him. The narrator (S1) says in an off-screen voiceover, gentler and slower: <d>[Chinese] 反正每天晚上十点半，他就一个人，从实验室慢慢走回寝室。</d> while no visible character's lips move.",
-   "soundscape": "Soft night ambience from inside the picture book, with faint paper rustles and the light scratch of crayon. Slow footsteps on the drawn road in [Shot 2]."
+   "summary": "[reference generation + audio reference] <Subject 1> puffs his cheeks, then the page turns to night and he walks home alone along the paper road. <Audio 1> guides the narrator's voice.",
+   "shots": "[Shot 1] A close view on <Subject 2>: <Subject 1>, a flat paper cut-out, puffs out his cheeks and crosses his arms, bobbing slightly. The narrator Kuon Shin (S1), with the timbre referenced from <Audio 1>, says in an off-screen voiceover, quickly correcting herself with a sheepish laugh in her voice: <d>[Chinese] 哦不对，是气死 Sin 了。</d> while no visible character's lips move.\n[Shot 2] At 00:03.000, the daytime layers fold down and the night town pops back up: a long paper road from the lit laboratory to a distant dormitory, the paper moon above. <Subject 1>, small, walks along the road from left to right in 2D side view with a gentle puppet bounce, hands in his hoodie pocket, his paper shadow stretching behind him. The camera glides with him. The narrator (S1) says in an off-screen voiceover, softer and slower: <d>[Chinese] 反正每天晚上十点半，他就一个人，从实验室慢慢走回寝室。</d> while no visible character's lips move.",
+   "soundscape": "Quiet night inside the book: soft paper rustles, the faint tap of paper footsteps. No music."
   },
   {
    "id": "p2a",
