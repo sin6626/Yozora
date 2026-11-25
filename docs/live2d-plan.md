@@ -28,7 +28,7 @@
 
 **待办（按顺序）**
 
-1. **出图（Astra 生图）**：照 `.local/intro-video/refs/` 的定稿图重新生成一张拆层用的底图：透明背景（或纯色好抠）、1280 以上、正面、嘴微微张开（方便做口型）、手不挡脸和身体、去掉挂绳和眉心小白点这类细碎东西。上次的底图 `.local/live2d/base.png` 可以当参考。
+1. **出图（Astra 生图）**：照 `.local/persona/refs/` 的定稿图重新生成一张拆层用的底图：透明背景（或纯色好抠）、1280 以上、正面、嘴微微张开（方便做口型）、手不挡脸和身体、去掉挂绳和眉心小白点这类细碎东西。上次的底图 `.local/live2d/base.png` 可以当参考。
 2. **自动拆层（See-through）**：开源的单图拆层工具（[论文](https://arxiv.org/abs/2602.03749)、[代码](https://github.com/shitagaki-lab/see-through)、[ComfyUI 插件](https://github.com/jtydhr88/ComfyUI-See-through)），把一张动漫立绘拆成约 23 层（前发、后发、脸、眉毛、睫毛、眼白、眼珠、嘴、鼻子、耳朵、脖子、上衣等），被挡住的地方会补画，导出 PSD。要 NVIDIA 显卡：作者用 96GB 显存测试、一张约 2 分钟，没写最低显存（[实测](https://lilting.ch/en/articles/see-through-anime-layer-decomposition)）。先在 Colab（L4 22GB 或 A100，做自我介绍视频时用过）试能不能跑。发梢、小饰品可能要手修；**开工前先看代码和模型权重的许可证**（实测文章没写）。
 3. **自动绑定（Cubism Editor 5.1+，交给 Astra 操作）**：导入 PSD → [AI 自动生成变形器](https://docs.live2d.com/en/cubism-editor-manual/auto-generation-of-deformer/)（全身）→ 自动生成脸部变形器和脸部动作 → 自动生成头发、小物件的摆动（[5.1 新功能](https://docs.live2d.com/en/cubism-editor-manual/new-function5-1/)）→ 滑块微调 → 导出 `.moc3`、`.model3.json`、贴图、物理、表情。站长看着说哪里不对，Astra 改。
    - 免费版限制：最多 100 个网格、50 个变形器、30 个参数、1 张 2048 贴图（[对比页](https://www.live2d.com/en/cubism/comparison/)），23 层的模型够用。
@@ -113,7 +113,7 @@ Live2D 官方教程把流程分成：处理插画 → 准备让插画动起来 �
 
 **不够。** 现有图只能当设定参考，需要画师重画一张分层立绘。
 
-看过的图（`.local/intro-video/refs/`，都是 AI 生成）：
+看过的图（`.local/persona/refs/`，都是 AI 生成）：
 
 | 图 | 尺寸 | 能不能拿来拆 | 问题 |
 |---|---|---|---|
