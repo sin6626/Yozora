@@ -66,9 +66,22 @@
   font-style: normal;
 }
 
-.article-plate .editor-table td > *,
-.article-plate .editor-table th > * {
+/* 表格：Markdown 正文把 table 设成 display: block 再横向滚动，Suzuri 的表格自己有横向滚动的外层，而且 table 上带 height: 1px（靠单元格撑开），
+   按 block 显示会被压成 1px 高、整张表看不见；这里还原成真正的表格 */
+.article-plate .editor-table table {
+  display: table;
+  overflow: visible;
+  height: auto;
+  margin-inline-start: 0;
+}
+/* Suzuri 给表格外层留了上下内边距，单元格的边框画在它里面；去掉会多出一截竖向滚动条 */
+.article-plate .suzuri-root > .editor-table {
+  padding-block: 1rem;
+}
+/* 单元格的内边距和边框由 Suzuri 的内层画（颜色已接到站点变量），不要再叠一层 Markdown 表格的，否则超出固定列宽、出现滚动条 */
+.article-plate .editor-table :is(td, th) {
   padding: 0;
+  border: 0;
 }
 
 .article-plate .editor-equation > div {
@@ -113,9 +126,25 @@
   flex: 1;
 }
 
-/* 实况图：沿用 @yozora/live-photo 的 yz-live-* 外观，右下角加下载按钮 */
-.article-plate .plate-live > img {
+/* 调过宽度的图片、实况图铺满作者定的宽度（和编辑器里一样）；没调过的按原尺寸居中，高图都不超过一屏 */
+.article-plate figure > div[style*="width"] :is(.plate-zoom, .plate-live),
+.article-plate figure > div[style*="width"] :is(.plate-zoom, .plate-live) > img {
+  width: 100%;
+}
+.article-plate :is(.plate-zoom, .plate-live) > img {
+  height: auto;
   max-height: min(70vh, 42rem);
+  object-fit: contain;
+}
+
+/* 实况图：沿用 @yozora/live-photo 的 yz-live-* 外观，右下角加下载按钮 */
+.article-plate .plate-live {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+}
+.article-plate .plate-live > img {
   border-radius: 0;
 }
 .article-plate .plate-live-download {
