@@ -12,6 +12,15 @@ vm.runInNewContext(code, { module, exports: module.exports, require, URL })
 const { markdownToFeedHtml, cdata, escapeXml } = module.exports
 
 const link = 'https://example.test/posts/tech/hello'
+const { createEnvelope, toMarkdown } = await import('../apps/core/node_modules/@suzuri/editor/dist/schema/index.js')
+const projection = toMarkdown(createEnvelope({ children: [{
+  type: 'image', url: '/media/cover.jpg', alt: '封面', width: '60%', naturalWidth: 640, children: [{ text: '' }],
+}] }))
+assert.ok(projection.ok)
+const feedImage = await markdownToFeedHtml(projection.markdown, link)
+assert.match(feedImage, /<img [^>]*src="https:\/\/example\.test\/media\/cover\.jpg"/)
+assert.doesNotMatch(feedImage, /naturalWidth|&lt;img/i)
+
 const html = await markdownToFeedHtml([
   '## 标题', '', '**粗体** 与 `code`', '', '| A | B |', '| - | - |', '| 1 | 2 |', '',
   '```js', 'const end = "]]>"', '```', '',

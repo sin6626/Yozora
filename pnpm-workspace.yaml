@@ -3,12 +3,16 @@ packages:
   - packages/*
 allowBuilds:
   '@nestjs/core': false
+  '@prisma/engines': false
   '@swc/core': false
   esbuild: false
   mongodb-memory-server: false
+  prisma: false
   redis-memory-server: false
   sharp: false
+  simple-git-hooks: false
   unrs-resolver: false
+  vue-demi: false
 patchedDependencies:
   '@haklex/rich-renderer-image@0.0.85': patches/@haklex__rich-renderer-image@0.0.85.patch
   '@lexical/code@0.41.0': patches/@lexical__code@0.41.0.patch

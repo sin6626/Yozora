@@ -5563,7 +5563,7 @@ packages:
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
   '@suzuri/editor@file:vendor/suzuri-editor-0.1.0.tgz':
-    resolution: {integrity: sha512-UWS+u3nmMQxR6YI/KeC0azzBu3nWWxIPKT08nXP0zLeiRcyrrstG/osD6d2cuYni2X3FlRsnBShH2JaigD8ozw==, tarball: file:vendor/suzuri-editor-0.1.0.tgz}
+    resolution: {integrity: sha512-DVjygsJKdj9Pihe69ZOZNv/HdoCRhbKnES2IWMV8q6EDiVI7qlEzqpyGf5eHLLIAOg3CEj0mjH+vs4crNUdjeA==, tarball: file:vendor/suzuri-editor-0.1.0.tgz}
     version: 0.1.0
     peerDependencies:
       react: '>=19.2.0'

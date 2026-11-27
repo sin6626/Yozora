@@ -94,6 +94,15 @@ describe('Plate content (Core side of @suzuri/editor)', () => {
       expect(doc.content).toBe(content)
     })
 
+    it('stores standard Markdown for sized images in the text used by feeds and search', () => {
+      const content = envelopeOf([{ type: 'image', url: image, alt: 'photo', width: '60%',
+        naturalWidth: 640, naturalHeight: 480, children: [{ text: '' }] }])
+      const doc = { contentFormat: ContentFormat.Plate, content, text: '' }
+      service.populateText(doc)
+      expect(doc.text).toBe(`![photo](${image})`)
+      expect(doc.content).toBe(content)
+    })
+
     it('rejects temporary media on publish and retains it in editable drafts', () => {
       for (const [url, temporary] of [
         [image, 'data:image/png;base64,AA=='],

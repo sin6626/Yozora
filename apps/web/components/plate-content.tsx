@@ -58,8 +58,11 @@ export default async function PlateContent({ content, variant = "article", child
               <PlateLivePhoto url={url} videoUrl={videoUrl} alt={alt} width={size(naturalWidth)} height={size(naturalHeight)} />
             )}
             renderCallout={({ variant: tone, icon, children: body }) => (
-              <div className="plate-callout" data-tone={tone}>
-                {icon && <span className="plate-callout-icon" aria-hidden="true">{icon}</span>}
+              <div className="plate-callout" data-tone={tone || "note"}>
+                <div className="plate-callout-heading">
+                  {icon && <span aria-hidden="true">{icon}</span>}
+                  <strong className="plate-callout-label">{(tone || "note").toUpperCase()}</strong>
+                </div>
                 <div className="plate-callout-body">{body}</div>
               </div>
             )}

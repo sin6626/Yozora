@@ -75,6 +75,8 @@ assert.deepEqual(media.nodes, [
   { type: 'image', ...attributes, children: [{ text: '图注', bold: true }] },
   { type: 'livePhoto', ...attributes, videoUrl: movie.videoSrc, children: [{ text: '实况图注' }] },
 ])
+assert.ok(media.markdown.includes(`![封面](${cover.src})`), '带尺寸的图片投影为标准 Markdown')
+assert.doesNotMatch(media.markdown, /<img\b/i)
 for (const value of [cover.src, movie.videoSrc]) assert.ok(JSON.stringify(collectMedia(media.envelope)).includes(value))
 for (const value of ['图注', '实况图注']) assert.ok(media.markdown.includes(value))
 

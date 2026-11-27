@@ -111,8 +111,6 @@
 /* 提示框：note/info 强调色，tip/success 绿，warning/important 月光色，caution/danger/error 红 */
 .article-plate .plate-callout {
   --tone: var(--primary);
-  display: flex;
-  gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   border: 1px solid color-mix(in srgb, var(--tone) 30%, transparent);
   border-radius: var(--radius-sm);
@@ -121,9 +119,12 @@
 .article-plate .plate-callout:is([data-tone="tip"], [data-tone="success"]) { --tone: var(--success); }
 .article-plate .plate-callout:is([data-tone="warning"], [data-tone="important"]) { --tone: var(--moonlight); }
 .article-plate .plate-callout:is([data-tone="caution"], [data-tone="danger"], [data-tone="error"]) { --tone: var(--danger); }
-.article-plate .plate-callout-body {
-  min-width: 0;
-  flex: 1;
+.article-plate .plate-callout-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--tone);
+  font-size: var(--text-sm);
 }
 
 /* 调过宽度的图片、实况图铺满作者定的宽度（和编辑器里一样）；没调过的按原尺寸居中，高图都不超过一屏 */

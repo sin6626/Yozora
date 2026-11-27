@@ -59,7 +59,13 @@ const envelope = schema.createEnvelope({
     { type: 'codeBlock', language: 'TS', children: [{ text: 'const a = 1' }] },
     { type: 'image', url: 'https://img.example/a.webp', alt: '星空', width: '60%', children: [{ text: '图注' }] },
     { type: 'livePhoto', url: 'https://img.example/c.jpg', videoUrl: 'https://img.example/c.mp4', children: [{ text: '' }] },
-    { type: 'callout', variant: 'warning', icon: '⚠️', children: [{ text: '小心' }] },
+    ...['note', 'tip', 'warning', 'important', 'caution', undefined].map((variant) => ({
+      type: 'callout', variant, icon: '⚠️', children: [{ text: '正文' }],
+    })),
+    { type: 'paragraph', children: [
+      { text: '阅读' }, { type: 'link', url: 'https://example.test', children: [{ text: '文档' }] },
+      { text: '，公式' }, { type: 'inlineEquation', latex: 'x+y', children: [{ text: '' }] }, { text: '。' },
+    ] },
     { type: 'equation', latex: 'e^{i\\pi}+1=0', children: [{ text: '' }] },
   ],
 })
@@ -73,6 +79,10 @@ assert.ok(/<button type="button" class="plate-zoom" aria-label="星空"><img src
 assert.ok(html.includes('width:60%'), '图片保留调过的宽度')
 assert.ok(html.includes('data-live="https://img.example/c.mp4"'), '实况图交给轻量播放器')
 assert.ok(html.includes('class="plate-callout" data-tone="warning"') && html.includes('data-variant="warning"'), '提示框按 data-tone 上色，外层保留 data-variant')
+assert.ok(html.includes('https://example.test') && html.includes('x+y'), '行内链接和公式都已渲染')
+assert.ok(!html.includes('\uFEFF'), '静态 HTML 的行内节点旁不应有 U+FEFF')
+assert.deepEqual([...html.matchAll(/class="plate-callout-label">([^<]+)</g)].map((m) => m[1]),
+  ['NOTE', 'TIP', 'WARNING', 'IMPORTANT', 'CAUTION', 'NOTE'])
 assert.ok(html.includes('class="katex'), '公式用 KaTeX 渲染')
 assert.equal(html.includes('data-fallback'), false)
 
