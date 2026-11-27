@@ -176,3 +176,31 @@ node scripts/migrate-lexical-to-plate.mjs --mongo mongodb://127.0.0.1:27029 --db
 - **全量门禁**（合并后）：`pnpm verify`、`pnpm typecheck`、`pnpm typecheck:core`、后台 tsc + vite build、前台 `next build`、Core bundle 全过；Core 全量 vitest 1024 过 / 4 失败 / 20 跳过，失败全是第 8 节的老问题；`pnpm e2e:plate` 通过。
 - **待站长定**：① 迁移后 10 篇里有 9 篇的草稿仍是 Lexical（草稿历史是增量链，转换器按设计不动）：要不要让转换器一并转换或归档这些草稿；② FRP 那篇先在后台把嵌套代码块改正再迁；关于我页的彩色文字是去掉颜色还是让 Suzuri 加文字颜色；③ 提示框迁移后不再显示 NOTE/TIP 文字（只剩图标），Suzuri 静态渲染会在行内链接 / 公式旁插入 U+FEFF，带尺寸的图片投影成 HTML——三项都要 Suzuri 处理或接受；④ 上线时：文件引用会在第一次被改动时就地转成多使用方格式，Plate 译文的去重哈希算法变了；⑤ Next 16.4.2 每次新开 dev / build 都会被安全公告打断一次，是否升级 Next；⑥ 新装依赖时 pnpm 仍会偶发把 Haklex 补丁打两遍（`commands-entry.mjs` 重复导出），装完要检查。
 - **需手动清理**：C 的临时目录 `/private/tmp/claude-501/-Users-sin-orca-workspaces-SinPersonalSpace-plate-rehearsal/`（含日常库克隆和真实内容导出，按规矩不批量删除，由站长手动删）。
+
+## 14. 新版 Suzuri 验收与本地对照预览（2026-11-27）
+
+**在本机查看。** 在 `/Users/sin/orca/workspaces/SinPersonalSpace/suzuri-migration` 运行：
+
+```sh
+node scripts/dev.mjs --test
+```
+
+打开[迁移预演](http://127.0.0.1:2523/debug/plate-migration)，点「给实况照片保留一张封面」，也可[直接打开示例](http://127.0.0.1:2523/debug/plate-migration?sample=1)。桌面左栏是 Haklex 原稿，右栏是转换器现场生成的 Suzuri 正文；手机上下排列。示例和媒体随仓库提供，使用本机已准备好的隔离栈即可查看，无需导入日常库。索引还会列出隔离库中已有的公开内容。看完按 Ctrl+C 停止。若 Agent 终端中的 Next 16.4.2 首次因安全公告退出，按提示重跑同一条命令。
+
+**升级与回归。** 提交 `a33fd17` 替换了同版本的 tarball，大小 308,600 字节，SHA-256 为 `463c8129c8679509cf5f5a66aa2a7e8e2360b08a1f721fa91a4f2b2bc59baf06`。锁文件记录新 SRI。pnpm 首次安装因四个既有依赖的构建脚本未表态而退出，将它们显式设为 `false` 后，`pnpm install --frozen-lockfile --force --config.side-effects-cache=false` 成功。前台、后台、Core 实际安装的包文件均与 tarball 逐字节一致。四份 Haklex rich-editor 实例中，`$setRichBlocksType`、`restoreBlockIds` 各自的导出均只有一份。
+
+旧包实测在行内节点旁留下 U+FEFF，并将带尺寸的图片投影成 HTML。更新包后，Yozora 的自定义提示框仍缺标签，补上后五种语气及默认 NOTE 的服务端回归通过。Core 保留信封内的尺寸，派生的 `text` 是标准 Markdown 图片。用隔离文章实测，搜索能按图片替代文字找到文章，搜 `naturalWidth` 找不到这篇；RSS 输出含正确的图片元素。提交 `4a6742f` 加入代表性样稿，经真实转换器覆盖提示框、行内链接和公式、表格、代码、带宽度图片与实况照片。
+
+| 门禁 | 结果 |
+| --- | --- |
+| SDK 构建、根 `pnpm verify` | 通过，51 个检查脚本全部完成 |
+| Web、Core 和后台类型检查 | `pnpm typecheck`、`pnpm typecheck:core`、后台 `pnpm exec tsc --noEmit` 均通过 |
+| 后台 Vite、Web Next、Core bundle | 均通过；Next 连接隔离 Core 2533，生成 52/52 页 |
+| Core 内容 Vitest | 302/302 个已执行用例通过，其中 Plate 20/20。命令退出 1，3 个旧套件因旧夹具导入路径而未加载 |
+| Core 全量 Vitest | 1025 通过、4 失败、20 跳过；4 个用例失败仍为翻译增量 3 个、搜索排序 1 个。另有上述 3 个夹具加载失败及 4 个旧套件的 Redis 注入失败。协调方接受既有基线 |
+| `pnpm e2e:plate` | 隔离栈通过，覆盖真实路由、服务端 HTML、浏览器正文、图片灯箱、实况播放和兼容回退 |
+| Ego Lite 实测 | Sin (Chrome)，1920×991 深浅两色、390×844 手机。示例三种标签可见，链接与公式所在段落的 U+FEFF 计数为 0。索引进入对照页时，运行时异常、控制台错误及资源错误均为 0。后台真实写作页三种标签与可编辑正文分行，无横向溢出 |
+
+PNG 在本机 `/Users/sin/.orca/bots/x/scratch/plate-preview/`，分别为 `desktop-dark.png`、`desktop-light.png`、`mobile-plate.png`。测试库此前缺少页头读取的 `GET /fn/ps/update`，本次在隔离库安装了仓库自带函数的只读版本，返回无活动状态。临时后台样稿已清理。详细运行日志在本工作树的 `.local/verification/upgrade/`。
+
+**Phase 5 前的决定。** Sin 先看本地预览。FRP 的嵌套代码块和「关于我」的彩色文字由 Sin 在生产迁移前手动编辑。演示文章 `rich-text-components-20261014` 继续用 Lexical，迁移文章关联的 9 份旧草稿保留原样。
