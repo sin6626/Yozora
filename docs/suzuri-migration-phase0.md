@@ -142,3 +142,15 @@ tarball 已在 `/Users/sin/.orca/bots/x/scratch/suzuri-packs/suzuri-editor-0.1.0
 - **隔离测试栈实测**（`--test --with-admin`，无头浏览器；测试库的图床指向本机临时的极简 S3，跑完已删）：新版样式表对写作页 539 个非编辑器元素 0 处变化（页头 `px-8` 照旧）；新建 Plate 文章：`## ` 快捷标题、行内代码与 `**粗体**` 自动格式、撤销重做、斜杠菜单插入代码块 / 提示框 / 公式 / 表格、粘贴图片经真实 Core 接口上传；⌘S 存草稿后整页刷新，恢复弹窗出现，块结构、标题、slug 与刷新前完全一致；发布后 Core 存 `plate` 信封、`text` 是 Markdown，前台文章页用 SuzuriContent 渲染出标题 id、目录、代码框、行内代码、粗体、提示框、表格和上传的图片，控制台无报错；旧 Lexical 文章打开是 Haklex + 提示，没有切换按钮，发布后格式仍是 `lexical`、正文一字未变。手记写作页正文为思源宋体、加粗为无衬线。
 - **真实 Chrome 复核**（ego-browser，Sin (Chrome)，Chrome 156，1920×991）：中文输入法组合输入两次都正确提交（“Plain line 中文输入测试”），后台 542 个非编辑器元素 0 处样式变化。无头浏览器（chrome-headless-shell）里 composition 提交的字会丢，只是无头环境的问题，不是 Suzuri 的回归。后台每次加载都会在通知权限“未决定”时请求权限，ego-lite 里要选“禁止”才不会再弹。
 - **新发现**：③ Suzuri 把带尺寸的图片投影成 `<img … naturalWidth="480">` HTML 而不是 Markdown 图片语法，前台不受影响，但 RSS / 搜索里的 text 会带这段 HTML。
+
+## 11. 阶段 1–3 复查的后台、前台与测试脚本修复（2026-11-27）
+
+对应 `.local/reviews/phase1-3-review.md`（Core 那几项由另一路修）。每项一个提交、都先有失败的检查：
+- **P0-1** `scripts/e2e/plate-content.mjs` 不再有默认库：`MONGO_URL`/`MONGO_DB`/`WEB_URL` 都要显式给出，只认隔离栈（27029 / `sinpersonalspace-verify` / 2523，`scripts/lib/e2e-guard.mjs`），连别处要 `E2E_ALLOW_NON_ISOLATED=1`；每次新 slug 和 nid，只删本次插入的 `_id`，连接、插入、开浏览器都在清理范围内。入口 `pnpm e2e:plate`（先 `node scripts/dev.mjs --test`）。`verify-e2e-guards.mjs` 真的启动脚本并拦下所有网络连接，证明拒绝发生在连库之前。
+- **P0-2** 三个写作页更新已有内容前都现读一次库里的格式（`publishFormatError`），不再依赖只在 `loadPublished` 里记下的格式：草稿箱 `?draftId=` 打开、恢复历史版本、别的标签页改过都拦得住；读不到格式不放行。
+- **P1-1** `PlateEditor` 打开前校验初值（`plate/initial-value.ts`）：不合法的链接（自动保存的占位 `https://`）降成普通文字打开并提示，原稿不动；还不行就只读显示原文和原因，不再初始化时抛错。
+- **P1-2 / P1-4** 上传处理抽成 `plate/uploads.ts` 的 `usePlateUploads`，写作页和 AI 译文编辑共用（译文不再存 `data:`/`blob:`）；全局计数上传中的个数，三个写作页和译文保存在上传完成前拒绝提交；换文档、卸载时取消进行中的上传（普通图片也取消），取消的结果不插进正文。
+- **P1-5** 前台实况图下载改用 `lib/live-photo-download.ts`：复用 `readLimited` 边读边数，一支失败取消另一支，组件卸载与 30 秒超时都取消，拼图前、保存前都看是否已取消（`verify-live-photo-download.mjs`）。
+- **P1-6** 草稿箱版本列表第一项是草稿本身（`draft-versions.ts` 的 `buildVersionList`），最新的历史版本也能恢复；每个版本保留自己的格式，对比时各自投影（两边都是 Lexical 才用富文本对比）。
+- **P2-3** 服务端渲染不认错误边界：Plate 正文里的子组件渲染时抛错会冒出 `RenderFallback`，把整段详情换成外层 Suspense 的读取中。`RenderFallback` 加了一层以 Markdown 兜底为 fallback 的 Suspense（代价：正文流式送达期间也先显示这份 Markdown）。`verify-render-fallback.mjs` 用真实边界跑流式 SSR 的服务端子组件异常、浏览器接手、仅浏览器的 Client Component 异常。
+- **安装坑**：这次 `pnpm install --frozen-lockfile` 又把 Haklex 的 rich-editor / rich-renderer-image 补丁打了两遍（`Duplicated export 'restoreBlockIds'`，后台 build 失败），按第 10 节的 `--config.side-effects-cache=false` 重装或从正常的 worktree 换回那几个 dist 文件即可。
