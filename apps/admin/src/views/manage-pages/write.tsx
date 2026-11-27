@@ -21,7 +21,7 @@ import type { CreatePageData } from '~/api/pages'
 import type { DraftModel } from '~/models/draft'
 import type { PageModel } from '~/models/page'
 import type { ContentFormat, WriteBaseType } from '~/shared/types/base'
-import { isRichFormat, lexicalOverwriteError } from '~/shared/types/base'
+import { isRichFormat, publishFormatError } from '~/shared/types/base'
 import type { LexicalEditor } from 'lexical'
 
 import { pagesApi } from '~/api/pages'
@@ -115,13 +115,10 @@ const PageWriteView = defineComponent(() => {
     }
   }
 
-  // 读出来的已发布格式：旧版 Lexical 只能按 Lexical 保存（见 lexicalOverwriteError）
-  let publishedFormat: ContentFormat | undefined
   const loadPublished = async (id: string) => {
     const payload = await pagesApi.getById(id)
     parsePayloadIntoReactiveData(payload as PageModel)
     data.contentFormat = (payload as any).contentFormat || 'markdown'
-    publishedFormat = data.contentFormat
     data.content = (payload as any).content || ''
   }
 
@@ -166,7 +163,12 @@ const PageWriteView = defineComponent(() => {
   const drawerShow = ref(false)
 
   const handleSubmit = async () => {
-    const formatError = lexicalOverwriteError(publishedFormat, data.contentFormat)
+    // 旧版 Lexical 只能按 Lexical 保存：提交前现读库里的格式（见 publishFormatError）
+    const formatError = await publishFormatError(
+      isString(actualRefId.value) ? actualRefId.value : undefined,
+      data.contentFormat,
+      async (id) => ((await pagesApi.getById(id)) as { contentFormat?: string }).contentFormat,
+    )
     if (formatError) {
       toast.error(formatError)
       return

@@ -22,7 +22,7 @@ const load = (path, mocks = {}) => {
 }
 
 const { hasRichContent, richContentForComparison } = load('utils/rich-content.ts')
-const { isRichFormat, lexicalOverwriteError } = load('shared/types/base.ts')
+const { isRichFormat, lexicalOverwriteError, publishFormatError } = load('shared/types/base.ts')
 const { diffTextOf, plateMarkdown } = load('utils/plate-text.ts', { '@suzuri/editor/schema': schema })
 
 const envelope = (children) => JSON.stringify(schema.createEnvelope({ children }))
@@ -45,10 +45,26 @@ for (const [from, to] of [['lexical', 'lexical'], ['markdown', 'plate'], ['plate
   assert.equal(lexicalOverwriteError(from, to), null, `${from} → ${to} 可以保存`)
 }
 
+// 更新已有内容时现读库里的格式：从草稿箱 ?draftId= 打开关联草稿、恢复历史版本时页面里没有（或是过期的）已发布格式
+const reads = []
+const reader = (format) => async (id) => { reads.push(id); return format }
+assert.match(await publishFormatError('post-1', 'plate', reader('lexical')), /Lexical/, '库里是 Lexical，草稿是 Plate：拦下')
+assert.deepEqual(reads, ['post-1'], '按要更新的 id 去读')
+assert.equal(await publishFormatError('post-1', 'plate', reader(undefined)), null, '没写格式的旧文章按 Markdown，可以改存')
+assert.equal(await publishFormatError(undefined, 'plate', async () => { throw new Error('新建不该去读') }), null, '新建不用查')
+assert.match(await publishFormatError('post-1', 'lexical', async () => { throw new Error('网络断了') }), /读不到/, '读不到格式时不放行')
+for (const page of ['manage-posts', 'manage-notes', 'manage-pages']) {
+  const source = readFileSync(new URL(`src/views/${page}/write.tsx`, admin), 'utf8')
+  const submit = source.slice(source.indexOf('const handleSubmit'))
+  assert.ok(/await publishFormatError\(\s*isString\(actualRefId\.value\)/.test(submit), `${page} 提交前按 actualRefId 现读格式`)
+  assert.ok(submit.indexOf('publishFormatError') < submit.indexOf('.update(actualRefId.value'), `${page} 先查格式再更新`)
+  assert.equal(/publishedFormat/.test(source), false, `${page} 不再用只在 loadPublished 里记下的格式`)
+}
+
 assert.equal(plateMarkdown(envelope([{ type: 'heading', level: 2, children: [{ text: '标题' }] }])), '## 标题')
 assert.equal(plateMarkdown('{oops'), '', '坏内容得到空文本，不报错')
 assert.equal(diffTextOf({ contentFormat: 'plate', content: words, text: '旧的' }), '你好', 'Plate 用派生的 Markdown 对比')
 assert.equal(diffTextOf({ contentFormat: 'lexical', content: '{}', text: 'lexical text' }), 'lexical text')
 assert.equal(diffTextOf({ contentFormat: 'markdown', text: 'md' }), 'md')
 
-console.log('PASS admin plate helpers: empty-envelope detection, lexical overwrite guard, Markdown diff text')
+console.log('PASS admin plate helpers: empty-envelope detection, lexical overwrite guard (re-read before every update), Markdown diff text')
