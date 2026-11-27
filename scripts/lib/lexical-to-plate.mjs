@@ -64,8 +64,10 @@ export function lexicalToPlate(lexicalJsonString) {
         if (!metadata.has(key) && !allowed.includes(key) && value != null && value !== '' && value !== false)
           reject(node, path, `Unsupported field: ${key}`)
       }
-      if (node.style || node.textStyle || node.direction === 'rtl' || (typeof node.format === 'string' && node.format))
+      const align = typeof node.format === 'string' && node.format
+      if (node.style || node.textStyle || node.direction === 'rtl' || (align && !['left', 'start'].includes(align)))
         reject(node, path, 'Unsupported style, alignment or writing direction')
+      else if (align) warn(path, `Default ${align} alignment dropped`)
       if (node.indent && !['listitem', 'paragraph', 'heading'].includes(type)) reject(node, path, 'Unsupported indent')
       if (node.version != null && node.version !== 1) reject(node, path, 'Unknown node version')
       if ((node.mode && node.mode !== 'normal') || (node.detail && type !== 'tab'))

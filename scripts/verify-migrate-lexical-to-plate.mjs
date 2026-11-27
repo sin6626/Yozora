@@ -134,6 +134,17 @@ for (const doc of [state(para({ type: 'link', url: 'javascript:alert(1)', childr
   assert.ok(result.report.error)
 }
 assert.equal(lexicalToPlate('{').report.status, 'blocked')
+
+// Real content: left/start alignment is the LTR default and carries no information.
+const aligned = (format) => ({ ...para(text('左')), format })
+const defaults = converted(state(aligned('left'), aligned('start'), { type: 'heading', tag: 'h2', format: 'start', children: [text('标题')] },
+  { type: 'quote', format: 'start', children: [text('引用')] }, list('bullet', [{ ...item(text('项')), format: 'start' }], { format: 'start' })))
+assert.deepEqual(defaults.nodes.map((n) => n.type), ['paragraph', 'paragraph', 'heading', 'blockquote', 'paragraph'])
+assert.ok(defaults.nodes.every((n) => !Object.hasOwn(n, 'format') && !Object.hasOwn(n, 'align')))
+assert.ok(defaults.report.warnings.some((w) => /alignment/.test(w)))
+for (const format of ['center', 'right', 'end', 'justify']) assert.equal(convert(state(aligned(format))).report.status, 'blocked', format)
+assert.equal(convert(state({ ...aligned('start'), direction: 'rtl' })).report.status, 'blocked')
+console.log('PASS default alignment dropped, real alignment still blocks')
 console.log('PASS Lexical → Plate mappings, Core projection, path inventory and loss blocking')
 
 const cli = 'scripts/migrate-lexical-to-plate.mjs'
