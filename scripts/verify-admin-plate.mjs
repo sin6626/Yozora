@@ -17,7 +17,7 @@ const load = (path, mocks = {}) => {
   const code = ts.transpileModule(readFileSync(new URL(`src/${path}`, admin), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText
-  vm.runInNewContext(code, { module, exports: module.exports, require: (id) => mocks[id] ?? require(id) })
+  vm.runInNewContext(code, { module, exports: module.exports, require: (id) => mocks[id] ?? require(id), AbortController, AbortSignal, DOMException, setTimeout, clearTimeout })
   return module.exports
 }
 
@@ -104,4 +104,32 @@ assert.equal(unknownNode.status, 'invalid', '修不好的不交给编辑器')
 assert.ok(unknownNode.text.includes('横幅文字') && unknownNode.error, '只读显示原文和原因')
 assert.equal(prepareInitialValue('{oops').status, 'invalid')
 
-console.log('PASS admin plate helpers: empty-envelope detection, lexical overwrite guard (re-read before every update), Markdown diff text, placeholder-link drafts reopen with the bad links downgraded')
+// 写作页和译文编辑共用持久上传（usePlateUploads）：只把 Core 返回的 http(s) 地址写进正文
+const vue = adminRequire('vue')
+const uploaded = []
+const fakeFiles = { filesApi: { upload: async (file, type) => { uploaded.push(type); return { url: file.name === 'local' ? 'data:image/png;base64,AA' : `https://img.example/${file.name}` } } } }
+const fakeMedia = { prepareCover: async (file) => ({ file, width: 3, height: 4 }), prepareClip: async (file) => file }
+const loadUploads = () => load('components/editor/plate/uploads.ts', { vue, '~/api/files': fakeFiles, '../live-photo-media': fakeMedia, '@suzuri/editor/schema': schema })
+const { usePlateUploads } = loadUploads()
+const uploads = usePlateUploads()
+const job = uploads.uploadImage({ name: 'a.png' })
+assert.equal(uploads.pending.value, 1, '上传中计数')
+assert.equal((await job).url, 'https://img.example/a.png')
+assert.equal(uploads.pending.value, 0)
+await assert.rejects(uploads.uploadImage({ name: 'local' }), /地址无效/, 'data: 地址不写进正文')
+assert.equal((await uploads.uploadLivePhoto({ file: { name: 'c.jpg' }, kind: 'cover' })).naturalWidth, 3)
+assert.equal((await uploads.uploadLivePhoto({ file: { name: 'c.mp4' }, kind: 'video' })).url, 'https://img.example/c.mp4')
+assert.deepEqual(uploaded, ['image', 'image', 'image', 'file'], '封面传图床、短片传附件')
+// 每个用到 PlateEditor 的地方都要把这两个处理器传进去（不传就是 Suzuri 的 data:/blob: 默认值）
+const { readdirSync } = await import('node:fs')
+const sources = readdirSync(new URL('src/', admin), { recursive: true }).filter((f) => /\.tsx$/.test(f))
+const usages = sources.flatMap((file) => {
+  const source = readFileSync(new URL(`src/${file}`, admin), 'utf8')
+  return [...source.matchAll(/<PlateEditor\b[\s\S]*?\/>/g)].map((m) => [file, m[0]])
+})
+assert.ok(usages.length >= 2, `找到写作页和译文编辑两处 PlateEditor（现在 ${usages.length} 处）`)
+for (const [file, tag] of usages) {
+  assert.ok(/onUploadImage=\{[^}]*uploadImage\}/.test(tag) && /onUploadLivePhoto=\{[^}]*uploadLivePhoto\}/.test(tag), `${file} 的 PlateEditor 要传持久上传处理器`)
+}
+
+console.log('PASS admin plate helpers: empty-envelope detection, lexical overwrite guard (re-read before every update), Markdown diff text, placeholder-link drafts reopen with the bad links downgraded, every PlateEditor uploads to persistent storage')
