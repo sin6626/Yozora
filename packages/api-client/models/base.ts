@@ -56,7 +56,24 @@ export interface TextBaseModelLexical extends BaseCommentIndexModel {
   meta?: Record<string, any> | null
 }
 
-export type TextBaseModel = TextBaseModelMarkdown | TextBaseModelLexical
+/** `content` is a JSON-encoded @suzuri/editor envelope; `text` is its Markdown projection. */
+export interface TextBaseModelPlate extends BaseCommentIndexModel {
+  title: string
+  text?: string
+  contentFormat: 'plate'
+  content: string
+  images?: Image[]
+  modified: string | null
+  meta?: Record<string, any> | null
+}
+
+export type TextBaseModel =
+  | TextBaseModelMarkdown
+  | TextBaseModelLexical
+  | TextBaseModelPlate
+
+/** Rich format the client renders: the response then omits the Markdown `text` when the document uses it. */
+export type ContentPreference = 'lexical' | 'plate'
 
 export type ModelWithLiked<T> = T & {
   liked: boolean
