@@ -4,6 +4,7 @@ import remarkCjkFriendly from "remark-cjk-friendly";
 import remarkGfm from "remark-gfm";
 import { getApiUrl } from "../lib/config";
 import CodeFrame from "./code-frame";
+import PlateContent from "./plate-content";
 import RichContent from "./rich-content";
 import "./post-detail.css";
 
@@ -44,7 +45,7 @@ function createComponents(): Components {
   return { pre: CodeBlock, h1: heading("h1"), h2: heading("h2"), h3: heading("h3"), h4: heading("h4"), h5: heading("h5"), h6: heading("h6") };
 }
 
-// 文章、手记、页面共用的正文：Lexical 用同版富文本渲染器，Markdown（以及富文本的兜底）用 react-markdown。
+// 文章、手记、页面共用的正文：Plate 用 Suzuri 在服务端渲染，Lexical 用同版 Haklex 富文本渲染器，Markdown（以及富文本的兜底）用 react-markdown。
 export default function ArticleBody({ text, contentFormat, content, emptyText, variant = "article" }: {
   text?: string;
   contentFormat?: string;
@@ -57,6 +58,7 @@ export default function ArticleBody({ text, contentFormat, content, emptyText, v
       <Markdown remarkPlugins={[remarkGfm, remarkCjkFriendly]} components={createComponents()} skipHtml>{text}</Markdown>
     </div>
   ) : <p role="status">{emptyText}</p>;
+  if (contentFormat === "plate" && content) return <PlateContent content={content} variant={variant}>{markdown}</PlateContent>;
   if (contentFormat !== "lexical" || !content) return markdown;
   return <RichContent content={content} apiUrl={getApiUrl()} variant={variant}>{markdown}</RichContent>;
 }

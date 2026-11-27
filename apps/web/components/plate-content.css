@@ -1,0 +1,146 @@
+/* Plate 正文（plate-content.tsx）。外层是 .article-body，所以标题字号、链接、引用、表格、行内代码、代码框都沿用 Markdown 正文；
+   这里只做三件事：把 Suzuri 的 --suzuri-* 变量接到站点变量上（深浅主题、三套配色跟着 light-dark() 走），
+   把 Suzuri 自带的块间距、引用竖线、斜体等和站点不一样的地方压回站点的样子，以及提示框、图片、实况图的站点样式。
+   Suzuri 的工具类在 @layer utilities 里，这里的规则不在层里，同样的属性总是这里赢。 */
+.article-plate .suzuri-root {
+  --suzuri-background: var(--background);
+  --suzuri-foreground: var(--foreground);
+  --suzuri-card: var(--surface);
+  --suzuri-card-foreground: var(--foreground);
+  --suzuri-popover: var(--surface);
+  --suzuri-popover-foreground: var(--foreground);
+  --suzuri-primary: var(--primary);
+  --suzuri-primary-foreground: var(--primary-foreground);
+  --suzuri-secondary: var(--muted);
+  --suzuri-secondary-foreground: var(--foreground);
+  --suzuri-muted: var(--muted);
+  --suzuri-muted-foreground: var(--muted-foreground);
+  --suzuri-accent: var(--primary-soft);
+  --suzuri-accent-foreground: var(--foreground);
+  --suzuri-border: var(--border);
+  --suzuri-input: var(--border-strong);
+  --suzuri-ring: var(--ring);
+  --suzuri-editor-primary: var(--primary);
+  --suzuri-destructive: var(--danger);
+  --suzuri-font-serif: var(--font-serif);
+  --suzuri-font-mono: var(--font-mono);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  cursor: auto;
+  overflow: visible;
+}
+
+.article-plate .suzuri-root :is(h1, h2, h3, h4, h5, h6) {
+  font-family: inherit;
+  letter-spacing: normal;
+  padding-bottom: 0;
+}
+
+/* 块间距和 Markdown 正文一样：段与段 1.1em，同一个列表里的项 0.35em */
+.article-plate .suzuri-root > * {
+  margin-block: 0;
+  padding-block: 0;
+}
+.article-plate .suzuri-root > * + * {
+  margin-top: 1.1em;
+}
+.article-plate .suzuri-root > :is(h1, h2, h3, h4, h5, h6) {
+  margin-top: 2em;
+}
+.article-plate .suzuri-root > :first-child {
+  margin-top: 0;
+}
+.article-plate .suzuri-root > .editor-paragraph:has(> :is(ul, ol)) + .editor-paragraph:has(> :is(ul, ol)) {
+  margin-top: 0.35em;
+}
+.article-plate .editor-paragraph > :is(ul, ol) {
+  padding-left: 0;
+}
+
+/* 引用：和 Markdown 一样是强调色淡底，不要 Suzuri 的竖线和斜体 */
+.article-plate blockquote {
+  border: 0;
+  font-style: normal;
+}
+
+.article-plate .editor-table td > *,
+.article-plate .editor-table th > * {
+  padding: 0;
+}
+
+.article-plate .editor-equation > div {
+  padding-inline: 0;
+}
+
+/* 图片：点开放大；调过宽度的由外层按百分比限宽，高图同样不超过一屏 */
+.article-plate .plate-zoom {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+  max-width: 100%;
+  margin-inline: auto;
+}
+.article-plate .plate-zoom:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+.article-plate figure figcaption {
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+}
+
+/* 提示框：note/info 强调色，tip/success 绿，warning/important 月光色，caution/danger/error 红 */
+.article-plate .plate-callout {
+  --tone: var(--primary);
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--tone) 30%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--tone) 7%, transparent);
+}
+.article-plate .plate-callout:is([data-tone="tip"], [data-tone="success"]) { --tone: var(--success); }
+.article-plate .plate-callout:is([data-tone="warning"], [data-tone="important"]) { --tone: var(--moonlight); }
+.article-plate .plate-callout:is([data-tone="caution"], [data-tone="danger"], [data-tone="error"]) { --tone: var(--danger); }
+.article-plate .plate-callout-body {
+  min-width: 0;
+  flex: 1;
+}
+
+/* 实况图：沿用 @yozora/live-photo 的 yz-live-* 外观，右下角加下载按钮 */
+.article-plate .plate-live > img {
+  max-height: min(70vh, 42rem);
+  border-radius: 0;
+}
+.article-plate .plate-live-download {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: rgb(0 0 0 / 0.55);
+  color: white;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--duration-fast, 0.15s);
+}
+.article-plate .plate-live:is(:hover, :focus-within) .plate-live-download,
+.article-plate .plate-live-download[data-state="failed"] {
+  opacity: 1;
+}
+.article-plate .plate-live-download[data-state="busy"] {
+  cursor: progress;
+}
+@media (hover: none) {
+  .article-plate .plate-live-download { opacity: 1; }
+}
