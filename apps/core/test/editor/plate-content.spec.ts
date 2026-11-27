@@ -72,6 +72,17 @@ describe('Plate content (Core side of @suzuri/editor)', () => {
   })
 
   describe('populateText', () => {
+    it('protects published Lexical bodies while letting drafts change format', () => {
+      const existing = { contentFormat: ContentFormat.Lexical, content: '{"root":{}}' }
+      for (const update of [
+        { contentFormat: ContentFormat.Markdown, text: 'draft' },
+        { contentFormat: ContentFormat.Plate, content: mediaDoc },
+      ]) {
+        expect(() => service.populateText(update, existing)).toThrow(/must be migrated/)
+        expect(() => service.populateDraftText(update, existing)).not.toThrow()
+      }
+    })
+
     it('validates a Plate envelope and derives Markdown text', () => {
       const content = envelopeOf([
         { type: 'heading', level: 2, children: [{ text: '标题' }] },

@@ -412,7 +412,7 @@ export class LexicalService {
     existing?: ContentDocument,
   ): boolean {
     try {
-      return this.populateText(doc, existing)
+      return this.projectText(doc, existing)
     } catch (error) {
       const format =
         doc.contentFormat ?? existing?.contentFormat ?? ContentFormat.Markdown
@@ -427,6 +427,22 @@ export class LexicalService {
   }
 
   populateText<T extends ContentDocument>(
+    doc: T,
+    existing?: ContentDocument,
+  ): boolean {
+    // Drafts can switch format. Publishing a draft updates its target here.
+    if (
+      existing?.contentFormat === ContentFormat.Lexical &&
+      existing.content?.trim() &&
+      doc.contentFormat !== undefined &&
+      doc.contentFormat !== ContentFormat.Lexical
+    ) {
+      throw new BadRequestException('Lexical content must be migrated before changing format')
+    }
+    return this.projectText(doc, existing)
+  }
+
+  private projectText<T extends ContentDocument>(
     doc: T,
     existing?: ContentDocument,
   ): boolean {
