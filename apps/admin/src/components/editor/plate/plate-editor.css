@@ -1,0 +1,15 @@
+/* Suzuri 编辑器在后台：外观沿用 Suzuri 自带的中性配色（和后台 #171717 主色一致），只改两处。
+   手记用思源宋体（和前台手记、Haklex 手记编辑器同款，浏览器按字下载切片），加粗用黑体：宋体正文的强调按中文排版习惯用黑体。 */
+.plate-editor-note .suzuri-root {
+  --suzuri-font-serif: 'Noto Serif SC Variable', 'Noto Serif CJK SC',
+    'Source Han Serif SC', 'Songti SC', STSong, serif;
+}
+
+.plate-editor-note .suzuri-root strong {
+  font-family: var(--suzuri-font-sans);
+}
+
+/* 编辑区铺满写作页的内容列，不要 Suzuri 自己的外边框和底色 */
+.plate-editor .suzuri-root {
+  background: transparent;
+}

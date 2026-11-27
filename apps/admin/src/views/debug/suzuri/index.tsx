@@ -4,11 +4,11 @@ import { defineAsyncComponent, defineComponent, shallowRef } from 'vue'
 
 import { ContentLayout } from '~/layouts/content'
 
-// 阶段 0 试水：Suzuri 编辑器挂进后台（开发环境才加载，生产构建里这个分支被去掉）。
+// 调试页：直接看 Plate 编辑器（PlateEditor）产出的信封（开发环境才加载，生产构建里这个分支被去掉）。
 const Bridge = import.meta.env.DEV
   ? defineAsyncComponent(() =>
-      import('~/components/editor/suzuri/SuzuriEditorBridge').then(
-        (m) => m.SuzuriEditorBridge,
+      import('~/components/editor/plate/PlateEditor').then(
+        (m) => m.PlateEditor,
       ),
     )
   : null
