@@ -21,6 +21,7 @@ import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import type { DraftHistoryListItem, DraftModel } from '~/models/draft'
 import type { PropType, VNode } from 'vue'
+import type { VersionContent, VersionItem } from './draft-versions'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 
@@ -29,6 +30,9 @@ import { SplitPanel, useMasterDetailLayout } from '~/components/layout'
 import { RelativeTime } from '~/components/time/relative-time'
 import { DraftRefType } from '~/models/draft'
 import { RouteName } from '~/router/name'
+import { diffTextOf } from '~/utils/plate-text'
+
+import { buildVersionList } from './draft-versions'
 
 export const refTypeConfig = {
   [DraftRefType.Post]: {
@@ -48,21 +52,11 @@ export const refTypeConfig = {
   },
 }
 
-export interface VersionItem {
-  version: number
-  title: string
-  savedAt: string
-  isCurrent: boolean
-  isFullSnapshot?: boolean
-  refVersion?: number
-  baseVersion?: number
-}
-
 export interface DiffContentSlotProps {
-  selectedText: string
-  selectedRichContent: string
-  currentText: string
-  currentRichContent: string
+  /** 选中的历史版本，带它自己的格式 */
+  selected: VersionContent
+  /** 草稿本身（当前版本） */
+  current: VersionContent
   selectedVersion: number
   currentVersion: number
 }
@@ -227,8 +221,7 @@ export const DraftDetailBase = defineComponent({
 
     const showDiffPanel = ref(false)
     const selectedVersion = ref<number | null>(null)
-    const selectedContent = ref<string>('')
-    const selectedRichContent = ref<string>('')
+    const selected = ref<VersionContent | null>(null)
     const isLoadingContent = ref(false)
 
     const { data: historyData, isLoading: historyLoading } = useQuery({
@@ -238,56 +231,51 @@ export const DraftDetailBase = defineComponent({
         Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [],
     })
 
-    const versionList = computed<VersionItem[]>(() => {
-      if (!historyData.value) return []
+    const versionList = computed<VersionItem[]>(() =>
+      historyData.value
+        ? buildVersionList(
+            props.draft,
+            historyData.value as DraftHistoryListItem[],
+          )
+        : [],
+    )
 
-      const sortedHistory = [
-        ...(historyData.value as DraftHistoryListItem[]),
-      ].sort((a, b) => b.version - a.version)
-
-      return sortedHistory.map((item, index) => ({
-        version: item.version,
-        title: item.title,
-        savedAt: item.savedAt,
-        isCurrent: index === 0,
-        isFullSnapshot: item.isFullSnapshot,
-        refVersion: item.refVersion,
-        baseVersion: item.baseVersion,
-      }))
-    })
+    const current = computed<VersionContent>(() => ({
+      text: props.draft.text,
+      content: props.draft.content,
+      contentFormat: props.draft.contentFormat,
+    }))
 
     const loadVersionContent = async (
       version: number,
-    ): Promise<{ text: string; content?: string }> => {
-      if (version === props.draft.version) {
-        return { text: props.draft.text, content: props.draft.content }
-      }
-
+    ): Promise<VersionContent | null> => {
+      if (version === props.draft.version) return current.value
       try {
         const data = await draftsApi.getHistoryVersion(props.draft.id, version)
-        return { text: data.text, content: data.content }
+        return {
+          text: data.text,
+          content: data.content,
+          contentFormat: data.contentFormat,
+        }
       } catch (error) {
         console.error('Failed to load version:', error)
-        return { text: '' }
+        return null
       }
     }
 
+    // 默认选中最近的一个历史版本和当前版本对比
     watch(
       [() => props.draft.id, versionList],
       async ([, list]) => {
-        if (list.length >= 2) {
-          const prevVersion = list[1]
-          selectedVersion.value = prevVersion.version
-
+        const previous = list[1]
+        if (previous) {
+          selectedVersion.value = previous.version
           isLoadingContent.value = true
-          const result = await loadVersionContent(prevVersion.version)
-          selectedContent.value = result.text
-          selectedRichContent.value = result.content || ''
+          selected.value = await loadVersionContent(previous.version)
           isLoadingContent.value = false
         } else {
           selectedVersion.value = null
-          selectedContent.value = ''
-          selectedRichContent.value = ''
+          selected.value = null
         }
       },
       { immediate: true },
@@ -302,9 +290,7 @@ export const DraftDetailBase = defineComponent({
       }
       selectedVersion.value = version
       isLoadingContent.value = true
-      const result = await loadVersionContent(version)
-      selectedContent.value = result.text
-      selectedRichContent.value = result.content || ''
+      selected.value = await loadVersionContent(version)
       isLoadingContent.value = false
 
       if (isInnerMobile.value) {
@@ -339,11 +325,19 @@ export const DraftDetailBase = defineComponent({
       })
     }
 
+    // 字数差按各自格式投影出的文字算（Plate 历史只存 content）
     const diffStats = computed(() => {
-      if (!selectedContent.value) return null
-      const currentText = props.draft.text
-      const diff = currentText.length - selectedContent.value.length
-      return { diff, isSame: currentText === selectedContent.value }
+      if (!selected.value) return null
+      const currentText = diffTextOf(current.value)
+      const selectedText = diffTextOf(selected.value)
+      if (!selectedText && !selected.value.content) return null
+      const sameContent =
+        selected.value.contentFormat === current.value.contentFormat &&
+        (selected.value.content ?? '') === (current.value.content ?? '')
+      return {
+        diff: currentText.length - selectedText.length,
+        isSame: currentText === selectedText && sameContent,
+      }
     })
 
     const currentVersion = computed(() => versionList.value[0])
@@ -466,17 +460,16 @@ export const DraftDetailBase = defineComponent({
       }
 
       if (
-        (selectedContent.value || selectedRichContent.value) &&
+        selected.value &&
+        (selected.value.text || selected.value.content) &&
         selectedVersion.value &&
         currentVersion.value
       ) {
         return (
           <div class="h-full overflow-hidden">
             {props.diffContent({
-              selectedText: selectedContent.value,
-              selectedRichContent: selectedRichContent.value,
-              currentText: props.draft.text,
-              currentRichContent: props.draft.content || '',
+              selected: selected.value,
+              current: current.value,
               selectedVersion: selectedVersion.value,
               currentVersion: currentVersion.value.version,
             })}

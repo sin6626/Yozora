@@ -157,6 +157,38 @@ for (const [file, call] of [['views/manage-posts/write.tsx', ['.update(actualRef
 }
 assert.match(readFileSync(new URL('src/components/editor/write-editor/PlateWriteEditor.tsx', admin), 'utf8'), /cancelUploads\(\)\s*\n\s*documentKey\.value\+\+/, '写作页换文档时取消上传')
 
+// 草稿箱的版本列表：第一项是草稿本身（Core 的 history 不含正在编辑的这一版），历史里最新的一版也能恢复；
+// 跨格式的历史每一边按自己的格式投影后对比
+{
+  const { buildVersionList, diffSides } = load('views/drafts/components/draft-versions.ts', { '~/utils/plate-text': { diffTextOf, plateMarkdown } })
+  const v2Draft = { version: 2, title: '第二版', updated: '2026-11-27T02:00:00Z' }
+  const list = buildVersionList(v2Draft, [{ version: 1, title: '第一版', savedAt: '2026-11-27T01:00:00Z', isFullSnapshot: true }])
+  assert.equal(JSON.stringify(list.map((v) => [v.version, v.isCurrent])), '[[2,true],[1,false]]', 'v2 是当前，v1 是可以恢复的历史')
+  const three = buildVersionList({ ...v2Draft, version: 3 }, [
+    { version: 1, title: 'a', savedAt: '1', isFullSnapshot: true },
+    { version: 2, title: 'b', savedAt: '2', isFullSnapshot: false },
+  ])
+  assert.equal(three.map((v) => v.version).join(), '3,2,1', '新的在前')
+  assert.equal(three.filter((v) => v.isCurrent).length, 1)
+  assert.equal(three[1].isCurrent, false, '最新的历史版本（v2）有恢复按钮')
+  assert.equal(buildVersionList(v2Draft, []).map((v) => v.version).join(), '2', '没有历史时也列出当前版本')
+  assert.equal(buildVersionList(v2Draft, [{ version: 2, title: 'dup', savedAt: '', isFullSnapshot: true }]).length, 1, '历史里万一有当前版本号不重复列')
+
+  const markdownV1 = { contentFormat: 'markdown', text: '## Markdown A' }
+  const plateV2 = { contentFormat: 'plate', content: envelope([{ type: 'heading', level: 2, children: [{ text: 'Plate B' }] }]), text: '' }
+  const mixed = diffSides(markdownV1, plateV2)
+  assert.equal(mixed.kind, 'text')
+  assert.equal(mixed.oldText, '## Markdown A', 'Markdown 版本用自己的 text')
+  assert.equal(mixed.newText, '## Plate B', 'Plate 版本从 content 投影，不拿当前格式套旧版本')
+  const reverse = diffSides(plateV2, { contentFormat: 'markdown', text: 'md now' })
+  assert.equal(reverse.oldText, '## Plate B', '旧版本是 Plate、当前是 Markdown 时旧版本照样投影')
+  assert.equal(diffSides({ contentFormat: 'lexical', content: '{"a":1}' }, { contentFormat: 'lexical', content: '{"a":2}' }).kind, 'rich', '两边都是 Lexical 用富文本对比')
+  assert.equal(diffSides({ contentFormat: 'lexical', content: '{"a":1}', text: 'lex' }, plateV2).kind, 'text', '一边不是 Lexical 就按文字对比')
+  const base = readFileSync(new URL('src/views/drafts/components/draft-detail-base.tsx', admin), 'utf8')
+  assert.ok(base.includes('buildVersionList(') && !/isCurrent: index === 0/.test(base), '草稿箱用草稿本身作当前版本')
+  assert.ok(readFileSync(new URL('src/views/drafts/components/draft-detail.tsx', admin), 'utf8').includes('diffSides('), '对比按各自格式')
+}
+
 // 每个用到 PlateEditor 的地方都要把这两个处理器传进去（不传就是 Suzuri 的 data:/blob: 默认值）
 const { readdirSync } = await import('node:fs')
 const sources = readdirSync(new URL('src/', admin), { recursive: true }).filter((f) => /\.tsx$/.test(f))
@@ -169,4 +201,4 @@ for (const [file, tag] of usages) {
   assert.ok(/onUploadImage=\{[^}]*uploadImage\}/.test(tag) && /onUploadLivePhoto=\{[^}]*uploadLivePhoto\}/.test(tag), `${file} 的 PlateEditor 要传持久上传处理器`)
 }
 
-console.log('PASS admin plate helpers: empty-envelope detection, lexical overwrite guard (re-read before every update), Markdown diff text, placeholder-link drafts reopen with the bad links downgraded, every PlateEditor uploads to persistent storage, publishing waits for uploads and switching documents cancels them')
+console.log('PASS admin plate helpers: empty-envelope detection, lexical overwrite guard (re-read before every update), Markdown diff text, placeholder-link drafts reopen with the bad links downgraded, every PlateEditor uploads to persistent storage, publishing waits for uploads and switching documents cancels them, draft box current version and per-version diff formats')

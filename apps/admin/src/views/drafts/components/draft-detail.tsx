@@ -2,9 +2,8 @@ import { defineComponent } from 'vue'
 import type { DraftModel } from '~/models/draft'
 import type { PropType } from 'vue'
 
-import { plateMarkdown } from '~/utils/plate-text'
-
 import { DraftDetailBase } from './draft-detail-base'
+import { diffSides } from './draft-versions'
 import { MarkdownDiffPanel } from './markdown-diff-panel'
 import { RichDiffPanel } from './rich-diff-panel'
 
@@ -28,43 +27,29 @@ export const DraftDetail = defineComponent({
     },
   },
   setup(props) {
-    const isLexical = () => props.draft.contentFormat === 'lexical'
-    // Plate 的历史版本只存 content，对比两版派生的 Markdown
-    const isPlate = () => props.draft.contentFormat === 'plate'
-
+    // 每个版本按它自己的格式对比：两边都是 Lexical 才用富文本对比，否则各自投影成 Markdown（Plate 历史只存 content）
     return () => (
       <DraftDetailBase
         draft={props.draft}
         isMobile={props.isMobile}
         onBack={props.onBack}
         onDelete={props.onDelete}
-        diffContent={(slotProps) =>
-          isLexical() &&
-          slotProps.selectedRichContent &&
-          slotProps.currentRichContent ? (
+        diffContent={(slotProps) => {
+          const sides = diffSides(slotProps.selected, slotProps.current)
+          return sides.kind === 'rich' ? (
             <RichDiffPanel
-              oldContent={slotProps.selectedRichContent}
-              newContent={slotProps.currentRichContent}
+              oldContent={sides.oldContent}
+              newContent={sides.newContent}
             />
           ) : (
             <MarkdownDiffPanel
-              oldText={
-                isPlate()
-                  ? plateMarkdown(slotProps.selectedRichContent ?? '') ||
-                    slotProps.selectedText
-                  : slotProps.selectedText
-              }
-              newText={
-                isPlate()
-                  ? plateMarkdown(slotProps.currentRichContent ?? '') ||
-                    slotProps.currentText
-                  : slotProps.currentText
-              }
+              oldText={sides.oldText}
+              newText={sides.newText}
               oldVersion={slotProps.selectedVersion}
               newVersion={slotProps.currentVersion}
             />
           )
-        }
+        }}
       />
     )
   },
