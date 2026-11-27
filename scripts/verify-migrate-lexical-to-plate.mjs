@@ -151,6 +151,17 @@ const marked = converted(state(list('bullet', [item(text('星'))], { $: { mdList
 assert.equal(marked.nodes[0].listType, 'bulleted')
 assert.ok(marked.report.warnings.some((w) => /mdListMarker/.test(w)))
 assert.equal(convert(state(list('bullet', [item(text('星'))], { $: { mdListMarker: '*', other: 1 } }))).report.status, 'blocked')
+
+// Lexical $toggleLink writes rel=noreferrer by default (three real notes); the link itself survives.
+const linkWith = (props) => state(para({ type: 'link', url: 'https://example.test', children: [text('链')], ...props }))
+for (const rel of ['noreferrer', 'noopener noreferrer']) {
+  const { nodes, report } = converted(linkWith({ rel, target: null }))
+  assert.deepEqual(nodes[0].children[0], { type: 'link', url: 'https://example.test', children: [{ text: '链' }] })
+  assert.ok(report.warnings.some((w) => w.includes(`rel=${rel}`)))
+}
+for (const props of [{ rel: 'nofollow' }, { title: '提示' }, { rel: 'noopener', target: '_self' }])
+  assert.equal(convert(linkWith(props)).report.status, 'blocked', JSON.stringify(props))
+console.log('PASS editor-default link rel, markdown list marker')
 console.log('PASS Lexical → Plate mappings, Core projection, path inventory and loss blocking')
 
 const cli = 'scripts/migrate-lexical-to-plate.mjs'

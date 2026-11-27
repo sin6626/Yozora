@@ -177,7 +177,8 @@ export function lexicalToPlate(lexicalJsonString) {
       case 'link':
       case 'autolink':
         if (node.isUnlinked) return children()
-        requireValue(!node.title && (!node.rel || node.rel === 'noopener' && (!node.target || node.target === '_blank')), `${path}: link title or rel cannot be preserved`)
+        // noopener is implied by modern browsers; noreferrer is the default of Lexical $toggleLink, not author intent.
+        requireValue(!node.title && (!node.rel || ['noopener', 'noreferrer', 'noopener noreferrer'].includes(node.rel) && (!node.target || node.target === '_blank')), `${path}: link title or rel cannot be preserved`)
         if (node.rel) warn(path, `Link rel=${node.rel} has no Suzuri property`)
         return element('link', children(), optional({ url: node.url, target: node.target }))
       case 'code':
