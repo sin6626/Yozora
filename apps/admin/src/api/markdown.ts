@@ -17,7 +17,7 @@ export interface MarkdownExportParams {
 
 export type MarkdownPreviewData =
   | { contentFormat: 'markdown'; text: string }
-  | { contentFormat: 'lexical'; content: string; text?: string }
+  | { contentFormat: 'lexical' | 'plate'; content: string; text?: string }
 
 export const markdownApi = {
   preview: (data: MarkdownPreviewData) =>

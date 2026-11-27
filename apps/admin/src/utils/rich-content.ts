@@ -20,6 +20,15 @@ function hasNodeContent(node: unknown): boolean {
   }
 }
 
+// Plate (Suzuri envelope): empty paragraphs are not content; any other element (image, table, …) or text is.
+function hasPlateNodeContent(node: unknown): boolean {
+  if (typeof node !== 'object' || node === null) return false
+  if ('text' in node) return typeof node.text === 'string' && node.text.trim().length > 0
+  if (!('children' in node) || !Array.isArray(node.children)) return true
+  if ('type' in node && node.type !== 'paragraph') return true
+  return node.children.some(hasPlateNodeContent)
+}
+
 export function hasRichContent(content: unknown): boolean {
   if (content === undefined || content === null || content === '') return false
   if (typeof content === 'string') {
@@ -29,9 +38,12 @@ export function hasRichContent(content: unknown): boolean {
       return true
     }
   }
-  return typeof content === 'object' && content !== null && 'root' in content
-    ? hasNodeContent(content.root)
-    : true
+  if (typeof content !== 'object' || content === null) return true
+  if ('root' in content) return hasNodeContent(content.root)
+  if ('document' in content && isRecord(content.document) && Array.isArray(content.document.children)) {
+    return content.document.children.some(hasPlateNodeContent)
+  }
+  return true
 }
 
 const elementTypes = new Set([

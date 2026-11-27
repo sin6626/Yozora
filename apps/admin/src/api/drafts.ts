@@ -22,7 +22,7 @@ export interface CreateDraftData {
   refId?: string
   title?: string
   text?: string
-  contentFormat?: 'markdown' | 'lexical'
+  contentFormat?: 'markdown' | 'lexical' | 'plate'
   content?: string
   images?: Image[]
   meta?: Record<string, any>

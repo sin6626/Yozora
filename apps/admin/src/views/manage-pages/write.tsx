@@ -21,6 +21,7 @@ import type { CreatePageData } from '~/api/pages'
 import type { DraftModel } from '~/models/draft'
 import type { PageModel } from '~/models/page'
 import type { ContentFormat, WriteBaseType } from '~/shared/types/base'
+import { isRichFormat } from '~/shared/types/base'
 import type { LexicalEditor } from 'lexical'
 
 import { pagesApi } from '~/api/pages'
@@ -176,7 +177,7 @@ const PageWriteView = defineComponent(() => {
         title: data.title.trim(),
         slug: data.slug.trim(),
         contentFormat: data.contentFormat,
-        content: data.contentFormat === 'lexical' ? data.content : undefined,
+        content: isRichFormat(data.contentFormat) ? data.content : undefined,
       }
     }
 

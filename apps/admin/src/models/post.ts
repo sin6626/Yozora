@@ -20,7 +20,7 @@ export interface PostModel {
   modified: string
   created: string
   category: Category
-  contentFormat?: 'markdown' | 'lexical'
+  contentFormat?: 'markdown' | 'lexical' | 'plate'
   content?: string
   summary?: string
   pin?: string | null

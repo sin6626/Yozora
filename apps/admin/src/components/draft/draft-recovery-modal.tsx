@@ -36,7 +36,7 @@ function countDeltaOps(delta: any): { added: number; removed: number } {
 export interface PublishedContent {
   title: string
   text: string
-  contentFormat?: 'markdown' | 'lexical'
+  contentFormat?: 'markdown' | 'lexical' | 'plate'
   content?: string
   updated: string
 }
@@ -72,14 +72,14 @@ export const DraftRecoveryModal = defineComponent({
     const selectedVersionContent = ref<{
       title: string
       text: string
-      contentFormat?: 'markdown' | 'lexical'
+      contentFormat?: 'markdown' | 'lexical' | 'plate'
       content?: string
     } | null>(null)
 
     type VersionContent = {
       text: string
       content?: string
-      contentFormat?: 'markdown' | 'lexical'
+      contentFormat?: 'markdown' | 'lexical' | 'plate'
     }
     const versionContentCache = ref(
       new Map<number | 'published', VersionContent>(),
@@ -337,7 +337,7 @@ export const DraftRecoveryModal = defineComponent({
       newText: string,
       oldContent?: string,
       newContent?: string,
-      format?: 'markdown' | 'lexical',
+      format?: 'markdown' | 'lexical' | 'plate',
     ) => {
       if (format === 'lexical' && oldContent && newContent) {
         try {

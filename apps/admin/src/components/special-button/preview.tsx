@@ -11,6 +11,7 @@ import type { PropType } from 'vue'
 
 import { markdownApi, optionsApi } from '~/api'
 import { WEB_URL } from '~/constants/env'
+import { isRichFormat } from '~/shared/types/base'
 
 import { HeaderActionButton } from '../button/header-action-button'
 import { createPreviewRequest } from './preview-request'
@@ -76,9 +77,9 @@ export const HeaderPreviewButton = defineComponent({
       async (serialized: string) => {
         const data: typeof props.data = JSON.parse(serialized)
         const { text } = await markdownApi.preview(
-          data.contentFormat === 'lexical'
+          isRichFormat(data.contentFormat)
             ? {
-                contentFormat: 'lexical',
+                contentFormat: data.contentFormat,
                 content: data.content,
                 text: data.text,
               }

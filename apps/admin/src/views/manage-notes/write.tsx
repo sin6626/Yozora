@@ -56,6 +56,7 @@ import type { DraftModel } from '~/models/draft'
 import { DraftRefType } from '~/models/draft'
 import type { Coordinate, NoteModel } from '~/models/note'
 import type { ContentFormat, WriteBaseType } from '~/shared/types/base'
+import { isRichFormat } from '~/shared/types/base'
 import { UIStore } from '~/stores/ui'
 import { getDayOfYear } from '~/utils/time'
 
@@ -270,7 +271,7 @@ const NoteWriteView = defineComponent(() => {
             })()
           : null,
         contentFormat: data.contentFormat,
-        content: data.contentFormat === 'lexical' ? data.content : undefined,
+        content: isRichFormat(data.contentFormat) ? data.content : undefined,
       }
     }
 

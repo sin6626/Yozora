@@ -25,7 +25,7 @@ export interface PageModel {
   /** Text */
   text: string
 
-  contentFormat?: 'markdown' | 'lexical'
+  contentFormat?: 'markdown' | 'lexical' | 'plate'
   content?: string
 
   /** Type (MD | html | frame) */

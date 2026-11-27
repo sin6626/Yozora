@@ -21,6 +21,7 @@ import type { CategoryModel } from '~/models/category'
 import type { DraftModel } from '~/models/draft'
 import type { PostModel } from '~/models/post'
 import type { ContentFormat, WriteBaseType } from '~/shared/types/base'
+import { isRichFormat } from '~/shared/types/base'
 import type { LexicalEditor } from 'lexical'
 import type { SelectMixedOption } from 'naive-ui/lib/select/src/interface'
 
@@ -240,7 +241,7 @@ const PostWriteView = defineComponent(() => {
       pin: data.pin ? new Date().toISOString() : null,
       draftId: serverDraft.draftId.value,
       contentFormat: data.contentFormat,
-      content: data.contentFormat === 'lexical' ? data.content : undefined,
+      content: isRichFormat(data.contentFormat) ? data.content : undefined,
     }
 
     if (actualRefId.value) {

@@ -2,12 +2,13 @@ import { computed, onUnmounted, ref } from 'vue'
 import type { DraftModel, DraftRefType, TypeSpecificData } from '~/models/draft'
 
 import { draftsApi } from '~/api'
+import { isRichFormat } from '~/shared/types/base'
 import { hasRichContent, richContentForComparison } from '~/utils/rich-content'
 
 export interface DraftData {
   title: string
   text: string
-  contentFormat?: 'markdown' | 'lexical'
+  contentFormat?: 'markdown' | 'lexical' | 'plate'
   content?: string
   images?: any[]
   meta?: Record<string, any>
@@ -52,8 +53,8 @@ export const useServerDraft = (
   const getSnapshot = (data: DraftData) =>
     JSON.stringify({
       ...data,
-      text: data.contentFormat === 'lexical' ? undefined : data.text,
-      content: data.contentFormat === 'lexical'
+      text: isRichFormat(data.contentFormat) ? undefined : data.text,
+      content: isRichFormat(data.contentFormat)
         ? richContentForComparison(data.content)
         : data.content,
     })
@@ -63,7 +64,7 @@ export const useServerDraft = (
 
   const hasContent = (data: DraftData) =>
     !!data.title.trim() ||
-    (data.contentFormat === 'lexical'
+    (isRichFormat(data.contentFormat)
       ? hasRichContent(data.content)
       : !!data.text.trim())
 
