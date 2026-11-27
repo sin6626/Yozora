@@ -89,4 +89,10 @@ tarball 已在 `/Users/sin/.orca/bots/x/scratch/suzuri-packs/suzuri-editor-0.1.0
 3. **后台 spike**：仿 `RichEditor.tsx` 写一个只用于调试页的 `SuzuriEditorBridge`（Vue 挂 React），放在 `views/debug/` 下；检查：中文输入法、撤销重做、粘贴图片（`onUploadImage` 在浏览器里拦截，不真传图床）、`onChange` 出信封、Naive UI 页面样式不被打乱。
 4. 每步一个英文 Conventional Commit（`test(core): …`、`feat(web): add suzuri debug page`、`feat(admin): …`），不加 Co-Authored-By。任何一端走不通就停下汇报。
 
-待站长定：`rich-text-components-20261014` 演示文章怎么处理；schema id 用 `suzuri` 默认值还是 `yozora`（建议默认 `suzuri`，少一个出错点；改 id 要所有调用都传同一个 options）。
+已锁定的默认值（2026-11-27 协调方确认，不阻塞）：schema id 沿用 Suzuri 默认的 `suzuri`；`rich-text-components-20261014` 演示文章到离线迁移时由转换器保留原 Lexical JSON 并出报告，届时留给站长决定。
+
+## 6. 环境准备结果（2026-11-27）
+
+- 根目录 `pnpm install --frozen-lockfile`（pnpm 12.6.0、Node 24.21.0）：2245 个包装好，Haklex 补丁已应用。pnpm 报 `ERR_PNPM_IGNORED_BUILDS`（`@prisma/engines`、`prisma`、`simple-git-hooks`、`vue-demi` 没有列进 `allowBuilds`），安装本身已完成；它往 `pnpm-workspace.yaml` 写的 “set this to true or false” 占位已还原。
+- 新 worktree 没有 `.next`，`pnpm typecheck` 先报 `PageProps`/`RouteContext` 找不到，跑一次 `pnpm --filter @sin/web exec next typegen` 后通过（没有 dev 在跑时才跑 typegen）。`pnpm build:sdk` 通过；`apps/core` 的 `pnpm typecheck` 通过。
+- `node scripts/dev.mjs --test --print-config`：数据根 `.local/verification`（已在 .gitignore），库 `sinpersonalspace-verify`。`--core-only` 只起 Mongo/Redis/Core（2533）；`--web-only` 不起数据库，前台连 `MIX_SPACE_API_URL` 或默认测试 Core 2533；`--admin-only` 要求 Core 已在跑；`--with-admin` 起全套。这几个参数互斥（`--with-admin` 也不能和 `--*-only` 一起用）。`--test --with-admin --check` 与 `--test --web-only --check` 都通过（Redis 8.10.2、端口全空）。
