@@ -11,6 +11,7 @@ export default defineConfig({
       'test/editor/live-photo-formats.spec.ts',
       'test/editor/lexical-projection.spec.ts',
       'test/editor/legacy-quote.spec.ts',
+      'test/editor/suzuri-spike.spec.ts',
       'test/src/processors/helper/helper.lexical.service.spec.ts',
       'test/src/modules/draft/draft.service.spec.ts',
       'test/src/modules/ai/translation-consistency.service.spec.ts',
