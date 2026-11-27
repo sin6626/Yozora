@@ -15,6 +15,7 @@ import {
 import { ContentFormat } from '~/shared/types/content-format.type'
 import { InjectModel } from '~/transformers/model.transformer'
 import { createAbortError } from '~/utils/abort.util'
+import { projectPlateContent } from '~/utils/plate-content.util'
 import { md5 } from '~/utils/tool.util'
 
 import { ConfigsService } from '../../configs/configs.service'
@@ -55,6 +56,7 @@ import type { ITranslationStrategy } from './translation-strategy.interface'
 import {
   LEXICAL_TRANSLATION_STRATEGY,
   MARKDOWN_TRANSLATION_STRATEGY,
+  PLATE_TRANSLATION_STRATEGY,
 } from './translation-strategy.interface'
 
 @Injectable()
@@ -80,14 +82,16 @@ export class AiTranslationService
     private readonly lexicalStrategy: ITranslationStrategy,
     @Inject(MARKDOWN_TRANSLATION_STRATEGY)
     private readonly markdownStrategy: ITranslationStrategy,
+    @Inject(PLATE_TRANSLATION_STRATEGY)
+    private readonly plateStrategy: ITranslationStrategy,
   ) {
     super()
   }
 
   private getStrategy(contentFormat?: string): ITranslationStrategy {
-    return contentFormat === ContentFormat.Lexical
-      ? this.lexicalStrategy
-      : this.markdownStrategy
+    if (contentFormat === ContentFormat.Lexical) return this.lexicalStrategy
+    if (contentFormat === ContentFormat.Plate) return this.plateStrategy
+    return this.markdownStrategy
   }
 
   onModuleInit() {
@@ -1075,8 +1079,14 @@ export class AiTranslationService
     if (data.tags !== undefined) doc.tags = data.tags
 
     if (data.content !== undefined) {
-      doc.content = data.content
-      doc.text = this.lexicalService.lexicalToMarkdown(data.content)
+      if (doc.contentFormat === ContentFormat.Plate) {
+        const projected = projectPlateContent(data.content)
+        doc.content = projected.content
+        doc.text = projected.text
+      } else {
+        doc.content = data.content
+        doc.text = this.lexicalService.lexicalToMarkdown(data.content)
+      }
     } else if (data.text !== undefined) {
       doc.text = data.text
     }

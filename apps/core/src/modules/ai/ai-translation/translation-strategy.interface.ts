@@ -9,6 +9,7 @@ export const LEXICAL_TRANSLATION_STRATEGY = Symbol(
 export const MARKDOWN_TRANSLATION_STRATEGY = Symbol(
   'MARKDOWN_TRANSLATION_STRATEGY',
 )
+export const PLATE_TRANSLATION_STRATEGY = Symbol('PLATE_TRANSLATION_STRATEGY')
 
 export interface TranslationResult {
   sourceLang: string
