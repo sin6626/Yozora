@@ -253,6 +253,16 @@ const zh = {
     copy: "复制代码",
     copied: "已复制",
   },
+  // Plate 正文里的实况图（components/plate-live-photo.tsx）：长按或点 LIVE 播放，可下载成 Motion Photo
+  livePhoto: {
+    hold: "长按或点一下播放实况",
+    live: "实况",
+    playing: "播放中",
+    unavailable: "视频无法播放",
+    download: "下载实况图",
+    downloading: "正在打包…",
+    downloadFailed: "下载失败",
+  },
   articleActions: {
     group: "文章操作",
     subscribe: "订阅更新",
