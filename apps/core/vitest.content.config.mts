@@ -13,6 +13,7 @@ export default defineConfig({
       'test/editor/legacy-quote.spec.ts',
       'test/editor/suzuri-spike.spec.ts',
       'test/editor/plate-content.spec.ts',
+      'test/editor/manual-translation-source.spec.ts',
       'test/src/modules/ai/plate-translation.strategy.spec.ts',
       'test/src/processors/helper/helper.lexical.service.spec.ts',
       'test/src/modules/draft/draft.service.spec.ts',
