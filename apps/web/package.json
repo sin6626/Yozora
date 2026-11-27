@@ -22,6 +22,7 @@
     "@iconify/utils": "3.1.0",
     "@lexical/react": "0.41.0",
     "@mx-space/api-client": "workspace:*",
+    "@suzuri/editor": "file:../../vendor/suzuri-editor-0.1.0.tgz",
     "@yozora/live-photo": "workspace:*",
     "lexical": "0.41.0",
     "lucide-react": "0.574.0",
