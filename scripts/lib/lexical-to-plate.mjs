@@ -20,7 +20,19 @@ const supportedMask = marks.reduce((mask, mark) => mask | TEXT_TYPE_TO_FORMAT[ma
 const listTypes = { bullet: 'bulleted', number: 'numbered', check: 'task' }
 const icons = { note: 'ℹ️', tip: '💡', important: '❗', warning: '⚠️', caution: '🛑', info: 'ℹ️', success: '✅', error: '🛑' }
 const leaf = (text = '') => ({ text })
-const element = (type, children, props) => ({ type, ...props, children: children.length ? children : [leaf()] })
+// Stray carriage returns (Windows paste) render as collapsed whitespace in Haklex but as line
+// breaks in Suzuri's pre-wrap text: drop them at block edges and next to line breaks, else a space.
+function tidy(children) {
+  const text = (node) => typeof node?.text === 'string' ? node.text : null
+  return children.map((node, i) => {
+    let value = text(node)
+    if (value === null || !value.includes('\r')) return node
+    if (i === 0 || text(children[i - 1])?.endsWith('\n')) value = value.replace(/^\r+/, '')
+    if (i === children.length - 1 || text(children[i + 1])?.startsWith('\n')) value = value.replace(/\r+$/, '')
+    return { ...node, text: value.replace(/\r+(?=\n)|(?<=\n)\r+/g, '').replace(/\r+/g, ' ') }
+  })
+}
+const element = (type, children, props) => ({ type, ...props, children: children.length ? tidy(children) : [leaf()] })
 const inline = (n) => Object.hasOwn(n, 'text') || n.type === 'link' || n.type === 'inlineEquation'
 const optional = (props) => Object.fromEntries(Object.entries(props).filter(([, value]) => value != null && value !== ''))
 
@@ -64,15 +76,19 @@ export function lexicalToPlate(lexicalJsonString) {
         if (!metadata.has(key) && !allowed.includes(key) && value != null && value !== '' && value !== false)
           reject(node, path, `Unsupported field: ${key}`)
       }
-      if (node.style || node.textStyle || node.direction === 'rtl' || (typeof node.format === 'string' && node.format))
+      const align = typeof node.format === 'string' && node.format
+      if (node.style || node.textStyle || node.direction === 'rtl' || (align && !['left', 'start'].includes(align)))
         reject(node, path, 'Unsupported style, alignment or writing direction')
+      else if (align) warn(path, `Default ${align} alignment dropped`)
       if (node.indent && !['listitem', 'paragraph', 'heading'].includes(type)) reject(node, path, 'Unsupported indent')
       if (node.version != null && node.version !== 1) reject(node, path, 'Unknown node version')
       if ((node.mode && node.mode !== 'normal') || (node.detail && type !== 'tab'))
         reject(node, path, 'Unsupported text behavior')
       if (node.$) {
-        if (Object.keys(node.$).some((key) => key !== 'blockId')) reject(node, path, 'Unknown Lexical node state')
+        if (Object.keys(node.$).some((key) => key !== 'blockId' && !(key === 'mdListMarker' && type === 'list')))
+          reject(node, path, 'Unknown Lexical node state')
         if (node.$.blockId) warn(path, 'Lexical blockId has no Suzuri property')
+        if (node.$.mdListMarker) warn(path, `Markdown list marker ${node.$.mdListMarker} (mdListMarker) dropped`)
       }
       if (['text', 'tab', 'code-highlight'].includes(type) && node.format != null) {
         const mask = node.format
@@ -173,7 +189,8 @@ export function lexicalToPlate(lexicalJsonString) {
       case 'link':
       case 'autolink':
         if (node.isUnlinked) return children()
-        requireValue(!node.title && (!node.rel || node.rel === 'noopener' && (!node.target || node.target === '_blank')), `${path}: link title or rel cannot be preserved`)
+        // noopener is implied by modern browsers; noreferrer is the default of Lexical $toggleLink, not author intent.
+        requireValue(!node.title && (!node.rel || ['noopener', 'noreferrer', 'noopener noreferrer'].includes(node.rel) && (!node.target || node.target === '_blank')), `${path}: link title or rel cannot be preserved`)
         if (node.rel) warn(path, `Link rel=${node.rel} has no Suzuri property`)
         return element('link', children(), optional({ url: node.url, target: node.target }))
       case 'code':
