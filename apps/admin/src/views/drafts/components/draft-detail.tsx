@@ -2,6 +2,8 @@ import { defineComponent } from 'vue'
 import type { DraftModel } from '~/models/draft'
 import type { PropType } from 'vue'
 
+import { plateMarkdown } from '~/utils/plate-text'
+
 import { DraftDetailBase } from './draft-detail-base'
 import { MarkdownDiffPanel } from './markdown-diff-panel'
 import { RichDiffPanel } from './rich-diff-panel'
@@ -27,6 +29,8 @@ export const DraftDetail = defineComponent({
   },
   setup(props) {
     const isLexical = () => props.draft.contentFormat === 'lexical'
+    // Plate 的历史版本只存 content，对比两版派生的 Markdown
+    const isPlate = () => props.draft.contentFormat === 'plate'
 
     return () => (
       <DraftDetailBase
@@ -44,8 +48,18 @@ export const DraftDetail = defineComponent({
             />
           ) : (
             <MarkdownDiffPanel
-              oldText={slotProps.selectedText}
-              newText={slotProps.currentText}
+              oldText={
+                isPlate()
+                  ? plateMarkdown(slotProps.selectedRichContent ?? '') ||
+                    slotProps.selectedText
+                  : slotProps.selectedText
+              }
+              newText={
+                isPlate()
+                  ? plateMarkdown(slotProps.currentRichContent ?? '') ||
+                    slotProps.currentText
+                  : slotProps.currentText
+              }
               oldVersion={slotProps.selectedVersion}
               newVersion={slotProps.currentVersion}
             />

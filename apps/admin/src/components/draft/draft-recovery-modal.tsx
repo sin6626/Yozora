@@ -13,6 +13,7 @@ import { SplitPanel } from '~/components/layout'
 
 import { DiffPreview } from './diff-preview'
 import { VersionListItem } from './version-list-item'
+import { diffTextOf } from '~/utils/plate-text'
 
 function countDeltaOps(delta: any): { added: number; removed: number } {
   let added = 0
@@ -102,8 +103,8 @@ export const DraftRecoveryModal = defineComponent({
       while (diffQueue.length > 0 && performance.now() - start < BUDGET) {
         const { version, content } = diffQueue.shift()!
         const stats = calcDiffStats(
-          props.publishedContent.text ?? '',
-          content.text ?? '',
+          diffTextOf(props.publishedContent),
+          diffTextOf(content),
           props.publishedContent.content,
           content.content,
           content.contentFormat,
@@ -383,8 +384,8 @@ export const DraftRecoveryModal = defineComponent({
         }
       }
 
-      const currentText = selectedVersionContent.value.text ?? ''
-      const publishedText = props.publishedContent.text ?? ''
+      const currentText = diffTextOf(selectedVersionContent.value)
+      const publishedText = diffTextOf(props.publishedContent)
       const diff = currentText.length - publishedText.length
       return { diff, isSame: currentText === publishedText }
     })
@@ -593,11 +594,11 @@ export const DraftRecoveryModal = defineComponent({
                           <DiffPreview
                             oldFile={{
                               name: 'published.md',
-                              contents: props.publishedContent.text ?? '',
+                              contents: diffTextOf(props.publishedContent),
                             }}
                             newFile={{
                               name: 'draft.md',
-                              contents: selectedVersionContent.value.text ?? '',
+                              contents: diffTextOf(selectedVersionContent.value),
                             }}
                           />
                         </div>
