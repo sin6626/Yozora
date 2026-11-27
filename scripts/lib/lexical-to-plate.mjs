@@ -17,6 +17,7 @@ const fields = {
 const metadata = new Set(['type', 'version', 'direction', 'format', 'indent', 'style', 'textStyle', 'textFormat', 'mode', 'detail', '$'])
 const marks = ['bold', 'italic', 'strikethrough', 'underline', 'code', 'highlight']
 const supportedMask = marks.reduce((mask, mark) => mask | TEXT_TYPE_TO_FORMAT[mark], 0)
+const listTypes = { bullet: 'bulleted', number: 'numbered', check: 'task' }
 const icons = { note: 'ℹ️', tip: '💡', important: '❗', warning: '⚠️', caution: '🛑', info: 'ℹ️', success: '✅', error: '🛑' }
 const leaf = (text = '') => ({ text })
 const element = (type, children, props) => ({ type, ...props, children: children.length ? children : [leaf()] })
@@ -127,24 +128,28 @@ export function lexicalToPlate(lexicalJsonString) {
       }
       case 'quote': return element('blockquote', wrapRuns(children()))
       case 'list': {
-        const listType = { bullet: 'bulleted', number: 'numbered', check: 'task' }[node.listType]
-        requireValue(listType && Array.isArray(node.children) && node.children.length, `${path}: invalid list`)
+        requireValue(Object.hasOwn(listTypes, node.listType) && Array.isArray(node.children) && node.children.length, `${path}: invalid list`)
+        const listType = listTypes[node.listType]
         const blocks = []
         let first = true
+        let ordinal = node.start ?? 1
         node.children.forEach((item, i) => {
           const at = `${path}.children[${i}]`
           requireValue(item.type === 'listitem' && Array.isArray(item.children), `${at}: expected listitem`)
           let run = []
-          let emitted = false
           let nested = false
           const flush = () => {
-            requireValue(!emitted, `${at}: text after a nested list cannot share its parent item`)
             const props = { listType, listId: path, indent: depth + 1 }
-            if (first && listType === 'numbered' && node.start != null && node.start !== 1) props.listStart = node.start
+            if (listType === 'numbered') {
+              if (first && node.start != null && item.value != null && node.start !== item.value)
+                throw new Error(`${at}: conflicting list start and first item value`)
+              if (first && ordinal !== 1) props.listStart = ordinal
+              if (item.value != null && item.value !== ordinal) props.listRestart = item.value
+              ordinal = (item.value ?? ordinal) + 1
+            }
             if (listType === 'task') props.checked = item.checked ?? false
             blocks.push(element('paragraph', run, props))
             first = false
-            emitted = true
             run = []
           }
           item.children.forEach((child, j) => {
@@ -168,7 +173,7 @@ export function lexicalToPlate(lexicalJsonString) {
       case 'link':
       case 'autolink':
         if (node.isUnlinked) return children()
-        requireValue(!node.title && !node.rel?.split(/\s+/).some((v) => !['noopener', 'noreferrer'].includes(v)), `${path}: link title or rel cannot be preserved`)
+        requireValue(!node.title && (!node.rel || node.rel === 'noopener' && (!node.target || node.target === '_blank')), `${path}: link title or rel cannot be preserved`)
         if (node.rel) warn(path, `Link rel=${node.rel} has no Suzuri property`)
         return element('link', children(), optional({ url: node.url, target: node.target }))
       case 'code':

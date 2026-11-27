@@ -1,10 +1,15 @@
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
+import { mkdtemp, readFile, readdir, rmdir, unlink } from 'node:fs/promises'
+import { join } from 'node:path'
+import { createRequire } from 'node:module'
 import { createHeadlessEditor } from '@lexical/headless'
 import { allHeadlessNodes } from '@haklex/rich-headless'
 import { $toProjectedMarkdown } from '../apps/core/src/utils/lexical-projection.util.ts'
 import { complexDocData } from '../apps/core/test/src/modules/ai/complex-doc-data.ts'
 import { collectMedia, toMarkdown, validateDocument } from '../apps/core/node_modules/@suzuri/editor/dist/schema/index.js'
 import { lexicalToPlate } from './lib/lexical-to-plate.mjs'
+import { migrateDatabase } from './migrate-lexical-to-plate.mjs'
 
 const text = (text, format = 0) => ({ type: 'text', text, format })
 const para = (...children) => ({ type: 'paragraph', children })
@@ -44,6 +49,9 @@ assert.deepEqual(lists.nodes.map((n) => [n.listType, n.indent, n.listStart, n.ch
 ])
 assert.equal(lists.nodes[0].listId, lists.nodes[3].listId)
 assert.match(lists.markdown, /4\. one\n +\* \[x\] done\n +\* \[ \] later\n5\. two/)
+const restarted = converted(state(list('number', [item(text('first')), { ...item(text('later')), value: 9 }])))
+assert.equal(restarted.nodes[1].listRestart, 9)
+assert.match(converted(state(para(text('a'), { type: 'linebreak' }, text('b')))).markdown, /a\\\nb/)
 
 const cell = (s, props) => ({ type: 'tablecell', children: [para(text(s))], ...props })
 const row = (...children) => ({ type: 'tablerow', children })
@@ -127,3 +135,87 @@ for (const doc of [state(para({ type: 'link', url: 'javascript:alert(1)', childr
 }
 assert.equal(lexicalToPlate('{').report.status, 'blocked')
 console.log('PASS Lexical → Plate mappings, Core projection, path inventory and loss blocking')
+
+const cli = 'scripts/migrate-lexical-to-plate.mjs'
+for (const [args, rejection] of [
+  [[], /--mongo 和 --db/],
+  [['--mongo', 'unused', '--db', 'other', '--allow-db', 'mismatch'], /--allow-db/],
+  [['--mongo', 'unused', '--db', 'other', '--allow-db', 'other'], /--report/],
+  [['--mongo', 'unused', '--db', 'sinpersonalspace-verify', '--report', '.', '--write', '--dry-run'], /不能同时/],
+]) {
+  const run = spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8' })
+  assert.equal(run.status, 1)
+  assert.match(run.stderr, rejection)
+}
+
+const { ObjectId, BSON } = createRequire(new URL('../apps/core/package.json', import.meta.url))('mongodb')
+const source = { contentFormat: 'lexical', content: JSON.stringify(state(para(text('正文')))), text: '旧投影' }
+const draft = { _id: new ObjectId(), title: '草稿', ...source, history: [
+  { ...source, version: 4, isFullSnapshot: true },
+  { version: 3, isFullSnapshot: false, refVersion: 2, baseVersion: 2, contentFormat: 'lexical' },
+  { ...source, version: 2, isFullSnapshot: true },
+] }
+// Exercise planning, file persistence and compare-before-write with an in-memory
+// collection double. No Mongo client or listener is created.
+async function checkDatabase(write, conflict = false) {
+  const dir = await mkdtemp(join(process.cwd(), '.verify-lexical-'))
+  const collections = []
+  const logged = []
+  let writes = 0
+  const db = { databaseName: 'sinpersonalspace-verify', collection(name) {
+    return {
+      find(filter) {
+        collections.push(name)
+        if (name === 'drafts') {
+          assert.deepEqual(filter.$or[1].history.$elemMatch, { contentFormat: 'lexical', isFullSnapshot: true })
+          return [draft, { ...draft, _id: new ObjectId(), contentFormat: 'markdown', history: [draft.history[0]] }]
+        }
+        assert.deepEqual(filter, { contentFormat: 'lexical' })
+        if (name === 'posts') return [{ _id: new ObjectId(), ...source, content: JSON.stringify(state({ type: 'gallery' })) }]
+        return []
+      },
+      async updateOne(filter, update) {
+        writes++
+        assert.equal(name, 'drafts')
+        const backupFile = (await readdir(dir)).find((file) => file.startsWith('backup-'))
+        const backup = BSON.EJSON.parse(await readFile(join(dir, backupFile), 'utf8'))
+        assert.ok(backup.documents[0]._id.equals(draft._id))
+        assert.deepEqual(backup.documents[0].original.history, draft.history)
+        assert.deepEqual(filter.history.$eq, writes === 1 ? draft.history : [draft.history[0]])
+        const set = update.$set
+        assert.equal(set['history.0.contentFormat'], 'plate')
+        assert.equal(Object.hasOwn(set, 'history.2.content'), false, 'keep referenced baseline')
+        assert.equal(Object.hasOwn(set, 'history.1.content'), false, 'keep delta')
+        if (writes === 1) {
+          assert.equal(set.contentFormat, 'plate')
+          assert.equal(set.text.trim(), '正文')
+        } else assert.equal(Object.hasOwn(set, 'content'), false)
+        return { matchedCount: conflict ? 0 : 1 }
+      },
+    }
+  } }
+  try {
+    const run = migrateDatabase(db, { report: dir, write }, (line) => logged.push(JSON.parse(line)))
+    if (conflict) await assert.rejects(run, /备份后发生变动/)
+    else await run
+    assert.deepEqual(collections, ['posts', 'notes', 'pages', 'ai_translations', 'drafts'])
+    assert.equal(writes, write ? conflict ? 1 : 2 : 0)
+    const files = await readdir(dir)
+    assert.equal(files.some((f) => f.startsWith('backup-')), write)
+    const persisted = JSON.parse(await readFile(join(dir, files.find((f) => /^report-.*\.json$/.test(f))), 'utf8'))
+    assert.deepEqual(persisted.documents, logged)
+    assert.equal(logged[0].write, 'skipped')
+    assert.equal(logged[1].diff.firstChangedLine, 1)
+    assert.equal(logged[1].write, write ? conflict ? 'conflict' : 'written' : 'dry-run')
+    assert.equal(logged[3].write, 'skipped')
+    const md = await readFile(join(dir, files.find((f) => f.endsWith('.md'))), 'utf8')
+    for (const token of ['gallery', 'history.2', '差量', '旧投影']) assert.ok(md.includes(token))
+  } finally {
+    for (const file of await readdir(dir)) await unlink(join(dir, file))
+    await rmdir(dir)
+  }
+}
+await checkDatabase(false)
+await checkDatabase(true)
+await checkDatabase(true, true)
+console.log('PASS dry-run reports, BSON backup before writes, snapshot dependencies and concurrent edits (offline)')
