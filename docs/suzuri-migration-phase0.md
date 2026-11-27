@@ -110,3 +110,13 @@ tarball 已在 `/Users/sin/.orca/bots/x/scratch/suzuri-packs/suzuri-editor-0.1.0
 2. **（环境问题，非 Suzuri）pnpm 补丁被打了两次**：`@haklex/rich-editor@0.0.85` 的 `dist/commands-entry.mjs` 有两行 `export { $setRichBlocksType }`，Turbopack 报重复导出，所有 Lexical 正文页 500。来自 pnpm 的 side-effects 缓存，**主仓库 `node_modules` 里也是这样**（文件日期 11-25）。本 worktree 用 `pnpm install --frozen-lockfile --force --config.side-effects-cache=false` 修好了；主仓库没动，站长那边下次遇到同样报错可以照此处理。
 3. Next 16.4.2 的 `next dev` 第一次启动会停下来显示安全公告（见日志），再启动一次就继续；没有升级 Next。
 4. 测试库 `sinpersonalspace-verify` 原来没有站长账号，`next build` 读不到个人资料会失败；已在测试库里建了站长 `verify`（密码只存在本次会话的临时目录）。
+
+## 8. 阶段 1：Core 与 SDK 支持 `contentFormat: 'plate'`（2026-11-27）
+
+- **格式**：`ContentFormat.Plate = 'plate'`，`CONTENT_FORMATS` 与 `isRichContentFormat()`（Lexical 或 Plate，正文以 `content` 为准、`text` 由它派生）在 `shared/types/content-format.type.ts`。文章、手记、页面、草稿、Markdown 预览的写入 schema 都改用 `CONTENT_FORMATS`；`prefer` 收 `'lexical' | 'plate'`，只有和文档格式一致时才去掉 `text`。
+- **校验与 text**：`utils/plate-content.util.ts`。`content` 必须是 Suzuri 信封（默认 schema `suzuri` v1），`validateDocument(..., { requireEnvelope: true, fingerprintPolicy: 'restamp' })`，不合法 400 `Invalid Plate content: …`；只有指纹漂移时存回重新盖章的信封，否则原样保存；`text` = `toMarkdown`。入口仍是 `LexicalService.populateText / populateDraftText`（文章、手记、页面、草稿、Markdown 预览都经过它），按格式分到 Plate。草稿宽松规则同 Lexical：内容是信封但校验不过（例如刚插入的 `https://` 占位链接）时照存，`text` 保留上一次的。
+- **媒体引用**：`extractImagesFromContent` 对 Plate 用 `collectMedia`，图片、实况图封面和视频地址都登记，孤儿清理不会误删。
+- **其他分支**：凡是“非 Markdown 就不从 `text` 读图片尺寸”的地方改用 `isRichContent`；草稿历史对 Plate 和 Lexical 一样存 `content`、用 JSON diff；Core 自带 RSS 对 Plate 和 Lexical 一样提示去原站；内容哈希只算 `document`（重新盖章不算改动）；锚点评论仍只支持 Lexical，Plate 和 Markdown 一样拒绝。`json-transform`、聚合、访客推送只是透传 `contentFormat`，不用改。
+- **AI 翻译**：`strategies/plate-translation.strategy.ts`（`PLATE_TRANSLATION_STRATEGY`），按文字叶子抽取（跳过代码块、公式、行内代码），复用移到 `BaseTranslationStrategy` 的 `translateChunkedEntries`，`applyTranslatedSegments(..., { fingerprintPolicy: 'restamp' })` 写回后再走一遍校验与 Markdown 投影；没有增量翻译。后台手改 Plate 译文时按 Plate 重新投影。
+- **SDK**：`TextBaseModelPlate`、`ContentPreference`，`getPost/getBySlug/getNoteByNid` 的 `prefer` 用它。
+- **验证**：新测试 `test/editor/plate-content.spec.ts`（17）、`test/src/modules/ai/plate-translation.strategy.spec.ts`（4）、`draft.service.spec.ts` 的 Plate 历史（5）、`ai-translation.service.spec.ts` 的策略选择与手改译文（3）；Core 全量 vitest 1009 过，失败的都是改动前就失败的（3 个缺 Shiro 夹具的 editor 文件、lexical-translation-e2e 的 3 个增量用例、search 加权排序、4 个 e2e 缺 RedisService 注入；v10.4.1 一次因随机端口撞上别的进程，单跑通过）。`pnpm build:sdk`、`pnpm typecheck`、`pnpm typecheck:core`、Core `bundle`、`pnpm verify` 全过。用 `--test` Core 真实请求：Plate 文章写入后 `text` 是正确的 Markdown（含实况图投影），`javascript:` 地址 400，草稿带 `https://` 占位链接 201。测试库里留了这篇未发布文章和一份草稿。
