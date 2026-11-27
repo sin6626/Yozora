@@ -13,7 +13,11 @@ import { SplitPanel } from '~/components/layout'
 
 import { DiffPreview } from './diff-preview'
 import { VersionListItem } from './version-list-item'
-import { diffTextOf } from '~/utils/plate-text'
+import {
+  canLexicalDiff,
+  diffTextOf,
+  formatChangeNotice,
+} from '~/utils/plate-text'
 
 function countDeltaOps(delta: any): { added: number; removed: number } {
   let added = 0
@@ -107,7 +111,7 @@ export const DraftRecoveryModal = defineComponent({
           diffTextOf(content),
           props.publishedContent.content,
           content.content,
-          content.contentFormat,
+          canLexicalDiff(props.publishedContent, content),
         )
         updates.set(version, stats)
         dirty = true
@@ -338,9 +342,9 @@ export const DraftRecoveryModal = defineComponent({
       newText: string,
       oldContent?: string,
       newContent?: string,
-      format?: 'markdown' | 'lexical' | 'plate',
+      lexicalDiff = false,
     ) => {
-      if (format === 'lexical' && oldContent && newContent) {
+      if (lexicalDiff && oldContent && newContent) {
         try {
           const oldJson = JSON.parse(oldContent)
           const newJson = JSON.parse(newContent)
@@ -355,13 +359,16 @@ export const DraftRecoveryModal = defineComponent({
       }
     }
 
-    const isRichMode = computed(() => {
-      return (
-        selectedVersionContent.value?.contentFormat === 'lexical' &&
-        !!selectedVersionContent.value.content &&
-        !!props.publishedContent.content
-      )
-    })
+    const isRichMode = computed(
+      () =>
+        !!selectedVersionContent.value &&
+        canLexicalDiff(props.publishedContent, selectedVersionContent.value),
+    )
+    const formatNotice = computed(() =>
+      selectedVersionContent.value
+        ? formatChangeNotice(props.publishedContent, selectedVersionContent.value)
+        : null,
+    )
 
     const diffStats = computed(() => {
       if (!selectedVersionContent.value) return null
@@ -560,6 +567,14 @@ export const DraftRecoveryModal = defineComponent({
                   </div>
 
                   {/* Diff content */}
+                  {formatNotice.value && (
+                    <p
+                      class="mb-2 rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
+                      data-testid="draft-format-notice"
+                    >
+                      {formatNotice.value}
+                    </p>
+                  )}
                   <div class="min-h-0 flex-1 overflow-hidden">
                     {selectedVersionContent.value ? (
                       diffStats.value?.isSame ? (

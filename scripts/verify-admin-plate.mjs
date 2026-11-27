@@ -23,7 +23,7 @@ const load = (path, mocks = {}) => {
 
 const { hasRichContent, richContentForComparison } = load('utils/rich-content.ts')
 const { isRichFormat, lexicalOverwriteError, publishFormatError } = load('shared/types/base.ts')
-const { diffTextOf, plateMarkdown } = load('utils/plate-text.ts', { '@suzuri/editor/schema': schema })
+const { diffTextOf, plateMarkdown, canLexicalDiff, formatChangeNotice } = load('utils/plate-text.ts', { '@suzuri/editor/schema': schema })
 
 const { prepareInitialValue } = load('components/editor/plate/initial-value.ts', { '@suzuri/editor/schema': schema })
 const envelope = (children) => JSON.stringify(schema.createEnvelope({ children }))
@@ -200,5 +200,13 @@ assert.ok(usages.length >= 2, `找到写作页和译文编辑两处 PlateEditor�
 for (const [file, tag] of usages) {
   assert.ok(/onUploadImage=\{[^}]*uploadImage\}/.test(tag) && /onUploadLivePhoto=\{[^}]*uploadLivePhoto\}/.test(tag), `${file} 的 PlateEditor 要传持久上传处理器`)
 }
+
+// 迁移后的 Plate 文章还带着旧的 Lexical 草稿：恢复弹窗不能拿 Plate 信封喂给 Lexical 对比器（@haklex/rich-diff 会抛错）
+const lexicalDoc = { contentFormat: 'lexical', content: '{"root":{}}' }
+assert.equal(canLexicalDiff(lexicalDoc, lexicalDoc), true)
+assert.equal(canLexicalDiff({ contentFormat: 'plate', content: words }, lexicalDoc), false, 'Plate 对 Lexical 不走 Lexical 对比')
+assert.equal(canLexicalDiff(lexicalDoc, { contentFormat: 'lexical' }), false, '缺正文不走 Lexical 对比')
+assert.match(formatChangeNotice({ contentFormat: 'plate' }, { contentFormat: 'lexical' }), /lexical 格式/, '格式不同要提示')
+assert.equal(formatChangeNotice({ contentFormat: 'plate' }, { contentFormat: 'plate' }), null)
 
 console.log('PASS admin plate helpers: empty-envelope detection, lexical overwrite guard (re-read before every update), Markdown diff text, placeholder-link drafts reopen with the bad links downgraded, every PlateEditor uploads to persistent storage, publishing waits for uploads and switching documents cancels them, draft box current version and per-version diff formats')
