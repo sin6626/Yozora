@@ -1,3 +1,4 @@
+import { createEnvelope } from '@suzuri/editor/schema'
 import { Test } from '@nestjs/testing'
 import mongoose from 'mongoose'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -13,12 +14,14 @@ import { TranslationConsistencyService } from '~/modules/ai/ai-translation/trans
 import {
   LEXICAL_TRANSLATION_STRATEGY,
   MARKDOWN_TRANSLATION_STRATEGY,
+  PLATE_TRANSLATION_STRATEGY,
 } from '~/modules/ai/ai-translation/translation-strategy.interface'
 import { ConfigsService } from '~/modules/configs/configs.service'
 import { DatabaseService } from '~/processors/database/database.service'
 import { EventManagerService } from '~/processors/helper/helper.event.service'
 import { LexicalService } from '~/processors/helper/helper.lexical.service'
 import { TaskQueueProcessor } from '~/processors/task-queue'
+import { ContentFormat } from '~/shared/types/content-format.type'
 import { getModelToken } from '~/transformers/model.transformer'
 
 describe('AiTranslationService', () => {
@@ -29,6 +32,7 @@ describe('AiTranslationService', () => {
   let mockAiTaskService: any
   let mockTranslationConsistencyService: any
   let mockEventManager: any
+  let mockPlateStrategy: any
 
   const mockArticle = {
     id: 'article-1',
@@ -103,6 +107,7 @@ describe('AiTranslationService', () => {
 
     const mockLexicalStrategy = { translate: vi.fn() }
     const mockMarkdownStrategy = { translate: vi.fn() }
+    mockPlateStrategy = { translate: vi.fn() }
     mockTranslationConsistencyService = {
       buildValidationSelect: vi
         .fn()
@@ -164,6 +169,10 @@ describe('AiTranslationService', () => {
         {
           provide: MARKDOWN_TRANSLATION_STRATEGY,
           useValue: mockMarkdownStrategy,
+        },
+        {
+          provide: PLATE_TRANSLATION_STRATEGY,
+          useValue: mockPlateStrategy,
         },
       ],
     }).compile()
@@ -1266,6 +1275,17 @@ describe('AiTranslationService', () => {
     })
   })
 
+  describe('strategy selection', () => {
+    it('routes Plate content to the Plate strategy', () => {
+      expect((service as any).getStrategy(ContentFormat.Plate)).toBe(
+        mockPlateStrategy,
+      )
+      expect((service as any).getStrategy(ContentFormat.Markdown)).not.toBe(
+        mockPlateStrategy,
+      )
+    })
+  })
+
   describe('manual edits', () => {
     it('emits TRANSLATION_UPDATE after an edit is saved', async () => {
       const doc = { ...mockTranslation, save: vi.fn() }
@@ -1279,6 +1299,51 @@ describe('AiTranslationService', () => {
         expect.objectContaining({ id: 'trans-1', refId: 'article-1', title: 'Edited' }),
         { scope: EventScope.TO_SYSTEM_VISITOR },
       )
+    })
+
+    it('re-projects the Markdown text when a Plate translation body is edited', async () => {
+      const envelope = createEnvelope({
+        children: [
+          { type: 'heading', level: 2, children: [{ text: 'Edited heading' }] },
+        ],
+      })
+      const doc = {
+        ...mockTranslation,
+        contentFormat: ContentFormat.Plate,
+        content: '',
+        save: vi.fn(),
+      }
+      mockTranslationModel.findById.mockResolvedValue(doc)
+
+      await service.updateTranslation('trans-1', {
+        content: JSON.stringify(envelope),
+      })
+
+      expect(doc.text).toBe('## Edited heading')
+      expect(JSON.parse(doc.content).document.children[0].type).toBe('heading')
+    })
+
+    it('rejects an invalid Plate translation body', async () => {
+      const doc = {
+        ...mockTranslation,
+        contentFormat: ContentFormat.Plate,
+        save: vi.fn(),
+      }
+      mockTranslationModel.findById.mockResolvedValue(doc)
+      const envelope = createEnvelope({
+        children: [{ type: 'paragraph', children: [{ text: 'x' }] }],
+      })
+      const broken = {
+        ...envelope,
+        document: { children: [{ type: 'banner', children: [{ text: 'x' }] }] },
+      }
+
+      await expect(
+        service.updateTranslation('trans-1', {
+          content: JSON.stringify(broken),
+        }),
+      ).rejects.toThrow(/Invalid Plate content/)
+      expect(doc.save).not.toHaveBeenCalled()
     })
 
     it('emits TRANSLATION_DELETE with identifiers only after a delete', async () => {
