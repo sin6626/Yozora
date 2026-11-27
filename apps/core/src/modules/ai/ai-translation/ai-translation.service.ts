@@ -563,6 +563,11 @@ export class AiTranslationService
     targetLang: string,
     content: ArticleContent,
   ): string {
+    if (content.contentFormat === ContentFormat.Plate) {
+      return md5(JSON.stringify([
+        'translation', articleId, targetLang, ContentFormat.Plate, this.computeContentHash(content, ''),
+      ]))
+    }
     return md5(
       JSON.stringify({
         feature: 'translation',

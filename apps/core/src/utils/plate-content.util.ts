@@ -100,7 +100,11 @@ export function canonicalizePlateContentForHash(
   if (!content) return content
   try {
     const parsed = JSON.parse(content)
-    return isSuzuriEnvelope(parsed) ? JSON.stringify(parsed.document) : content
+    if (!isSuzuriEnvelope(parsed)) return content
+    return JSON.stringify(parsed.document, (_, value) => {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return value
+      return Object.fromEntries(Object.keys(value).sort().map((key) => [key, value[key]]))
+    })
   } catch {
     return content
   }

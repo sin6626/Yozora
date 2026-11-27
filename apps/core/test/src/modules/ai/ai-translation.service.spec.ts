@@ -1275,6 +1275,23 @@ describe('AiTranslationService', () => {
     })
   })
 
+  it('deduplicates restamped and reordered Plate content but tracks actual edits', () => {
+    const node = { type: 'paragraph', children: [{ text: 'same' }] }
+    const envelope = createEnvelope({ children: [node] })
+    const original = JSON.stringify(envelope)
+    const reordered = JSON.stringify({ ...envelope, document: {
+      children: [{ children: node.children, type: node.type }],
+    } })
+    const restamped = JSON.stringify({ ...envelope, schema: { ...envelope.schema, fingerprint: 'old' } })
+    const keys = (content: string, text = 'derived') => {
+      const doc = { title: 'Title', contentFormat: ContentFormat.Plate, content, text }
+      return [service.computeContentHash(doc, 'zh'), service['buildTranslationKey']('post', 'en', doc)]
+    }
+    for (const same of [restamped, reordered]) expect(keys(same, 'stale projection')).toEqual(keys(original))
+    const changed = keys(original.replace('"same"', '"changed"'))
+    keys(original).forEach((key, i) => expect(changed[i]).not.toBe(key))
+  })
+
   describe('strategy selection', () => {
     it('routes Plate content to the Plate strategy', () => {
       expect((service as any).getStrategy(ContentFormat.Plate)).toBe(
