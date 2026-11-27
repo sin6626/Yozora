@@ -145,6 +145,12 @@ assert.ok(defaults.report.warnings.some((w) => /alignment/.test(w)))
 for (const format of ['center', 'right', 'end', 'justify']) assert.equal(convert(state(aligned(format))).report.status, 'blocked', format)
 assert.equal(convert(state({ ...aligned('start'), direction: 'rtl' })).report.status, 'blocked')
 console.log('PASS default alignment dropped, real alignment still blocks')
+
+// Markdown import stores the source bullet character as node state; Suzuri lists have one marker.
+const marked = converted(state(list('bullet', [item(text('星'))], { $: { mdListMarker: '*', blockId: 'x' } })))
+assert.equal(marked.nodes[0].listType, 'bulleted')
+assert.ok(marked.report.warnings.some((w) => /mdListMarker/.test(w)))
+assert.equal(convert(state(list('bullet', [item(text('星'))], { $: { mdListMarker: '*', other: 1 } }))).report.status, 'blocked')
 console.log('PASS Lexical → Plate mappings, Core projection, path inventory and loss blocking')
 
 const cli = 'scripts/migrate-lexical-to-plate.mjs'

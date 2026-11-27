@@ -73,8 +73,10 @@ export function lexicalToPlate(lexicalJsonString) {
       if ((node.mode && node.mode !== 'normal') || (node.detail && type !== 'tab'))
         reject(node, path, 'Unsupported text behavior')
       if (node.$) {
-        if (Object.keys(node.$).some((key) => key !== 'blockId')) reject(node, path, 'Unknown Lexical node state')
+        if (Object.keys(node.$).some((key) => key !== 'blockId' && !(key === 'mdListMarker' && type === 'list')))
+          reject(node, path, 'Unknown Lexical node state')
         if (node.$.blockId) warn(path, 'Lexical blockId has no Suzuri property')
+        if (node.$.mdListMarker) warn(path, `Markdown list marker ${node.$.mdListMarker} (mdListMarker) dropped`)
       }
       if (['text', 'tab', 'code-highlight'].includes(type) && node.format != null) {
         const mask = node.format
