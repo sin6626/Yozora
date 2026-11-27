@@ -522,6 +522,7 @@ describe('DraftService with FileReference integration', () => {
       const updatedDraft = mockDrafts.find((d) => d.id === 'draft123')
       expect(updatedDraft.history.length).toBeLessThanOrEqual(100)
       expect(updatedDraft.history.some((h: any) => h.version === 1)).toBe(false)
+      expect(mockFileReferenceService.updateReferencesForDocument).toHaveBeenCalled()
       expect(updatedDraft.history[0].isFullSnapshot).toBe(true)
       expect(updatedDraft.history[0].refVersion).toBeUndefined()
       expect(updatedDraft.history[0].text).toBe('Same text')

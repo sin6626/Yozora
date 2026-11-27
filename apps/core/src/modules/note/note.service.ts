@@ -350,11 +350,6 @@ export class NoteService {
 
     // 处理草稿：标记为已发布，并关联到新创建的日记
     if (draftId) {
-      // Release draft's file references first, they will be re-associated to the note
-      await this.fileReferenceService.removeReferencesForDocument(
-        draftId,
-        FileReferenceType.Draft,
-      )
       await this.draftService.linkToPublished(draftId, note.id)
       await this.draftService.markAsPublished(draftId)
     }

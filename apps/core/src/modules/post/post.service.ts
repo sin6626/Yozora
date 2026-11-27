@@ -108,11 +108,6 @@ export class PostService implements OnApplicationBootstrap {
 
     // 处理草稿：标记为已发布，并关联到新创建的文章
     if (draftId) {
-      // Release draft's file references first, they will be re-associated to the post
-      await this.fileReferenceService.removeReferencesForDocument(
-        draftId,
-        FileReferenceType.Draft,
-      )
       await this.draftService.linkToPublished(draftId, doc.id)
       await this.draftService.markAsPublished(draftId)
     }

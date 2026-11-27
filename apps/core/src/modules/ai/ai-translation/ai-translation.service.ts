@@ -4,6 +4,8 @@ import { BizException } from '~/common/exceptions/biz.exception'
 import { BusinessEvents, EventScope } from '~/constants/business-event.constant'
 import { CollectionRefTypes } from '~/constants/db.constant'
 import { ErrorCodeEnum } from '~/constants/error-code.constant'
+import { FileReferenceService } from '~/modules/file/file-reference.service'
+import { FileReferenceType } from '~/modules/file/file-reference.model'
 import { DatabaseService } from '~/processors/database/database.service'
 import { EventManagerService } from '~/processors/helper/helper.event.service'
 import { LexicalService } from '~/processors/helper/helper.lexical.service'
@@ -70,6 +72,7 @@ export class AiTranslationService
     @InjectModel(AITranslationModel)
     private readonly aiTranslationModel: MongooseModel<AITranslationModel>,
     private readonly databaseService: DatabaseService,
+    private readonly fileReferences: FileReferenceService,
     private readonly translationConsistencyService: TranslationConsistencyService,
     private readonly configService: ConfigsService,
     private readonly aiService: AiService,
@@ -737,7 +740,7 @@ export class AiTranslationService
             `AI translation updated: article=${articleId} target=${targetLang}`,
           )
 
-          this.emitTranslationEvent(BusinessEvents.TRANSLATION_UPDATE, existing)
+          await this.afterTranslationSaved(BusinessEvents.TRANSLATION_UPDATE, existing)
 
           return { result: existing, resultId: existing.id }
         }
@@ -765,7 +768,7 @@ export class AiTranslationService
           `AI translation created: article=${articleId} target=${targetLang}`,
         )
 
-        this.emitTranslationEvent(BusinessEvents.TRANSLATION_CREATE, created)
+        await this.afterTranslationSaved(BusinessEvents.TRANSLATION_CREATE, created)
 
         return { result: created, resultId: created.id }
       },
@@ -811,10 +814,15 @@ export class AiTranslationService
     return this.runTranslationGeneration(articleId, targetLang, type, document)
   }
 
-  private emitTranslationEvent(
+  private async afterTranslationSaved(
     eventType: BusinessEvents,
     translation: AITranslationModel,
   ) {
+    await this.fileReferences.updateReferencesForDocument(
+      translation,
+      translation.id,
+      FileReferenceType.Translation,
+    )
     // `translation` can be a live Mongoose document. Its array fields may carry
     // Mongoose-specific internals that fail the gateway's `structuredClone()`.
     // Materialize `tags` into a plain array before emitting.
@@ -1096,7 +1104,7 @@ export class AiTranslationService
     }
 
     await doc.save()
-    this.emitTranslationEvent(BusinessEvents.TRANSLATION_UPDATE, doc)
+    await this.afterTranslationSaved(BusinessEvents.TRANSLATION_UPDATE, doc)
     return doc
   }
 
@@ -1106,6 +1114,7 @@ export class AiTranslationService
     if (!doc || result.deletedCount === 0) {
       throw new BizException(ErrorCodeEnum.AITranslationNotFound)
     }
+    await this.fileReferences.removeReferencesForDocument(id, FileReferenceType.Translation)
     this.eventManager.emit(
       BusinessEvents.TRANSLATION_DELETE,
       { id, refId: doc.refId, refType: doc.refType, lang: doc.lang },
@@ -1114,7 +1123,11 @@ export class AiTranslationService
   }
 
   async deleteTranslationsByRefId(refId: string) {
-    await this.aiTranslationModel.deleteMany({ refId })
+    const ids = await this.aiTranslationModel.distinct('_id', { refId })
+    await this.aiTranslationModel.deleteMany({ _id: { $in: ids } })
+    await Promise.all(ids.map(id =>
+      this.fileReferences.removeReferencesForDocument(String(id), FileReferenceType.Translation),
+    ))
   }
 
   async getTranslationForArticle(

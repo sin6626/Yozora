@@ -1,3 +1,4 @@
+import { FileReferenceService } from '~/modules/file/file-reference.service'
 import { createEnvelope } from '@suzuri/editor/schema'
 import { Test } from '@nestjs/testing'
 import mongoose from 'mongoose'
@@ -126,6 +127,7 @@ describe('AiTranslationService', () => {
     const module = await Test.createTestingModule({
       providers: [
         AiTranslationService,
+        { provide: FileReferenceService, useValue: { updateReferencesForDocument: vi.fn(), removeReferencesForDocument: vi.fn() } },
         {
           provide: getModelToken(AITranslationModel.name),
           useValue: mockTranslationModel,
@@ -475,8 +477,8 @@ describe('AiTranslationService', () => {
     })
   })
 
-  describe('emitTranslationEvent', () => {
-    it('emits a structured-cloneable payload for mongoose translation documents', () => {
+  describe('afterTranslationSaved', () => {
+    it('emits a structured-cloneable payload for mongoose translation documents', async () => {
       const modelName = `TmpAiTranslation_${crypto.randomUUID()}`
       const TranslationModel = mongoose.model(
         modelName,
@@ -509,7 +511,7 @@ describe('AiTranslationService', () => {
         aiProvider: 'openai',
       })
 
-      ;(service as any).emitTranslationEvent(
+      await (service as any).afterTranslationSaved(
         BusinessEvents.TRANSLATION_CREATE,
         translation,
       )

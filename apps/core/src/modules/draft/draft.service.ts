@@ -84,6 +84,7 @@ export class DraftService {
       dto,
     )
 
+    let historyTrimmed = false
     if (hasContentChange && (draft.title || draft.text || draft.content)) {
       const { history } = this.draftHistoryService.pushHistoryEntry(
         {
@@ -97,6 +98,7 @@ export class DraftService {
         },
         draft.history,
       )
+      historyTrimmed = history.length <= draft.history.length
       draft.history = history
     }
 
@@ -119,7 +121,8 @@ export class DraftService {
     if (
       dto.text !== undefined ||
       dto.content !== undefined ||
-      dto.contentFormat !== undefined
+      dto.contentFormat !== undefined ||
+      historyTrimmed
     ) {
       await this.fileReferenceService.updateReferencesForDocument(
         draft,

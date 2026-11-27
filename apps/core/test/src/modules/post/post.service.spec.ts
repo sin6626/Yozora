@@ -437,7 +437,7 @@ describe('PostService', () => {
 
       expect(
         mockFileReferenceService.removeReferencesForDocument,
-      ).toHaveBeenCalled()
+      ).not.toHaveBeenCalled()
       expect(mockDraftService.linkToPublished).toHaveBeenCalledWith(
         'draft-123',
         expect.any(String),
