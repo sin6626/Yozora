@@ -141,3 +141,15 @@ tarball 已在 `/Users/sin/.orca/bots/x/scratch/suzuri-packs/suzuri-editor-0.1.0
 - **检查**：`scripts/verify-admin-plate.mjs`（并入 `pnpm verify`）：空信封判断、键顺序不同不算改动、护栏的各种格式组合、派生 Markdown。
 - **隔离测试栈实测**（`--test --with-admin`，无头浏览器；测试库的图床指向本机临时的极简 S3，跑完已删）：新版样式表对写作页 539 个非编辑器元素 0 处变化（页头 `px-8` 照旧）；新建 Plate 文章：`## ` 快捷标题、行内代码与 `**粗体**` 自动格式、撤销重做、斜杠菜单插入代码块 / 提示框 / 公式 / 表格、粘贴图片经真实 Core 接口上传；⌘S 存草稿后整页刷新，恢复弹窗出现，块结构、标题、slug 与刷新前完全一致；发布后 Core 存 `plate` 信封、`text` 是 Markdown，前台文章页用 SuzuriContent 渲染出标题 id、目录、代码框、行内代码、粗体、提示框、表格和上传的图片，控制台无报错；旧 Lexical 文章打开是 Haklex + 提示，没有切换按钮，发布后格式仍是 `lexical`、正文一字未变。手记写作页正文为思源宋体、加粗为无衬线。
 - **待确认 / 新发现**：① ego-browser 打开后台时弹出浏览器通知权限请求，任务空间转给用户处理，真实 Chrome 里的验收还没做；② 无头浏览器里用 CDP 模拟中文输入法（composition 结束提交）时文字被 Suzuri 编辑器丢掉（阶段 0 在真实 Chrome 里同样的步骤是好的），需要在真实 Chrome 里复核，若仍复现要报给 Suzuri；③ Suzuri 把带尺寸的图片投影成 `<img … naturalWidth="480">` HTML 而不是 Markdown 图片语法，前台不受影响，但 RSS / 搜索里的 text 会带这段 HTML。
+
+## 11. 阶段 4：Lexical → Plate 转换器
+
+在仓库根目录运行以下命令，可只读检查隔离库中的文章、手记、页面、AI 译文、草稿和草稿历史全量快照。
+
+```sh
+node scripts/migrate-lexical-to-plate.mjs --mongo mongodb://127.0.0.1:27029 --db sinpersonalspace-verify --report .local/plate-migration
+```
+
+默认试运行。终端逐项打印结果，报告目录保存带时间戳的 JSON 和 Markdown，列出节点计数、阻塞路径、警告和新旧 Markdown 的首处差异。核对后，同一命令加 `--write` 才写库。写入前先保存 `backup-<timestamp>.json`，其中按集合和 BSON ID 记录原字段，草稿含完整历史。备份后原字段发生变化会停止，报告标出已写、冲突和待写项。数据库地址和名称必须显式给出，其他库名还需传入完全相同的 `--allow-db <名称>`。
+
+转换保留可表达的格式。标签面板拆成四级标题和正文，原生制表符保留为制表符，链接卡片保留链接和介绍。上下标、未支持的节点、含列表等块结构的图注或提示框，以及未通过 Suzuri 校验的正文均保留 Lexical。提示框中的普通段落以空行分隔，表头方向归一为表头标记。差量和引用历史保留原样，它们依赖的全量快照也会标为阻塞，以便旧版本仍可恢复。离线检查运行 `node scripts/verify-migrate-lexical-to-plate.mjs`，已纳入 `pnpm verify`。
