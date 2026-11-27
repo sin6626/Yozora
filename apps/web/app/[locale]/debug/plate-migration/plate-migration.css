@@ -42,4 +42,5 @@
 @media (max-width: 64rem) {
   .plate-migration { width: auto; margin-inline: 0; }
   .plate-migration-columns { grid-template-columns: minmax(0, 1fr); }
+  .plate-migration-side { position: static; }
 }
