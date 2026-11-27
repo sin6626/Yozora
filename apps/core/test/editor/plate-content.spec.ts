@@ -94,6 +94,21 @@ describe('Plate content (Core side of @suzuri/editor)', () => {
       expect(doc.content).toBe(content)
     })
 
+    it('rejects temporary media on publish and retains it in editable drafts', () => {
+      for (const [url, temporary] of [
+        [image, 'data:image/png;base64,AA=='],
+        [cover, 'blob:https://blog.example/cover'],
+        [clip, 'data:video/mp4;base64,AA=='],
+      ]) {
+        const doc = { contentFormat: ContentFormat.Plate, content: mediaDoc.replace(url, temporary) }
+        expect(() => service.populateText(doc)).toThrow(BadRequestException)
+        expect(service.populateDraftText(doc)).toBe(true)
+      }
+      expect(() => service.populateText({ contentFormat: ContentFormat.Plate,
+        content: withLink('blob:https://blog.example/link') })).toThrow(BadRequestException)
+      expect(projectPlateContent(mediaDoc.replace(clip, '/objects/file/clip.mp4')).text).toContain('/objects/file/')
+    })
+
     it('projects the full sample, including the live photo', () => {
       const doc = {
         contentFormat: ContentFormat.Plate,

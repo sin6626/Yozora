@@ -1323,6 +1323,16 @@ describe('AiTranslationService', () => {
       expect(JSON.parse(doc.content).document.children[0].type).toBe('heading')
     })
 
+    it('rejects temporary media before saving a Plate translation', async () => {
+      const doc = { ...mockTranslation, contentFormat: ContentFormat.Plate, save: vi.fn() }
+      mockTranslationModel.findById.mockResolvedValue(doc)
+      const content = JSON.stringify(createEnvelope({
+        children: [{ type: 'image', url: 'blob:https://blog.example/photo', children: [{ text: '' }] }],
+      }))
+      await expect(service.updateTranslation('trans-1', { content })).rejects.toThrow()
+      expect(doc.save).not.toHaveBeenCalled()
+    })
+
     it('rejects an invalid Plate translation body', async () => {
       const doc = {
         ...mockTranslation,
