@@ -38,7 +38,7 @@ const plate = (codeFrame) => load('plate-content.tsx', {
   '@suzuri/editor/schema': schema,
   '@suzuri/editor/static': staticEntry,
   '../lib/i18n/server': i18nServer(ts),
-  './code-frame': { default: codeFrame },
+  './code-frame': { default: codeFrame, canHighlight: () => false, highlight: async () => '' },
   './image-lightbox': { default: ({ children }) => h('div', null, children) },
   './render-fallback': { default: RenderFallback },
   './plate-live-photo': { default: LivePhoto },
@@ -67,8 +67,8 @@ const server = await ssr(await page(plate(Boom)))
 assert.deepEqual(server.errors, ['server boom'], '错误照常上报（Next 会记日志）')
 assert.ok(server.html.includes('文章标题') && server.html.includes('文末'), '正文外面的内容还在 HTML 里')
 assert.equal(server.html.includes('外层读取中'), false, '不会整段换成外层的读取中')
-assert.ok(server.html.includes('Markdown 兜底'), '正文换成服务端渲染好的 Markdown')
 assert.equal(server.html.includes('Plate 标题'), false)
+assert.equal(server.html.includes('Markdown 兜底'), false, '占位是空的（正常流式时不会先露出 Markdown），出错的正文由浏览器接手后换成 Markdown（见②）')
 
 // 正常时照常是 Plate 正文
 const fine = await ssr(await page(plate(({ code }) => h('pre', null, code))))

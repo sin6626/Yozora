@@ -83,6 +83,11 @@ try {
   })).insertedId);
   const postUrl = (slug) => `${base}/posts/${category.slug}/${slug}`;
 
+  // 正文不能先闪一下 Markdown 兜底再换成 Plate：服务端直接给出的 HTML 里只有 Plate 正文，没有单独的 Markdown 正文块
+  const firstHtml = await (await fetch(postUrl(slugs[0]))).text();
+  assert.ok(firstHtml.includes("article-body article-plate"), "服务端 HTML 里有 Plate 正文");
+  assert.equal(firstHtml.includes('class="article-body"'), false, "服务端 HTML 里不能先出 Markdown 兜底（会闪一下）");
+
   browser = await openBrowser({ port: 9493 });
   await browser.setViewport(1920, 991);
   await browser.goto(postUrl(slugs[0]), 4000);
