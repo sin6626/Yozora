@@ -105,6 +105,10 @@ try {
       katex: document.querySelectorAll(".article-plate .katex").length,
       katexFont: style(document.querySelector(".article-plate .katex"))?.fontFamily,
       tones,
+      labels: [...root.querySelectorAll(".plate-callout")].map((el) => [el.dataset.tone, el.querySelector(".plate-callout-label")?.innerText]),
+      inline: [...root.querySelectorAll(".editor-paragraph")].filter((el) => el.querySelector("a, .katex")).map((el) => el.innerText),
+      hasLink: Boolean(root.querySelector(".editor-paragraph a")),
+      hasInlineMath: Boolean(root.querySelector(".editor-paragraph .katex")),
       imageWidth: img?.closest("figure")?.querySelector(":scope > div")?.style.width,
       live: Boolean(document.querySelector(".plate-live video")),
       tableHeight: document.querySelector(".article-plate .editor-table table")?.getBoundingClientRect().height ?? 0,
@@ -118,6 +122,9 @@ try {
   assert.ok(page.shiki && page.copy, "代码块是站内 Shiki 高亮加复制按钮");
   assert.ok(page.katex >= 2 && page.katexFont.includes("KaTeX"), "行内与块级公式用 KaTeX 字体");
   assert.ok(page.tones.warning && page.tones.tip && page.tones.warning !== page.tones.tip, "不同语气的提示框颜色不同");
+  assert.ok(page.hasLink && page.hasInlineMath, "检查正文中的行内链接与行内公式");
+  assert.ok(page.inline.every((text) => !text.includes("\uFEFF")), "链接/公式所在段落的 innerText 不含 U+FEFF");
+  for (const [tone, label] of page.labels) assert.equal(label, (tone || "note").toUpperCase());
   assert.equal(page.imageWidth, "78%", "图片保留调过的宽度");
   assert.ok(page.live, "实况图有短片");
   assert.ok(page.tableHeight > 100, `表格要撑开、看得见（现在 ${page.tableHeight}px 高）`);
@@ -199,6 +206,19 @@ try {
   assert.ok(await waitFor(browser, `document.getElementById("markdown-标题")?.checkVisibility() === true`, 60000), "Markdown 文章照旧");
   await browser.goto(postUrl(slugs[3]), 4000);
   assert.ok(await waitFor(browser, `Boolean(document.querySelector(".article-rich .rich-content h2")?.checkVisibility())`, 60000), "Lexical 文章照旧走 Haklex");
+
+  await browser.goto(base + "/debug/plate-migration?sample=1");
+  assert.ok(await waitFor(browser, `document.querySelector('[data-side="lexical"] .rich-content')
+    && document.querySelector('[data-side="plate"] .plate-callout-label')?.innerText === "NOTE"`),
+    "示例应从同一份 Lexical 原稿渲染出新旧两栏");
+  const preview = await browser.evaluate(`(() => {
+    const root = document.querySelector('[data-side="plate"] .suzuri-root');
+    return { labels: [...root.querySelectorAll(".plate-callout-label")].map((el) => el.innerText),
+      complete: ["a", ".katex", ".plate-zoom img", "table", ".code-frame", ".plate-live video"].every((s) => root.querySelector(s)),
+      text: root.innerText };
+  })()`);
+  assert.deepEqual(preview.labels, ["NOTE", "TIP", "WARNING"]);
+  assert.ok(preview.complete && !preview.text.includes("\uFEFF"));
 
   const errors = browser.errors.filter((e) => !/fn\/ps\/update|security vulnerability|Download the React DevTools/.test(e));
   assert.deepEqual(errors, [], "控制台没有报错和水合警告");

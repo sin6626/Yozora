@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { validateDocument } from "@suzuri/editor/schema";
 import ArticleBody from "@/components/article-body";
 import { coreFetch } from "@/lib/api";
+import { sample } from "./sample";
 import "./plate-migration.css";
 
 // 迁移预演：左边用 Haklex 渲染库里的 Lexical 正文，右边用 Suzuri 渲染离线转换器（scripts/lib/lexical-to-plate.mjs）
@@ -97,8 +98,7 @@ function ReportView({ report, valid }: { report: Report; valid: string | null })
   );
 }
 
-async function Compare({ kind, id }: { kind: Kind; id: string }) {
-  const doc = await load(kind, id);
+async function Compare({ kind, doc }: { kind: Kind; doc: Omit<Doc, "id"> }) {
   const variant = kind === "note" ? "note" : "article";
   const empty = "（没有正文）";
   if (doc.content_format !== "lexical" || !doc.content) {
@@ -133,15 +133,16 @@ async function Compare({ kind, id }: { kind: Kind; id: string }) {
   );
 }
 
-async function Preview({ searchParams }: { searchParams: Promise<{ type?: string; id?: string }> }) {
+async function Preview({ searchParams }: { searchParams: Promise<{ type?: string; id?: string; sample?: string }> }) {
   await connection();
-  const { type, id } = await searchParams;
-  if (!id) return <><h1>Lexical → Plate 迁移预演</h1><Index /></>;
+  const { type, id, sample: showSample } = await searchParams;
+  if (showSample === "1") return <><p><a href="?">← 全部</a></p><Compare kind="post" doc={sample} /></>;
+  if (!id) return <><h1>Lexical → Plate 迁移预演</h1><p><a href="?sample=1">查看迁移示例：给实况照片保留一张封面</a></p><Index /></>;
   if (!kinds.includes(type as Kind)) notFound();
-  return <><p><a href="?">← 全部</a></p><Compare kind={type as Kind} id={id} /></>;
+  return <><p><a href="?">← 全部</a></p><Compare kind={type as Kind} doc={await load(type as Kind, id)} /></>;
 }
 
-export default function PlateMigrationPreview({ searchParams }: { searchParams: Promise<{ type?: string; id?: string }> }) {
+export default function PlateMigrationPreview({ searchParams }: { searchParams: Promise<{ type?: string; id?: string; sample?: string }> }) {
   if (process.env.NODE_ENV === "production") notFound();
   return (
     <main className="plate-migration">
