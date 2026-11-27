@@ -1078,15 +1078,14 @@ export class AiTranslationService
     if (data.summary !== undefined) doc.summary = data.summary
     if (data.tags !== undefined) doc.tags = data.tags
 
-    if (data.content !== undefined) {
-      if (doc.contentFormat === ContentFormat.Plate) {
-        const projected = projectPlateContent(data.content)
-        doc.content = projected.content
-        doc.text = projected.text
-      } else {
-        doc.content = data.content
-        doc.text = this.lexicalService.lexicalToMarkdown(data.content)
-      }
+    if (doc.contentFormat === ContentFormat.Plate &&
+      (data.content !== undefined || data.text !== undefined)) {
+      const projected = projectPlateContent(data.content ?? doc.content ?? '')
+      doc.content = projected.content
+      doc.text = projected.text
+    } else if (data.content !== undefined) {
+      doc.content = data.content
+      doc.text = this.lexicalService.lexicalToMarkdown(data.content)
     } else if (data.text !== undefined) {
       doc.text = data.text
     }

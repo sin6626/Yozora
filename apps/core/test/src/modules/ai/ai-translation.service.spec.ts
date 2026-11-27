@@ -1323,6 +1323,17 @@ describe('AiTranslationService', () => {
       expect(JSON.parse(doc.content).document.children[0].type).toBe('heading')
     })
 
+    it('derives a text-only Plate edit from the stored envelope and saves metadata', async () => {
+      const content = JSON.stringify(createEnvelope({
+        children: [{ type: 'paragraph', children: [{ text: 'Stored body' }] }],
+      }))
+      const doc = { ...mockTranslation, contentFormat: ContentFormat.Plate, content, save: vi.fn() }
+      mockTranslationModel.findById.mockResolvedValue(doc)
+      await service.updateTranslation('trans-1', { title: 'Edited', text: 'Untrusted body' })
+      expect(doc).toMatchObject({ title: 'Edited', text: 'Stored body', content })
+      expect(doc.save).toHaveBeenCalledOnce()
+    })
+
     it('rejects temporary media before saving a Plate translation', async () => {
       const doc = { ...mockTranslation, contentFormat: ContentFormat.Plate, save: vi.fn() }
       mockTranslationModel.findById.mockResolvedValue(doc)
