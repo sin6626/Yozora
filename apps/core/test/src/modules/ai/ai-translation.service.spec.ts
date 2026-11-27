@@ -1,3 +1,4 @@
+import { FileReferenceService } from '~/modules/file/file-reference.service'
 import { createEnvelope } from '@suzuri/editor/schema'
 import { Test } from '@nestjs/testing'
 import mongoose from 'mongoose'
@@ -126,6 +127,7 @@ describe('AiTranslationService', () => {
     const module = await Test.createTestingModule({
       providers: [
         AiTranslationService,
+        { provide: FileReferenceService, useValue: { updateReferencesForDocument: vi.fn(), removeReferencesForDocument: vi.fn() } },
         {
           provide: getModelToken(AITranslationModel.name),
           useValue: mockTranslationModel,
@@ -475,8 +477,8 @@ describe('AiTranslationService', () => {
     })
   })
 
-  describe('emitTranslationEvent', () => {
-    it('emits a structured-cloneable payload for mongoose translation documents', () => {
+  describe('afterTranslationSaved', () => {
+    it('emits a structured-cloneable payload for mongoose translation documents', async () => {
       const modelName = `TmpAiTranslation_${crypto.randomUUID()}`
       const TranslationModel = mongoose.model(
         modelName,
@@ -509,7 +511,7 @@ describe('AiTranslationService', () => {
         aiProvider: 'openai',
       })
 
-      ;(service as any).emitTranslationEvent(
+      await (service as any).afterTranslationSaved(
         BusinessEvents.TRANSLATION_CREATE,
         translation,
       )
@@ -1275,6 +1277,23 @@ describe('AiTranslationService', () => {
     })
   })
 
+  it('deduplicates restamped and reordered Plate content but tracks actual edits', () => {
+    const node = { type: 'paragraph', children: [{ text: 'same' }] }
+    const envelope = createEnvelope({ children: [node] })
+    const original = JSON.stringify(envelope)
+    const reordered = JSON.stringify({ ...envelope, document: {
+      children: [{ children: node.children, type: node.type }],
+    } })
+    const restamped = JSON.stringify({ ...envelope, schema: { ...envelope.schema, fingerprint: 'old' } })
+    const keys = (content: string, text = 'derived') => {
+      const doc = { title: 'Title', contentFormat: ContentFormat.Plate, content, text }
+      return [service.computeContentHash(doc, 'zh'), service['buildTranslationKey']('post', 'en', doc)]
+    }
+    for (const same of [restamped, reordered]) expect(keys(same, 'stale projection')).toEqual(keys(original))
+    const changed = keys(original.replace('"same"', '"changed"'))
+    keys(original).forEach((key, i) => expect(changed[i]).not.toBe(key))
+  })
+
   describe('strategy selection', () => {
     it('routes Plate content to the Plate strategy', () => {
       expect((service as any).getStrategy(ContentFormat.Plate)).toBe(
@@ -1321,6 +1340,27 @@ describe('AiTranslationService', () => {
 
       expect(doc.text).toBe('## Edited heading')
       expect(JSON.parse(doc.content).document.children[0].type).toBe('heading')
+    })
+
+    it('derives a text-only Plate edit from the stored envelope and saves metadata', async () => {
+      const content = JSON.stringify(createEnvelope({
+        children: [{ type: 'paragraph', children: [{ text: 'Stored body' }] }],
+      }))
+      const doc = { ...mockTranslation, contentFormat: ContentFormat.Plate, content, save: vi.fn() }
+      mockTranslationModel.findById.mockResolvedValue(doc)
+      await service.updateTranslation('trans-1', { title: 'Edited', text: 'Untrusted body' })
+      expect(doc).toMatchObject({ title: 'Edited', text: 'Stored body', content })
+      expect(doc.save).toHaveBeenCalledOnce()
+    })
+
+    it('rejects temporary media before saving a Plate translation', async () => {
+      const doc = { ...mockTranslation, contentFormat: ContentFormat.Plate, save: vi.fn() }
+      mockTranslationModel.findById.mockResolvedValue(doc)
+      const content = JSON.stringify(createEnvelope({
+        children: [{ type: 'image', url: 'blob:https://blog.example/photo', children: [{ text: '' }] }],
+      }))
+      await expect(service.updateTranslation('trans-1', { content })).rejects.toThrow()
+      expect(doc.save).not.toHaveBeenCalled()
     })
 
     it('rejects an invalid Plate translation body', async () => {

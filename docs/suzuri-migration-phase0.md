@@ -115,7 +115,8 @@ tarball 已在 `/Users/sin/.orca/bots/x/scratch/suzuri-packs/suzuri-editor-0.1.0
 
 - **格式**：`ContentFormat.Plate = 'plate'`，`CONTENT_FORMATS` 与 `isRichContentFormat()`（Lexical 或 Plate，正文以 `content` 为准、`text` 由它派生）在 `shared/types/content-format.type.ts`。文章、手记、页面、草稿、Markdown 预览的写入 schema 都改用 `CONTENT_FORMATS`；`prefer` 收 `'lexical' | 'plate'`，只有和文档格式一致时才去掉 `text`。
 - **校验与 text**：`utils/plate-content.util.ts`。`content` 必须是 Suzuri 信封（默认 schema `suzuri` v1），`validateDocument(..., { requireEnvelope: true, fingerprintPolicy: 'restamp' })`，不合法 400 `Invalid Plate content: …`；只有指纹漂移时存回重新盖章的信封，否则原样保存；`text` = `toMarkdown`。入口仍是 `LexicalService.populateText / populateDraftText`（文章、手记、页面、草稿、Markdown 预览都经过它），按格式分到 Plate。草稿宽松规则同 Lexical：内容是信封但校验不过（例如刚插入的 `https://` 占位链接）时照存，`text` 保留上一次的。
-- **媒体引用**：`extractImagesFromContent` 对 Plate 用 `collectMedia`，图片、实况图封面和视频地址都登记，孤儿清理不会误删。
+- 普通发布接口按目标当前存储的格式检查。已有非空 Lexical 正文的文章、手记和页面必须先离线迁移。草稿自身可以切换格式并保留历史；从草稿发布到已有文档时，同样检查目标。
+- **媒体引用**：Plate 通过 `collectMedia` 提取图片、实况封面和短片地址。已登记的上传文件按使用方保存引用，可恢复的草稿历史和正式译文都占用文件。旧记录在更新时保留原使用方；有孤儿候选时，清理会逐篇核对持久化正文、补回遗漏引用，并在调用存储删除前再查一次使用方。
 - **其他分支**：凡是“非 Markdown 就不从 `text` 读图片尺寸”的地方改用 `isRichContent`；草稿历史对 Plate 和 Lexical 一样存 `content`、用 JSON diff；Core 自带 RSS 对 Plate 和 Lexical 一样提示去原站；内容哈希只算 `document`（重新盖章不算改动）；锚点评论仍只支持 Lexical，Plate 和 Markdown 一样拒绝。`json-transform`、聚合、访客推送只是透传 `contentFormat`，不用改。
 - **AI 翻译**：`strategies/plate-translation.strategy.ts`（`PLATE_TRANSLATION_STRATEGY`），按文字叶子抽取（跳过代码块、公式、行内代码），复用移到 `BaseTranslationStrategy` 的 `translateChunkedEntries`，`applyTranslatedSegments(..., { fingerprintPolicy: 'restamp' })` 写回后再走一遍校验与 Markdown 投影；没有增量翻译。后台手改 Plate 译文时按 Plate 重新投影。
 - **SDK**：`TextBaseModelPlate`、`ContentPreference`，`getPost/getBySlug/getNoteByNid` 的 `prefer` 用它。

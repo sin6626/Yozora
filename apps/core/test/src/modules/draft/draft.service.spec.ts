@@ -50,6 +50,7 @@ describe('DraftService with FileReference integration', () => {
         if (draft) {
           draft.save = vi.fn().mockImplementation(async () => draft)
           draft.toObject = () => ({ ...draft })
+          draft.lean = draft.toObject
           return draft
         }
         return null
@@ -521,6 +522,7 @@ describe('DraftService with FileReference integration', () => {
       const updatedDraft = mockDrafts.find((d) => d.id === 'draft123')
       expect(updatedDraft.history.length).toBeLessThanOrEqual(100)
       expect(updatedDraft.history.some((h: any) => h.version === 1)).toBe(false)
+      expect(mockFileReferenceService.updateReferencesForDocument).toHaveBeenCalled()
       expect(updatedDraft.history[0].isFullSnapshot).toBe(true)
       expect(updatedDraft.history[0].refVersion).toBeUndefined()
       expect(updatedDraft.history[0].text).toBe('Same text')
@@ -974,6 +976,29 @@ describe('DraftService with FileReference integration', () => {
       expect(saved.history[0].isFullSnapshot).toBe(true)
       expect(saved.history[0].content).toBe(first)
       expect(saved.history[0].contentFormat).toBe(ContentFormat.Plate)
+    })
+
+    it('refuses to restore a historical reference missing its Plate body', async () => {
+      const id = 'missing-body'
+      mockDrafts.push(plateDraft(id, makePlate('C'), { version: 3, history: [
+        { version: 2, contentFormat: ContentFormat.Plate, isFullSnapshot: false, refVersion: 1 },
+        { version: 1, contentFormat: ContentFormat.Plate, isFullSnapshot: true },
+      ] }))
+      await expect(draftService.restoreVersion(id, 2)).rejects.toThrow(/restore/i)
+      expect(mockDrafts[0].version).toBe(3)
+    })
+
+    it('reads and restores B after switching from Markdown A to Plate B then C', async () => {
+      const id = 'mixed-history'
+      const b = makePlate('B')
+      mockDrafts.push({ ...plateDraft(id, ''), text: 'A', content: undefined, contentFormat: ContentFormat.Markdown })
+      await draftService.update(id, { contentFormat: ContentFormat.Plate, content: b })
+      await draftService.update(id, { content: makePlate('C') })
+      expect((await draftService.getHistoryVersion(id, 2)).content).toBe(b)
+      expect((await draftService.restoreVersion(id, 2)).text).toBe('B')
+      const restoredA = await draftService.restoreVersion(id, 1)
+      expect(restoredA).toMatchObject({ text: 'A', contentFormat: ContentFormat.Markdown })
+      expect(restoredA.content).toBeUndefined()
     })
 
     it('restores a Plate version from history', async () => {

@@ -36,6 +36,16 @@ export function isPlateEnvelope(content: string | undefined): boolean {
   }
 }
 
+// Links and other URL properties can live outside the media nodes collected by Suzuri.
+function hasBlobUrl(value: unknown): boolean {
+  if (!value || typeof value !== 'object') return false
+  return Object.entries(value).some(([key, child]) =>
+    typeof child === 'string'
+      ? /(?:url|src|href|poster)$/i.test(key) && /^blob:/i.test(child.trimStart())
+      : hasBlobUrl(child),
+  )
+}
+
 /**
  * Validates a Plate envelope and projects it to Markdown.
  * Returns the content to store (restamped when the fingerprint drifted) and the derived text.
@@ -45,6 +55,16 @@ export function projectPlateContent(content: string): {
   text: string
 } {
   const { envelope, restamped } = parseEnvelope(content)
+  if (hasBlobUrl(envelope.document)) {
+    throw new BadRequestException('Invalid Plate content: blob URLs cannot be published')
+  }
+  for (const ref of collectMedia(envelope)) {
+    for (const url of [ref.url, ref.extra?.videoUrl]) {
+      if (typeof url === 'string' && /^(blob|data):/i.test(url.trimStart())) {
+        throw new BadRequestException('Invalid Plate content: media needs a persistent URL')
+      }
+    }
+  }
   const markdown = toMarkdown(envelope)
   if (!markdown.ok) {
     throw new BadRequestException(
@@ -80,7 +100,11 @@ export function canonicalizePlateContentForHash(
   if (!content) return content
   try {
     const parsed = JSON.parse(content)
-    return isSuzuriEnvelope(parsed) ? JSON.stringify(parsed.document) : content
+    if (!isSuzuriEnvelope(parsed)) return content
+    return JSON.stringify(parsed.document, (_, value) => {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return value
+      return Object.fromEntries(Object.keys(value).sort().map((key) => [key, value[key]]))
+    })
   } catch {
     return content
   }

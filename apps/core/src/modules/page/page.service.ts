@@ -61,11 +61,6 @@ export class PageService {
 
     // 处理草稿：标记为已发布，并关联到新创建的页面
     if (draftId) {
-      // Release draft's file references first, they will be re-associated to the page
-      await this.fileReferenceService.removeReferencesForDocument(
-        draftId,
-        FileReferenceType.Draft,
-      )
       await this.draftService.linkToPublished(draftId, res.id)
       await this.draftService.markAsPublished(draftId)
     }

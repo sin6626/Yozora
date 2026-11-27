@@ -1,3 +1,4 @@
+import { FileReferenceService } from '~/modules/file/file-reference.service'
 import { Test } from '@nestjs/testing'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -156,6 +157,7 @@ describe('translateLexicalContent (real-world data)', () => {
     const module = await Test.createTestingModule({
       providers: [
         AiTranslationService,
+        { provide: FileReferenceService, useValue: { updateReferencesForDocument: vi.fn(), removeReferencesForDocument: vi.fn() } },
         {
           provide: getModelToken(AITranslationModel.name),
           useValue: {
@@ -649,6 +651,7 @@ describe('incremental translation', () => {
     const module = await Test.createTestingModule({
       providers: [
         AiTranslationService,
+        { provide: FileReferenceService, useValue: { updateReferencesForDocument: vi.fn(), removeReferencesForDocument: vi.fn() } },
         {
           provide: getModelToken(AITranslationModel.name),
           useValue: {

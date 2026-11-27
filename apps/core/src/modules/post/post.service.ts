@@ -1,6 +1,6 @@
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
-import { debounce, omit } from 'es-toolkit/compat'
+import { omit } from 'es-toolkit/compat'
 import type { AggregatePaginateModel, Document } from 'mongoose'
 import { Types } from 'mongoose'
 import slugify from 'slugify'
@@ -108,11 +108,6 @@ export class PostService implements OnApplicationBootstrap {
 
     // 处理草稿：标记为已发布，并关联到新创建的文章
     if (draftId) {
-      // Release draft's file references first, they will be re-associated to the post
-      await this.fileReferenceService.removeReferencesForDocument(
-        draftId,
-        FileReferenceType.Draft,
-      )
       await this.draftService.linkToPublished(draftId, doc.id)
       await this.draftService.markAsPublished(draftId)
     }
@@ -329,50 +324,44 @@ export class PostService implements OnApplicationBootstrap {
     return oldDocument.toObject()
   }
 
-  afterUpdatePost = debounce(
-    async (id: string) => {
-      const doc = await this.postModel
-        .findById(id)
-        .populate('related', 'title slug category categoryId id _id')
-        .lean({ getters: true, autopopulate: true })
+  private async afterUpdatePost(id: string) {
+    const doc = await this.postModel
+      .findById(id)
+      .populate('related', 'title slug category categoryId id _id')
+      .lean({ getters: true, autopopulate: true })
 
-      // Update file references
-      if (doc) {
-        await this.fileReferenceService.updateReferencesForDocument(
-          doc,
-          doc.id,
-          FileReferenceType.Post,
-        )
-      }
+    // Update file references
+    if (doc) {
+      await this.fileReferenceService.updateReferencesForDocument(
+        doc,
+        doc.id,
+        FileReferenceType.Post,
+      )
+    }
 
-      await Promise.all([
-        this.eventManager.emit(EventBusEvents.CleanAggregateCache, null, {
-          scope: EventScope.TO_SYSTEM,
-        }),
-        doc?.text &&
-          !isRichContent(doc) &&
-          this.imageService.saveImageDimensionsFromMarkdownText(
-            doc.text,
-            doc.images,
-            (images) => {
-              return this.postModel.updateOne({ _id: id }, { $set: { images } })
-            },
-          ),
-        doc &&
-          this.eventManager.emit(
-            BusinessEvents.POST_UPDATE,
-            { id: doc.id },
-            {
-              scope: EventScope.TO_SYSTEM_VISITOR,
-            },
-          ),
-      ])
-    },
-    1000,
-    {
-      leading: false,
-    },
-  )
+    await Promise.all([
+      this.eventManager.emit(EventBusEvents.CleanAggregateCache, null, {
+        scope: EventScope.TO_SYSTEM,
+      }),
+      doc?.text &&
+        !isRichContent(doc) &&
+        this.imageService.saveImageDimensionsFromMarkdownText(
+          doc.text,
+          doc.images,
+          (images) => {
+            return this.postModel.updateOne({ _id: id }, { $set: { images } })
+          },
+        ),
+      doc &&
+        this.eventManager.emit(
+          BusinessEvents.POST_UPDATE,
+          { id: doc.id },
+          {
+            scope: EventScope.TO_SYSTEM_VISITOR,
+          },
+        ),
+    ])
+  }
 
   async deletePost(id: string) {
     const deletedPost = await this.postModel.findById(id).lean()
