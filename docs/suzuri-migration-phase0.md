@@ -167,3 +167,12 @@ node scripts/migrate-lexical-to-plate.mjs --mongo mongodb://127.0.0.1:27029 --db
 - **P1-6** 草稿箱版本列表第一项是草稿本身（`draft-versions.ts` 的 `buildVersionList`），最新的历史版本也能恢复；每个版本保留自己的格式，对比时各自投影（两边都是 Lexical 才用富文本对比）。
 - **P2-3** 服务端渲染不认错误边界：Plate 正文里的子组件渲染时抛错会冒出 `RenderFallback`，把整段详情换成外层 Suspense 的读取中。`RenderFallback` 加了一层以 Markdown 兜底为 fallback 的 Suspense（代价：正文流式送达期间也先显示这份 Markdown）。`verify-render-fallback.mjs` 用真实边界跑流式 SSR 的服务端子组件异常、浏览器接手、仅浏览器的 Client Component 异常。
 - **安装坑**：这次 `pnpm install --frozen-lockfile` 又把 Haklex 的 rich-editor / rich-renderer-image 补丁打了两遍（`Duplicated export 'restoreBlockIds'`，后台 build 失败），按第 10 节的 `--config.side-effects-cache=false` 重装或从正常的 worktree 换回那几个 dist 文件即可。
+
+## 13. 阶段 4 收口：多 Agent 编排结果与待定事项（2026-11-27）
+
+- **分工**：A（Codex gpt-6.2-astra）离线转换器 → `7187628`；B（Codex gpt-6.2-astra）阶段 1–3 只读审查，报告 `.local/reviews/phase1-3-review.md`（P0 5 / P1 7 / P2 4）；D（Codex gpt-6.2-astra）Core 八项修复 → `d6441cb`，报告 `.local/reviews/core-fixes-report.md`；E（Claude Opus 5.5）后台 / 前台 / 脚本八项修复 → `ae7424b`；C（Claude Opus 5.5）真实内容试迁移彩排 + `/debug/plate-migration` 新旧并排预览 → 合入 `sin6626/plate-rehearsal`，报告 `.local/reviews/rehearsal-report.md`。子 worktree 与分支都已合入后用 `orca worktree rm` 删除。
+- **协调方补修**：迁移后的 Plate 文章还挂着旧的 Lexical 草稿时，恢复弹窗把 Plate 信封喂给 Lexical 对比器会抛错——两边都是 Lexical 才用富文本对比，格式不同改为对比两边 Markdown，并提示“恢复后会按草稿的格式保存”（`35f4190`）；Plate 正文先把代码块高亮好、正文兜底的 Suspense 占位改为空，服务端 HTML 不再先露出 Markdown 再换成 Plate（`c5a1d07`，e2e 新增断言）。
+- **彩排结果**（日常库的写时复制克隆导入隔离库，跑完已还原）：文章 4 转 / 2 挡、手记 6 / 0、页面 0 / 1、AI 译文 29 / 8、草稿正文 19 / 14；挡下的是演示文章（预期）、FRP 那篇（代码块里套了代码块，内容问题）、关于我（彩色文字，Suzuri 没有文字颜色）。写库后 10 篇走 Plate 渲染，目录、图片、无控制台报错。
+- **全量门禁**（合并后）：`pnpm verify`、`pnpm typecheck`、`pnpm typecheck:core`、后台 tsc + vite build、前台 `next build`、Core bundle 全过；Core 全量 vitest 1024 过 / 4 失败 / 20 跳过，失败全是第 8 节的老问题；`pnpm e2e:plate` 通过。
+- **待站长定**：① 迁移后 10 篇里有 9 篇的草稿仍是 Lexical（草稿历史是增量链，转换器按设计不动）：要不要让转换器一并转换或归档这些草稿；② FRP 那篇先在后台把嵌套代码块改正再迁；关于我页的彩色文字是去掉颜色还是让 Suzuri 加文字颜色；③ 提示框迁移后不再显示 NOTE/TIP 文字（只剩图标），Suzuri 静态渲染会在行内链接 / 公式旁插入 U+FEFF，带尺寸的图片投影成 HTML——三项都要 Suzuri 处理或接受；④ 上线时：文件引用会在第一次被改动时就地转成多使用方格式，Plate 译文的去重哈希算法变了；⑤ Next 16.4.2 每次新开 dev / build 都会被安全公告打断一次，是否升级 Next；⑥ 新装依赖时 pnpm 仍会偶发把 Haklex 补丁打两遍（`commands-entry.mjs` 重复导出），装完要检查。
+- **需手动清理**：C 的临时目录 `/private/tmp/claude-501/-Users-sin-orca-workspaces-SinPersonalSpace-plate-rehearsal/`（含日常库克隆和真实内容导出，按规矩不批量删除，由站长手动删）。
