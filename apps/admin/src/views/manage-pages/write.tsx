@@ -35,6 +35,7 @@ import {
   SectionTitle,
   TextBaseDrawer,
 } from '~/components/drawer/text-base-drawer'
+import { pendingUploadsError } from '~/components/editor/plate/uploads'
 import { WriteEditor } from '~/components/editor/write-editor'
 import { SlugInput } from '~/components/editor/write-editor/slug-input'
 import { ParseContentButton } from '~/components/special-button/parse-content'
@@ -163,6 +164,11 @@ const PageWriteView = defineComponent(() => {
   const drawerShow = ref(false)
 
   const handleSubmit = async () => {
+    const uploading = pendingUploadsError()
+    if (uploading) {
+      toast.error(uploading)
+      return
+    }
     // 旧版 Lexical 只能按 Lexical 保存：提交前现读库里的格式（见 publishFormatError）
     const formatError = await publishFormatError(
       isString(actualRefId.value) ? actualRefId.value : undefined,

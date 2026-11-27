@@ -120,6 +120,43 @@ await assert.rejects(uploads.uploadImage({ name: 'local' }), /地址无效/, 'da
 assert.equal((await uploads.uploadLivePhoto({ file: { name: 'c.jpg' }, kind: 'cover' })).naturalWidth, 3)
 assert.equal((await uploads.uploadLivePhoto({ file: { name: 'c.mp4' }, kind: 'video' })).url, 'https://img.example/c.mp4')
 assert.deepEqual(uploaded, ['image', 'image', 'image', 'file'], '封面传图床、短片传附件')
+// 上传没完成时不许发布（那张图还没插进正文）；换文档、卸载时取消，取消的结果不插进正文
+{
+  let release
+  const slowFiles = { filesApi: { upload: (file, type, signal) => new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(signal.reason)
+    release = () => resolve({ url: `https://img.example/${file.name}` })
+    signal?.addEventListener('abort', () => reject(signal.reason))
+  }) } }
+  const { usePlateUploads: useSlow, pendingUploadsError } = load('components/editor/plate/uploads.ts', { vue, '~/api/files': slowFiles, '../live-photo-media': fakeMedia, '@suzuri/editor/schema': schema })
+  const slow = useSlow()
+  assert.equal(pendingUploadsError(), null)
+  const first = slow.uploadImage({ name: 'slow.png' })
+  assert.match(pendingUploadsError(), /1 个.*传完再发布/, '上传中发布要被拦下')
+  release()
+  await first
+  assert.equal(pendingUploadsError(), null, '传完放行')
+  const cancelled = slow.uploadImage({ name: 'gone.png' })
+  slow.cancel()
+  await assert.rejects(cancelled, /abort/i, '换文档后取消上传，不把图插进新文档')
+  assert.equal(pendingUploadsError(), null)
+  const late = slow.uploadImage({ name: 'late.png' })
+  const lateRelease = release
+  slow.cancel()
+  lateRelease()
+  await assert.rejects(late, /abort/i, '取消后才回来的结果也丢掉')
+  const live = slow.uploadLivePhoto({ file: { name: 'c.jpg' }, kind: 'cover' })
+  slow.cancel()
+  await assert.rejects(live, /abort/i, '实况图同样跟着取消')
+}
+for (const [file, call] of [['views/manage-posts/write.tsx', ['.update(actualRefId.value', '.create(payload']], ['views/manage-notes/write.tsx', ['.update(actualRefId.value', '.create(']], ['views/manage-pages/write.tsx', ['.update(actualRefId.value', '.create(']], ['views/ai/components/translation-detail-panel.tsx', ['aiApi.updateTranslation(']]]) {
+  const source = readFileSync(new URL(`src/${file}`, admin), 'utf8')
+  const guard = source.indexOf('pendingUploadsError()')
+  assert.ok(guard > 0, `${file} 发布前检查上传`)
+  for (const c of call) assert.ok(source.indexOf(c, guard) > guard, `${file} 先检查上传再提交（${c}）`)
+}
+assert.match(readFileSync(new URL('src/components/editor/write-editor/PlateWriteEditor.tsx', admin), 'utf8'), /cancelUploads\(\)\s*\n\s*documentKey\.value\+\+/, '写作页换文档时取消上传')
+
 // 每个用到 PlateEditor 的地方都要把这两个处理器传进去（不传就是 Suzuri 的 data:/blob: 默认值）
 const { readdirSync } = await import('node:fs')
 const sources = readdirSync(new URL('src/', admin), { recursive: true }).filter((f) => /\.tsx$/.test(f))
@@ -132,4 +169,4 @@ for (const [file, tag] of usages) {
   assert.ok(/onUploadImage=\{[^}]*uploadImage\}/.test(tag) && /onUploadLivePhoto=\{[^}]*uploadLivePhoto\}/.test(tag), `${file} 的 PlateEditor 要传持久上传处理器`)
 }
 
-console.log('PASS admin plate helpers: empty-envelope detection, lexical overwrite guard (re-read before every update), Markdown diff text, placeholder-link drafts reopen with the bad links downgraded, every PlateEditor uploads to persistent storage')
+console.log('PASS admin plate helpers: empty-envelope detection, lexical overwrite guard (re-read before every update), Markdown diff text, placeholder-link drafts reopen with the bad links downgraded, every PlateEditor uploads to persistent storage, publishing waits for uploads and switching documents cancels them')

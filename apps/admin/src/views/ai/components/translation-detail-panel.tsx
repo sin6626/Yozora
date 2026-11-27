@@ -27,7 +27,10 @@ import { createThemeStyle } from '@haklex/rich-style-token'
 import { aiApi, AITaskType } from '~/api/ai'
 import { useAiTaskQueue } from '~/components/ai-task-queue'
 import { PlateEditor } from '~/components/editor/plate/PlateEditor'
-import { usePlateUploads } from '~/components/editor/plate/uploads'
+import {
+  pendingUploadsError,
+  usePlateUploads,
+} from '~/components/editor/plate/uploads'
 import { RichEditor } from '~/components/editor/rich/RichEditor'
 import { SplitPanelEmptyState, SplitPanelLayout } from '~/components/layout'
 import { MarkdownRender } from '~/components/markdown/markdown-render'
@@ -572,11 +575,17 @@ const TranslationEditPanel = defineComponent({
         summaryRef.value = props.translation.summary || ''
         richContentRef.value = parseRichContent(props.translation.content)
         plateContentRef.value = props.translation.content
+        plateUploads.cancel()
         editorKey.value++
       },
     )
 
     const handleSave = async () => {
+      const uploading = pendingUploadsError()
+      if (uploading) {
+        toast.warning(uploading)
+        return
+      }
       if (!titleRef.value) {
         toast.warning('标题不能为空')
         return

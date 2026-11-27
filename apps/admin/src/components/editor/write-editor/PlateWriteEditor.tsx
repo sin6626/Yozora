@@ -13,7 +13,7 @@ import { usePlateUploads } from '../plate/uploads'
 import { WriteEditorBase } from './WriteEditorBase'
 
 // Plate（Suzuri）写作区：图片与实况图都先传到 Core（图床 / 附件），正文里只存持久地址。
-// 上传进行中离开页面会提示；正文内容由 onRichContentChange 回传信封，onTextChange 回传 Markdown 投影。
+// 上传进行中离开页面会提示、发布会被拦下（pendingUploadsError），换文档或离开时取消进行中的上传；正文内容由 onRichContentChange 回传信封，onTextChange 回传 Markdown 投影。
 export const PlateWriteEditor = defineComponent({
   name: 'PlateWriteEditor',
   props: {
@@ -51,8 +51,12 @@ export const PlateWriteEditor = defineComponent({
   },
   setup(props) {
     const editorRef = ref<{ focus: () => void }>()
-    const { pending: pendingUploads, uploadImage, uploadLivePhoto } =
-      usePlateUploads()
+    const {
+      pending: pendingUploads,
+      uploadImage,
+      uploadLivePhoto,
+      cancel: cancelUploads,
+    } = usePlateUploads()
 
     const hasContent = computed(
       () => pendingUploads.value > 0 || hasRichContent(props.richContent),
@@ -71,6 +75,8 @@ export const PlateWriteEditor = defineComponent({
         const json = value ? JSON.stringify(value) : ''
         if (json !== lastEmittedJson) {
           lastEmittedJson = json
+          // 换了一份文档：上一份里还没传完的图不能插进这一份
+          cancelUploads()
           documentKey.value++
         }
       },
