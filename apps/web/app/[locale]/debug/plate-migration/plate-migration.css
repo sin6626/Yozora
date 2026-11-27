@@ -1,0 +1,45 @@
+/* 两栏对比要比正文栏宽：冲出 56rem 的正文栏铺到接近整屏 */
+.site-shell:has(.plate-migration) { overflow-x: clip; }
+.plate-migration {
+  width: calc(100vw - 4rem);
+  max-width: 120rem;
+  margin-inline: calc(50% - min(50vw - 2rem, 60rem));
+}
+.plate-migration-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-8);
+  align-items: start;
+}
+.plate-migration-columns > section { min-width: 0; }
+.plate-migration-side {
+  position: sticky;
+  top: var(--header-height);
+  z-index: 1;
+  margin: 0 0 var(--space-4);
+  padding: var(--space-2) 0;
+  background: var(--background);
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--muted-foreground);
+}
+.plate-migration-report {
+  margin-block: var(--space-4) var(--space-8);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+}
+.plate-migration-report[data-status="blocked"] { border-color: var(--danger); }
+.plate-migration-report h2 { margin: 0 0 var(--space-2); font-size: 1rem; }
+.plate-migration-report code { word-break: break-all; }
+.plate-migration-error, .plate-migration-blocked { color: var(--danger); }
+.plate-migration-note { color: var(--muted-foreground); }
+.plate-migration-index { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.plate-migration-index :is(th, td) { padding: var(--space-2); border-bottom: 1px solid var(--border); text-align: left; }
+.plate-migration-index tr[data-status="blocked"] td:last-child { color: var(--danger); }
+.plate-migration-index tr[data-status="converted"] td:last-child { color: var(--success); }
+
+@media (max-width: 64rem) {
+  .plate-migration { width: auto; margin-inline: 0; }
+  .plate-migration-columns { grid-template-columns: minmax(0, 1fr); }
+}
