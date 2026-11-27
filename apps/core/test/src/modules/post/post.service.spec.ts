@@ -25,6 +25,7 @@ import { SlugTrackerService } from '~/modules/slug-tracker/slug-tracker.service'
 import { EventManagerService } from '~/processors/helper/helper.event.service'
 import { ImageService } from '~/processors/helper/helper.image.service'
 import { LexicalService } from '~/processors/helper/helper.lexical.service'
+import { scheduleManager } from '~/utils/schedule.util'
 import { getModelToken } from '~/transformers/model.transformer'
 
 describe('PostService', () => {
@@ -563,6 +564,25 @@ describe('PostService', () => {
           return { ...this }
         },
       })
+    })
+
+    it('updates references for both posts saved within the same second', async () => {
+      vi.useFakeTimers()
+      try {
+        vi.mocked(scheduleManager.schedule)
+          .mockImplementationOnce(callback => callback())
+          .mockImplementationOnce(callback => callback())
+        mockPosts.push({ ...mockPosts[0], id: 'post-2', _id: 'post-2' })
+        await postService.updateById('post-1', { title: 'A' })
+        await postService.updateById('post-2', { title: 'B' })
+        await vi.advanceTimersByTimeAsync(1100)
+        expect(mockFileReferenceService.updateReferencesForDocument.mock.calls.map(
+          ([, id]) => id,
+        )).toEqual(['post-1', 'post-2'])
+      } finally {
+        vi.mocked(scheduleManager.schedule).mockReset()
+        vi.useRealTimers()
+      }
     })
 
     it('should update post with valid data', async () => {

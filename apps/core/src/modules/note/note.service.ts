@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
 import type { DocumentType } from '@typegoose/typegoose'
 import dayjs from 'dayjs'
-import { debounce, omit } from 'es-toolkit/compat'
+import { omit } from 'es-toolkit/compat'
 import type { PaginateOptions, QueryFilter } from 'mongoose'
 import slugify from 'slugify'
 
@@ -534,27 +534,14 @@ export class NoteService {
       ])
     })
 
-    await this.broadcastNoteUpdateEvent(updated)
+    this.eventManager.emit(
+      BusinessEvents.NOTE_UPDATE,
+      { id: updated.id },
+      { scope: EventScope.TO_SYSTEM_VISITOR },
+    )
 
     return updated
   }
-
-  private broadcastNoteUpdateEvent = debounce(
-    async (updated: NoteModel) => {
-      if (!updated) {
-        return
-      }
-      this.eventManager.emit(
-        BusinessEvents.NOTE_UPDATE,
-        { id: updated.id },
-        {
-          scope: EventScope.TO_SYSTEM_VISITOR,
-        },
-      )
-    },
-    1000,
-    { leading: false },
-  )
 
   async deleteById(id: string) {
     const doc = await this.noteModel.findById(id)

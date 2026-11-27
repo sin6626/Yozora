@@ -16,6 +16,7 @@ export default defineConfig({
       'test/src/modules/ai/plate-translation.strategy.spec.ts',
       'test/src/processors/helper/helper.lexical.service.spec.ts',
       'test/src/modules/draft/draft.service.spec.ts',
+      'test/src/modules/post/post.service.spec.ts',
       'test/src/modules/ai/translation-consistency.service.spec.ts',
       'test/src/modules/ai/ai-translation.service.spec.ts',
       'test/src/processors/helper/helper.translation.service.spec.ts',
