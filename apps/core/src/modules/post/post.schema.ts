@@ -13,7 +13,7 @@ import {
 import { PagerSchema } from '~/shared/dto/pager.dto'
 import { WriteBaseSchema } from '~/shared/schema'
 import { ImageSchema } from '~/shared/schema/image.schema'
-import { ContentFormat } from '~/shared/types/content-format.type'
+import { CONTENT_FORMATS } from '~/shared/types/content-format.type'
 
 /**
  * Post schema for API validation
@@ -46,7 +46,7 @@ export class PostDto extends createZodDto(PostSchema) {}
  */
 export const PartialPostSchema = PostSchema.extend({
   contentFormat: z
-    .enum([ContentFormat.Markdown, ContentFormat.Lexical])
+    .enum(CONTENT_FORMATS)
     .optional(),
   meta: z.record(z.string(), z.any()).optional().nullable(),
   copyright: z.boolean().optional(),

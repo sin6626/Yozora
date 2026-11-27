@@ -3,7 +3,10 @@ import { z } from 'zod'
 
 import { zCoerceBoolean } from '~/common/zod'
 import { ArticleTypeEnum } from '~/constants/article.constant'
-import { ContentFormat } from '~/shared/types/content-format.type'
+import {
+  CONTENT_FORMATS,
+  isRichContentFormat,
+} from '~/shared/types/content-format.type'
 
 /**
  * Meta schema
@@ -73,13 +76,12 @@ export class MarkdownPreviewDto extends createZodDto(MarkdownPreviewSchema) {}
 
 export const ContentPreviewSchema = z
   .object({
-    contentFormat: z.enum([ContentFormat.Markdown, ContentFormat.Lexical]),
+    contentFormat: z.enum(CONTENT_FORMATS),
     text: z.string().optional(),
     content: z.string().optional(),
   })
   .superRefine((data, context) => {
-    const field =
-      data.contentFormat === ContentFormat.Lexical ? 'content' : 'text'
+    const field = isRichContentFormat(data.contentFormat) ? 'content' : 'text'
     if (data[field] === undefined || (field === 'content' && !data.content)) {
       context.addIssue({
         code: 'custom',

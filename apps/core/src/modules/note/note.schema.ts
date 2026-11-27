@@ -13,7 +13,7 @@ import {
 import { PagerSchema } from '~/shared/dto/pager.dto'
 import { WriteBaseSchema } from '~/shared/schema'
 import { ImageSchema } from '~/shared/schema/image.schema'
-import { ContentFormat } from '~/shared/types/content-format.type'
+import { CONTENT_FORMATS } from '~/shared/types/content-format.type'
 
 /**
  * Coordinate schema
@@ -69,7 +69,7 @@ export const PartialNoteSchema = NoteSchema.extend({
     .transform((val) => (val.length === 0 ? '无题' : val))
     .optional(),
   contentFormat: z
-    .enum([ContentFormat.Markdown, ContentFormat.Lexical])
+    .enum(CONTENT_FORMATS)
     .optional(),
   meta: z.record(z.string(), z.any()).optional().nullable(),
   isPublished: z.boolean().optional(),
