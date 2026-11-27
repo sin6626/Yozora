@@ -21,7 +21,7 @@ import type { CategoryModel } from '~/models/category'
 import type { DraftModel } from '~/models/draft'
 import type { PostModel } from '~/models/post'
 import type { ContentFormat, WriteBaseType } from '~/shared/types/base'
-import { isRichFormat, lexicalOverwriteError } from '~/shared/types/base'
+import { isRichFormat, publishFormatError } from '~/shared/types/base'
 import type { LexicalEditor } from 'lexical'
 import type { SelectMixedOption } from 'naive-ui/lib/select/src/interface'
 
@@ -39,6 +39,7 @@ import {
   SwitchRow,
   TextBaseDrawer,
 } from '~/components/drawer/text-base-drawer'
+import { pendingUploadsError } from '~/components/editor/plate/uploads'
 import { WriteEditor } from '~/components/editor/write-editor'
 import { SlugInput } from '~/components/editor/write-editor/slug-input'
 import { ParseContentButton } from '~/components/special-button/parse-content'
@@ -148,8 +149,6 @@ const PostWriteView = defineComponent(() => {
     }
   }
 
-  // 读出来的已发布格式：旧版 Lexical 只能按 Lexical 保存（见 lexicalOverwriteError）
-  let publishedFormat: ContentFormat | undefined
   const loadPublished = async (id: string) => {
     const payload = await postsApi.getById(id)
     const postData = payload as any
@@ -157,7 +156,6 @@ const PostWriteView = defineComponent(() => {
     postListState.append(postData.related)
     parsePayloadIntoReactiveData(postData as PostModel)
     data.contentFormat = postData.contentFormat || 'markdown'
-    publishedFormat = data.contentFormat
     data.content = postData.content || ''
   }
 
@@ -223,7 +221,17 @@ const PostWriteView = defineComponent(() => {
   const drawerShow = ref(false)
 
   const handleSubmit = async () => {
-    const formatError = lexicalOverwriteError(publishedFormat, data.contentFormat)
+    const uploading = pendingUploadsError()
+    if (uploading) {
+      toast.error(uploading)
+      return
+    }
+    // 旧版 Lexical 只能按 Lexical 保存：提交前现读库里的格式（见 publishFormatError）
+    const formatError = await publishFormatError(
+      isString(actualRefId.value) ? actualRefId.value : undefined,
+      data.contentFormat,
+      async (id) => ((await postsApi.getById(id)) as { contentFormat?: string }).contentFormat,
+    )
     if (formatError) {
       toast.error(formatError)
       return

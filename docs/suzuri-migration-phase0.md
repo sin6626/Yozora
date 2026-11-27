@@ -154,3 +154,15 @@ node scripts/migrate-lexical-to-plate.mjs --mongo mongodb://127.0.0.1:27029 --db
 默认试运行。终端逐项打印结果，报告目录保存带时间戳的 JSON 和 Markdown，列出节点计数、阻塞路径、警告和新旧 Markdown 的首处差异。核对后，同一命令加 `--write` 才写库。写入前先保存 `backup-<timestamp>.json`，其中按集合和 BSON ID 记录原字段，草稿含完整历史。备份后原字段发生变化会停止，报告标出已写、冲突和待写项。数据库地址和名称必须显式给出，其他库名还需传入完全相同的 `--allow-db <名称>`。
 
 转换保留可表达的格式。标签面板拆成四级标题和正文，原生制表符保留为制表符，链接卡片保留链接和介绍。上下标、未支持的节点、含列表等块结构的图注或提示框，以及未通过 Suzuri 校验的正文均保留 Lexical。提示框中的普通段落以空行分隔，表头方向归一为表头标记。差量和引用历史保留原样，它们依赖的全量快照也会标为阻塞，以便旧版本仍可恢复。离线检查运行 `node scripts/verify-migrate-lexical-to-plate.mjs`，已纳入 `pnpm verify`。
+
+## 12. 阶段 1–3 复查的后台、前台与测试脚本修复（2026-11-27）
+
+对应 `.local/reviews/phase1-3-review.md`（Core 那几项由另一路修）。每项一个提交、都先有失败的检查：
+- **P0-1** `scripts/e2e/plate-content.mjs` 不再有默认库：`MONGO_URL`/`MONGO_DB`/`WEB_URL` 都要显式给出，只认隔离栈（27029 / `sinpersonalspace-verify` / 2523，`scripts/lib/e2e-guard.mjs`），连别处要 `E2E_ALLOW_NON_ISOLATED=1`；每次新 slug 和 nid，只删本次插入的 `_id`，连接、插入、开浏览器都在清理范围内。入口 `pnpm e2e:plate`（先 `node scripts/dev.mjs --test`）。`verify-e2e-guards.mjs` 真的启动脚本并拦下所有网络连接，证明拒绝发生在连库之前。
+- **P0-2** 三个写作页更新已有内容前都现读一次库里的格式（`publishFormatError`），不再依赖只在 `loadPublished` 里记下的格式：草稿箱 `?draftId=` 打开、恢复历史版本、别的标签页改过都拦得住；读不到格式不放行。
+- **P1-1** `PlateEditor` 打开前校验初值（`plate/initial-value.ts`）：不合法的链接（自动保存的占位 `https://`）降成普通文字打开并提示，原稿不动；还不行就只读显示原文和原因，不再初始化时抛错。
+- **P1-2 / P1-4** 上传处理抽成 `plate/uploads.ts` 的 `usePlateUploads`，写作页和 AI 译文编辑共用（译文不再存 `data:`/`blob:`）；全局计数上传中的个数，三个写作页和译文保存在上传完成前拒绝提交；换文档、卸载时取消进行中的上传（普通图片也取消），取消的结果不插进正文。
+- **P1-5** 前台实况图下载改用 `lib/live-photo-download.ts`：复用 `readLimited` 边读边数，一支失败取消另一支，组件卸载与 30 秒超时都取消，拼图前、保存前都看是否已取消（`verify-live-photo-download.mjs`）。
+- **P1-6** 草稿箱版本列表第一项是草稿本身（`draft-versions.ts` 的 `buildVersionList`），最新的历史版本也能恢复；每个版本保留自己的格式，对比时各自投影（两边都是 Lexical 才用富文本对比）。
+- **P2-3** 服务端渲染不认错误边界：Plate 正文里的子组件渲染时抛错会冒出 `RenderFallback`，把整段详情换成外层 Suspense 的读取中。`RenderFallback` 加了一层以 Markdown 兜底为 fallback 的 Suspense（代价：正文流式送达期间也先显示这份 Markdown）。`verify-render-fallback.mjs` 用真实边界跑流式 SSR 的服务端子组件异常、浏览器接手、仅浏览器的 Client Component 异常。
+- **安装坑**：这次 `pnpm install --frozen-lockfile` 又把 Haklex 的 rich-editor / rich-renderer-image 补丁打了两遍（`Duplicated export 'restoreBlockIds'`，后台 build 失败），按第 10 节的 `--config.side-effects-cache=false` 重装或从正常的 worktree 换回那几个 dist 文件即可。

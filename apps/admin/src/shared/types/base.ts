@@ -33,3 +33,23 @@ export function lexicalOverwriteError(
     ? '这篇是旧版 Lexical 富文本，不能改存成其他格式，请先用迁移工具转换。'
     : null
 }
+
+/**
+ * 更新已有内容前现读一次它在库里的格式再判断，不用页面里记下的格式：从草稿箱打开关联草稿（?draftId=）、
+ * 恢复历史版本、别的标签页改过格式时，那份记录要么没读过、要么已经过期。读不到格式时不放行。
+ * 新建（没有 refId）不用查。
+ */
+export async function publishFormatError(
+  refId: string | undefined,
+  nextFormat: string | undefined,
+  readFormat: (id: string) => Promise<string | undefined>,
+): Promise<string | null> {
+  if (!refId) return null
+  let published: string
+  try {
+    published = (await readFormat(refId)) || 'markdown'
+  } catch {
+    return '读不到已发布内容的格式，暂时不能发布，请稍后再试。'
+  }
+  return lexicalOverwriteError(published, nextFormat)
+}

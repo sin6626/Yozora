@@ -39,6 +39,7 @@ import {
   SwitchRow,
   TextBaseDrawer,
 } from '~/components/drawer/text-base-drawer'
+import { pendingUploadsError } from '~/components/editor/plate/uploads'
 import { WriteEditor } from '~/components/editor/write-editor'
 import { SlugInput } from '~/components/editor/write-editor/slug-input'
 import { GetLocationButton } from '~/components/location/get-location-button'
@@ -56,7 +57,7 @@ import type { DraftModel } from '~/models/draft'
 import { DraftRefType } from '~/models/draft'
 import type { Coordinate, NoteModel } from '~/models/note'
 import type { ContentFormat, WriteBaseType } from '~/shared/types/base'
-import { isRichFormat, lexicalOverwriteError } from '~/shared/types/base'
+import { isRichFormat, publishFormatError } from '~/shared/types/base'
 import { UIStore } from '~/stores/ui'
 import { getDayOfYear } from '~/utils/time'
 
@@ -170,8 +171,6 @@ const NoteWriteView = defineComponent(() => {
     }
   }
 
-  // 读出来的已发布格式：旧版 Lexical 只能按 Lexical 保存（见 lexicalOverwriteError）
-  let publishedFormat: ContentFormat | undefined
   const loadPublished = async (id: string) => {
     const noteData = await notesApi.getById(id, { single: true })
     if (noteData.topic) {
@@ -184,7 +183,6 @@ const NoteWriteView = defineComponent(() => {
 
     parsePayloadIntoReactiveData(noteData as NoteModel)
     data.contentFormat = (noteData as any).contentFormat || 'markdown'
-    publishedFormat = data.contentFormat
     data.content = (noteData as any).content || ''
   }
 
@@ -255,7 +253,17 @@ const NoteWriteView = defineComponent(() => {
   const enablePassword = computed(() => typeof data.password === 'string')
 
   const handleSubmit = async () => {
-    const formatError = lexicalOverwriteError(publishedFormat, data.contentFormat)
+    const uploading = pendingUploadsError()
+    if (uploading) {
+      toast.error(uploading)
+      return
+    }
+    // 旧版 Lexical 只能按 Lexical 保存：提交前现读库里的格式（见 publishFormatError）
+    const formatError = await publishFormatError(
+      isString(actualRefId.value) ? actualRefId.value : undefined,
+      data.contentFormat,
+      async (id) => ((await notesApi.getById(id, { single: true })) as { contentFormat?: string }).contentFormat,
+    )
     if (formatError) {
       toast.error(formatError)
       return

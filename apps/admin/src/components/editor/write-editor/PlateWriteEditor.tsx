@@ -1,44 +1,19 @@
-import type {
-  SuzuriLivePhotoUploadHandler,
-  SuzuriUploadHandler,
-} from '@suzuri/editor/react'
 import type { SuzuriEnvelope } from '@suzuri/editor/schema'
 import type { ContentFormat } from '~/shared/types/base'
 import type { PropType, VNode } from 'vue'
 import type { WriteEditorVariant } from './types'
 
-import { isSafeLivePhotoUrl } from '@suzuri/editor/schema'
 import { computed, defineComponent, ref, watch } from 'vue'
 
-import { filesApi } from '~/api/files'
 import { useSaveConfirm } from '~/hooks/use-save-confirm'
 import { hasRichContent } from '~/utils/rich-content'
 
-import { prepareClip, prepareCover } from '../live-photo-media'
 import { PlateEditor } from '../plate/PlateEditor'
+import { usePlateUploads } from '../plate/uploads'
 import { WriteEditorBase } from './WriteEditorBase'
 
-async function naturalSize(file: Blob) {
-  try {
-    const bitmap = await createImageBitmap(file)
-    const size = { naturalWidth: bitmap.width, naturalHeight: bitmap.height }
-    bitmap.close()
-    return size
-  } catch {
-    return {}
-  }
-}
-
-// 只把 Core 返回的持久地址写进正文；本地 blob:/data: 预览地址一律拒绝（关掉页面就失效）。
-function persistentUrl(url: string, kind: 'image' | 'video') {
-  if (!/^https?:\/\//i.test(url) || !isSafeLivePhotoUrl(url, kind)) {
-    throw new Error('上传返回的地址无效')
-  }
-  return url
-}
-
 // Plate（Suzuri）写作区：图片与实况图都先传到 Core（图床 / 附件），正文里只存持久地址。
-// 上传进行中离开页面会提示；正文内容由 onRichContentChange 回传信封，onTextChange 回传 Markdown 投影。
+// 上传进行中离开页面会提示、发布会被拦下（pendingUploadsError），换文档或离开时取消进行中的上传；正文内容由 onRichContentChange 回传信封，onTextChange 回传 Markdown 投影。
 export const PlateWriteEditor = defineComponent({
   name: 'PlateWriteEditor',
   props: {
@@ -76,49 +51,12 @@ export const PlateWriteEditor = defineComponent({
   },
   setup(props) {
     const editorRef = ref<{ focus: () => void }>()
-    const pendingUploads = ref(0)
-    const track = async <T,>(job: Promise<T>) => {
-      pendingUploads.value++
-      try {
-        return await job
-      } finally {
-        pendingUploads.value--
-      }
-    }
-
-    const uploadImage: SuzuriUploadHandler = (file) =>
-      track(
-        (async () => {
-          const [{ url }, size] = await Promise.all([
-            filesApi.upload(file, 'image'),
-            naturalSize(file),
-          ])
-          return { url: persistentUrl(url, 'image'), ...size }
-        })(),
-      )
-
-    const uploadLivePhoto: SuzuriLivePhotoUploadHandler = ({
-      file,
-      kind,
-      signal,
-    }) =>
-      track(
-        (async () => {
-          const abort = signal ?? new AbortController().signal
-          if (kind === 'cover') {
-            const cover = await prepareCover(file, abort)
-            const { url } = await filesApi.upload(cover.file, 'image', abort)
-            return {
-              url: persistentUrl(url, 'image'),
-              naturalWidth: cover.width,
-              naturalHeight: cover.height,
-            }
-          }
-          const clip = await prepareClip(file, abort)
-          const { url } = await filesApi.upload(clip, 'file', abort)
-          return { url: persistentUrl(url, 'video') }
-        })(),
-      )
+    const {
+      pending: pendingUploads,
+      uploadImage,
+      uploadLivePhoto,
+      cancel: cancelUploads,
+    } = usePlateUploads()
 
     const hasContent = computed(
       () => pendingUploads.value > 0 || hasRichContent(props.richContent),
@@ -137,6 +75,8 @@ export const PlateWriteEditor = defineComponent({
         const json = value ? JSON.stringify(value) : ''
         if (json !== lastEmittedJson) {
           lastEmittedJson = json
+          // 换了一份文档：上一份里还没传完的图不能插进这一份
+          cancelUploads()
           documentKey.value++
         }
       },

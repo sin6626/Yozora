@@ -4,19 +4,21 @@
 // 检查：服务端渲染出 Suzuri 正文且没有控制台报错；标题带 id、目录能跳；代码块是站内 Shiki + 复制按钮；KaTeX 字体生效；
 // 图片保留调过的宽度、点开放大；提示框按语气用站点颜色；实况图按住和点 LIVE 都能播；深浅主题都跟着站点变量走；
 // 手记用衬线体；手机宽度不横向溢出；坏信封退回 Markdown、不报错；Markdown、Lexical 文章照旧。截图存 .local/previews/plate-content/。
-// 隔离环境：node scripts/dev.mjs --test 后
-//   WEB_URL=http://127.0.0.1:2523 MONGO_URL=mongodb://127.0.0.1:27029 MONGO_DB=sinpersonalspace-verify node scripts/e2e/plate-content.mjs
-// 加 PLATE_E2E_KEEP=1 跑完不删，留给人工在浏览器里看（看完再不带它跑一次就删掉了）。
+// 只在隔离环境跑（scripts/lib/e2e-guard.mjs，三个地址都必须显式给出，连别处要另设 E2E_ALLOW_NON_ISOLATED=1）：node scripts/dev.mjs --test 后
+//   pnpm e2e:plate（= WEB_URL=http://127.0.0.1:2523 MONGO_URL=mongodb://127.0.0.1:27029 MONGO_DB=sinpersonalspace-verify node scripts/e2e/plate-content.mjs）
+// 每次用新的 slug 和 nid，跑完只删本次插入的 _id。加 PLATE_E2E_KEEP=1 跑完不删，留给人工在浏览器里看（之后要自己按 slug 前缀删掉）。
 import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { openBrowser, sleep } from "../headless-browser.mjs";
+import { isolatedTarget } from "../lib/e2e-guard.mjs";
+
+const target = isolatedTarget();
 
 const { MongoClient } = createRequire(new URL("../../apps/core/package.json", import.meta.url))("mongodb");
 const { createEnvelope, SUZURI_SAMPLE_DOCUMENT, toMarkdown } = await import(new URL("../../apps/web/node_modules/@suzuri/editor/dist/schema/index.js", import.meta.url));
-const base = process.env.WEB_URL ?? "http://127.0.0.1:2323";
-const mongo = new MongoClient(process.env.MONGO_URL ?? "mongodb://127.0.0.1:27018", { directConnection: true });
-const db = mongo.db(process.env.MONGO_DB ?? "shrio-import-20261014");
+const base = target.webUrl.replace(/\/$/, "");
+const run = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 const shots = new URL("../../.local/previews/plate-content/", import.meta.url);
 mkdirSync(shots, { recursive: true });
 
@@ -39,35 +41,6 @@ const text = toMarkdown(envelope).markdown;
 const broken = JSON.stringify({ ...envelope, document: { children: [{ type: "banner", children: [{ text: "x" }] }] } });
 const lexical = JSON.stringify({ root: { type: "root", version: 1, format: "", indent: 0, direction: null, children: [{ type: "heading", tag: "h2", version: 1, format: "", indent: 0, direction: null, children: [{ type: "text", version: 1, text: "Lexical 标题", format: 0, detail: 0, mode: "normal", style: "" }] }] } });
 
-await mongo.connect();
-const category = await db.collection("categories").findOne({}, { sort: { _id: 1 } });
-assert.ok(category, "库里要有分类");
-const posts = db.collection("posts");
-const notes = db.collection("notes");
-const slugs = ["e2e-plate", "e2e-plate-broken", "e2e-markdown", "e2e-lexical"];
-const nid = 990013;
-const cleanup = async () => {
-  await posts.deleteMany({ slug: { $in: slugs } });
-  await notes.deleteOne({ nid });
-};
-await cleanup();
-const now = new Date();
-const post = (slug, title, extra) => ({
-  slug, title, categoryId: category._id, isPublished: true, copyright: false, allowComment: true, commentsIndex: 0,
-  tags: [], images: [], meta: null, count: { read: 0, like: 0 }, related: [], created: now, modified: null, summary: null, ...extra,
-});
-await posts.insertMany([
-  post(slugs[0], "e2e Plate 全节点（测试会自动删除）", { contentFormat: "plate", content, text }),
-  post(slugs[1], "e2e Plate 坏信封（测试会自动删除）", { contentFormat: "plate", content: broken, text: "## 兜底标题\n\n兜底正文。" }),
-  post(slugs[2], "e2e Markdown（测试会自动删除）", { contentFormat: "markdown", text: "## Markdown 标题\n\n正文。" }),
-  post(slugs[3], "e2e Lexical（测试会自动删除）", { contentFormat: "lexical", content: lexical, text: "## Lexical 标题" }),
-]);
-await notes.insertOne({
-  nid, title: "e2e Plate 手记（测试会自动删除）", isPublished: true, allowComment: true, commentsIndex: 0, contentFormat: "plate", content, text,
-  images: [], meta: null, mood: "平静", weather: "晴", topicId: null, count: { read: 0, like: 0 }, created: now, modified: null, publicAt: null, bookmark: false,
-});
-
-const postUrl = (slug) => `${base}/posts/${category.slug}/${slug}`;
 const waitFor = async (browser, expression, ms = 20000) => {
   for (let t = 0; t < ms; t += 200) { if (await browser.evaluate(expression)) return true; await sleep(200); }
   return false;
@@ -79,8 +52,38 @@ const shot = async (browser, name) => {
 const center = (selector) => `(() => { const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`;
 const mouse = (browser, type, { x, y }) => browser.send("Input.dispatchMouseEvent", { type, x, y, button: "left", buttons: type === "mouseReleased" ? 0 : 1, clickCount: 1, pointerType: "mouse" });
 
-const browser = await openBrowser({ port: 9493 });
+const mongo = new MongoClient(target.mongoUrl, { directConnection: true });
+const inserted = { posts: [], notes: [] };
+let browser;
 try {
+  await mongo.connect();
+  const db = mongo.db(target.db);
+  const category = await db.collection("categories").findOne({}, { sort: { _id: 1 } });
+  assert.ok(category, "库里要有分类");
+  const posts = db.collection("posts");
+  const notes = db.collection("notes");
+  const slugs = ["plate", "plate-broken", "markdown", "lexical"].map((kind) => `e2e-${kind}-${run}`);
+  const nid = 900_000_000 + Math.floor(Math.random() * 90_000_000);
+  const now = new Date();
+  const post = (slug, title, extra) => ({
+    slug, title, categoryId: category._id, isPublished: true, copyright: false, allowComment: true, commentsIndex: 0,
+    tags: [], images: [], meta: null, count: { read: 0, like: 0 }, related: [], created: now, modified: null, summary: null, ...extra,
+  });
+  const postDocs = [
+    post(slugs[0], "e2e Plate 全节点（测试会自动删除）", { contentFormat: "plate", content, text }),
+    post(slugs[1], "e2e Plate 坏信封（测试会自动删除）", { contentFormat: "plate", content: broken, text: "## 兜底标题\n\n兜底正文。" }),
+    post(slugs[2], "e2e Markdown（测试会自动删除）", { contentFormat: "markdown", text: "## Markdown 标题\n\n正文。" }),
+    post(slugs[3], "e2e Lexical（测试会自动删除）", { contentFormat: "lexical", content: lexical, text: "## Lexical 标题" }),
+  ];
+  // 一篇一篇插，插成功一篇记一篇：中途失败也只删本次真的插进去的
+  for (const doc of postDocs) inserted.posts.push((await posts.insertOne(doc)).insertedId);
+  inserted.notes.push((await notes.insertOne({
+    nid, title: "e2e Plate 手记（测试会自动删除）", isPublished: true, allowComment: true, commentsIndex: 0, contentFormat: "plate", content, text,
+    images: [], meta: null, mood: "平静", weather: "晴", topicId: null, count: { read: 0, like: 0 }, created: now, modified: null, publicAt: null, bookmark: false,
+  })).insertedId);
+  const postUrl = (slug) => `${base}/posts/${category.slug}/${slug}`;
+
+  browser = await openBrowser({ port: 9493 });
   await browser.setViewport(1920, 991);
   await browser.goto(postUrl(slugs[0]), 4000);
   assert.ok(await waitFor(browser, `document.querySelector(".article-plate .suzuri-root")?.checkVisibility() === true`, 60000), "Plate 文章渲染出 Suzuri 正文");
@@ -196,7 +199,11 @@ try {
   assert.deepEqual(errors, [], "控制台没有报错和水合警告");
   console.log("PASS Plate article/note render natively (TOC, Shiki, KaTeX, lightbox, callout tones, live photo, themes, serif notes, mobile), broken envelopes fall back to Markdown, Markdown and Lexical unchanged");
 } finally {
-  await browser.close();
-  if (process.env.PLATE_E2E_KEEP !== "1") await cleanup();
+  await browser?.close();
+  if (process.env.PLATE_E2E_KEEP !== "1") {
+    const db = mongo.db(target.db);
+    if (inserted.posts.length) await db.collection("posts").deleteMany({ _id: { $in: inserted.posts } });
+    if (inserted.notes.length) await db.collection("notes").deleteMany({ _id: { $in: inserted.notes } });
+  }
   await mongo.close();
 }
