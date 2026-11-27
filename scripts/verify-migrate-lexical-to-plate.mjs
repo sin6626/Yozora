@@ -162,6 +162,16 @@ for (const rel of ['noreferrer', 'noopener noreferrer']) {
 for (const props of [{ rel: 'nofollow' }, { title: '提示' }, { rel: 'noopener', target: '_self' }])
   assert.equal(convert(linkWith(props)).report.status, 'blocked', JSON.stringify(props))
 console.log('PASS editor-default link rel, markdown list marker')
+
+// Real posts pasted from Windows keep stray carriage returns. Haklex shows them as collapsed
+// whitespace; Chrome breaks the line on a CR in Suzuri's pre-wrap text, leaving empty bullets.
+const crs = converted(state(
+  list('bullet', [item(text('\rZustand 还有')), item(text('一样\r的数据')), item(text('Vue', 1), text('\r'), text('React'))]),
+  { type: 'heading', tag: 'h2', children: [text('标题\r')] }, para(text('\r\r'))))
+assert.deepEqual(crs.nodes.map((n) => n.children.map((c) => c.text)), [['Zustand 还有'], ['一样 的数据'], ['Vue', ' ', 'React'], ['标题'], ['']])
+assert.ok(!crs.markdown.includes('\r') && !crs.markdown.includes('&#xD;'))
+assert.equal(converted(state({ type: 'code', children: [text('a\r'), { type: 'linebreak' }, text('b')] })).nodes[0].children[0].text, 'a\nb')
+console.log('PASS stray carriage returns')
 console.log('PASS Lexical → Plate mappings, Core projection, path inventory and loss blocking')
 
 const cli = 'scripts/migrate-lexical-to-plate.mjs'

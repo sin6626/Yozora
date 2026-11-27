@@ -20,7 +20,19 @@ const supportedMask = marks.reduce((mask, mark) => mask | TEXT_TYPE_TO_FORMAT[ma
 const listTypes = { bullet: 'bulleted', number: 'numbered', check: 'task' }
 const icons = { note: 'ℹ️', tip: '💡', important: '❗', warning: '⚠️', caution: '🛑', info: 'ℹ️', success: '✅', error: '🛑' }
 const leaf = (text = '') => ({ text })
-const element = (type, children, props) => ({ type, ...props, children: children.length ? children : [leaf()] })
+// Stray carriage returns (Windows paste) render as collapsed whitespace in Haklex but as line
+// breaks in Suzuri's pre-wrap text: drop them at block edges and next to line breaks, else a space.
+function tidy(children) {
+  const text = (node) => typeof node?.text === 'string' ? node.text : null
+  return children.map((node, i) => {
+    let value = text(node)
+    if (value === null || !value.includes('\r')) return node
+    if (i === 0 || text(children[i - 1])?.endsWith('\n')) value = value.replace(/^\r+/, '')
+    if (i === children.length - 1 || text(children[i + 1])?.startsWith('\n')) value = value.replace(/\r+$/, '')
+    return { ...node, text: value.replace(/\r+(?=\n)|(?<=\n)\r+/g, '').replace(/\r+/g, ' ') }
+  })
+}
+const element = (type, children, props) => ({ type, ...props, children: children.length ? tidy(children) : [leaf()] })
 const inline = (n) => Object.hasOwn(n, 'text') || n.type === 'link' || n.type === 'inlineEquation'
 const optional = (props) => Object.fromEntries(Object.entries(props).filter(([, value]) => value != null && value !== ''))
 
