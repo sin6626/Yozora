@@ -19,10 +19,12 @@ const post = { id: 'post-id', count: { read: 3, like: 1 }, title: '测试', crea
 const { createElement } = require('react')
 const bodyCode = ts.transpileModule(readFileSync(new URL('../apps/web/components/article-body.tsx', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText
 const articleBody = { exports: {} }
-vm.runInNewContext(bodyCode, {
-  module: articleBody, exports: articleBody.exports,
-  require: (id) => id.endsWith('.css') ? {} : id === 'next/cache' ? { cacheLife() {} } : id === 'shiki' ? { bundledLanguages: {}, codeToHtml: async () => '' } : id === '../lib/config' ? { getApiUrl: () => 'http://api.test' } : id === './code-copy' ? { default: ({ code }) => createElement('button', { 'data-copy': code }) } : id === '@haklex/rich-renderer-codeblock/icons' ? { LanguageIcon: ({ language }) => createElement('span', { 'data-lang': language }) } : id === './rich-content' ? { default: ({ content, apiUrl, children }) => createElement('div', { 'data-rich': content, 'data-api': apiUrl }, children) } : require(id),
-})
+// 代码框 code-frame 也用真实代码，依赖和正文一样换成替身。
+const codeFrame = { exports: {} }
+const bodyRequire = (id) => id.endsWith('.css') ? {} : id === './code-frame' ? codeFrame.exports : id === 'next/cache' ? { cacheLife() {} } : id === 'shiki' ? { bundledLanguages: {}, codeToHtml: async () => '' } : id === '../lib/config' ? { getApiUrl: () => 'http://api.test' } : id === './code-copy' ? { default: ({ code }) => createElement('button', { 'data-copy': code }) } : id === '@haklex/rich-renderer-codeblock/icons' ? { LanguageIcon: ({ language }) => createElement('span', { 'data-lang': language }) } : id === './rich-content' ? { default: ({ content, apiUrl, children }) => createElement('div', { 'data-rich': content, 'data-api': apiUrl }, children) } : require(id)
+const codeFrameCode = ts.transpileModule(readFileSync(new URL('../apps/web/components/code-frame.tsx', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText
+vm.runInNewContext(codeFrameCode, { module: codeFrame, exports: codeFrame.exports, require: bodyRequire })
+vm.runInNewContext(bodyCode, { module: articleBody, exports: articleBody.exports, require: bodyRequire })
 const module = { exports: {} }
 vm.runInNewContext(code, {
   module, exports: module.exports,

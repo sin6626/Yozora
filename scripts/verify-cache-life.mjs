@@ -14,7 +14,7 @@ const web = join(root, 'apps/web')
 // 用 Next 内置档位（带窗口）的地方：不在页面渲染里，或结果只取决于输入、不会过时
 const namedProfiles = {
   'apps/web/lib/og.ts': 'hours', // 分享图路由读头像，不经页面渲染校验
-  'apps/web/components/article-body.tsx': 'max', // 代码高亮，同样的输入永远同样的输出
+  'apps/web/components/code-frame.tsx': 'max', // 代码高亮，同样的输入永远同样的输出
 }
 const metadataReads = ['getSiteSettings', 'getThemeConfig', 'loadLanguages', 'loadBundle']
 
