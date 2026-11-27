@@ -96,3 +96,17 @@ tarball 已在 `/Users/sin/.orca/bots/x/scratch/suzuri-packs/suzuri-editor-0.1.0
 - 根目录 `pnpm install --frozen-lockfile`（pnpm 12.6.0、Node 24.21.0）：2245 个包装好，Haklex 补丁已应用。pnpm 报 `ERR_PNPM_IGNORED_BUILDS`（`@prisma/engines`、`prisma`、`simple-git-hooks`、`vue-demi` 没有列进 `allowBuilds`），安装本身已完成；它往 `pnpm-workspace.yaml` 写的 “set this to true or false” 占位已还原。
 - 新 worktree 没有 `.next`，`pnpm typecheck` 先报 `PageProps`/`RouteContext` 找不到，跑一次 `pnpm --filter @sin/web exec next typegen` 后通过（没有 dev 在跑时才跑 typegen）。`pnpm build:sdk` 通过；`apps/core` 的 `pnpm typecheck` 通过。
 - `node scripts/dev.mjs --test --print-config`：数据根 `.local/verification`（已在 .gitignore），库 `sinpersonalspace-verify`。`--core-only` 只起 Mongo/Redis/Core（2533）；`--web-only` 不起数据库，前台连 `MIX_SPACE_API_URL` 或默认测试 Core 2533；`--admin-only` 要求 Core 已在跑；`--with-admin` 起全套。这几个参数互斥（`--with-admin` 也不能和 `--*-only` 一起用）。`--test --with-admin --check` 与 `--test --web-only --check` 都通过（Redis 8.10.2、端口全空）。
+
+## 7. 三端试水结果（2026-11-27，tarball sha256 f8f95608…f097f）
+
+- **装包**：`vendor/suzuri-editor-0.1.0.tgz`，三端 `file:` 依赖；前台另加 `katex@0.16.22`（和 Suzuri 同版，只为引 `katex/dist/katex.min.css`，后台已有 katex）。
+- **Core**：`apps/core/test/editor/suzuri-spike.spec.ts`（并入 `vitest.content.config.mts`）6 项全过：示例文档与信封校验、指纹漂移默认拒绝 / `restamp` 放行且只放过指纹（改 id 或 version 仍拒绝）、未知节点与 `javascript:` 链接被拒、`toMarkdown` / `fromMarkdown`、`collectMedia`、翻译往返不动行内代码。用 Core 自己的 tsdown 配置单独打包一个调用 `@suzuri/editor/schema` 的入口，产物能运行（5.6MB 未压缩，几乎全是 plitejs/platejs/parse5/remark，没有 React）；正式 `pnpm bundle` 照常通过。浏览器编辑器产出的信封指纹和 Core 无头编辑器算出的一致（`fnv1a64:d20854bfc9b6f1ca`）。
+- **前台**：`/debug/suzuri`（生产 notFound）。服务端渲染正常：标题带 id（中文 `中文标题`、重名 `中文标题-2`），代码块走站内 Shiki（`components/code-frame.tsx`，从 article-body 拆出来，免得引 Haklex），KaTeX 3 处，提示框 `data-variant` 五种按站点颜色上色，实况图用 `@suzuri/editor/live-photo` 长按播放、松开停止。控制台没有水合或运行时报错，只有测试库没装“正在用”云函数的 404 和 Next 的安全提示。样式零污染：在首页、`/posts`、`/debug` 上注入完整 `style.css` 前后比较 9264 个元素的计算样式和根变量，没有一处变化。生产构建（`next build`，测试 Core 2533）通过；路由客户端 JS：`/debug/suzuri` 13 个文件 540K（gzip 191K），文章详情页 18 个文件 4055K（gzip 1676K）；CSS 630K（gzip 177K）对 2329K（gzip 1138K）。
+- **后台**：`views/debug/suzuri` + `components/editor/suzuri/SuzuriEditorBridge.tsx`（Vue 挂 React，开发环境才加载，生产构建里没有 Suzuri 代码）。打字、`## ` 快捷标题、CDP 模拟中文输入法组合输入、撤销重做、`onChange` 出信封都正常；后台 tsc 与 `vite build` 通过。**发现样式污染**：`style.css` 里的 Tailwind 工具类（`.px-4`、`.flex`、`.hidden`、`.collapse`、`.visible` 等）没有限定在 `.suzuri-root` 内，后台 UnoCSS 也用同名类，Suzuri 的 `.px-4` 排在后面，把后台页头和内容区的 `px-4 md:px-8` 压成了 1rem（512 个元素里 2 处变化）。前台不用工具类所以没受影响。
+
+### 新发现
+
+1. **（要 Suzuri 补）工具类未限定作用域**：需要给工具类加前缀（Tailwind v4 `prefix(sz)`）或包进 `.suzuri-root` 作用域；挂在 body 上的浮层（菜单、弹窗）也要带上 `.suzuri-root`。
+2. **（环境问题，非 Suzuri）pnpm 补丁被打了两次**：`@haklex/rich-editor@0.0.85` 的 `dist/commands-entry.mjs` 有两行 `export { $setRichBlocksType }`，Turbopack 报重复导出，所有 Lexical 正文页 500。来自 pnpm 的 side-effects 缓存，**主仓库 `node_modules` 里也是这样**（文件日期 11-25）。本 worktree 用 `pnpm install --frozen-lockfile --force --config.side-effects-cache=false` 修好了；主仓库没动，站长那边下次遇到同样报错可以照此处理。
+3. Next 16.4.2 的 `next dev` 第一次启动会停下来显示安全公告（见日志），再启动一次就继续；没有升级 Next。
+4. 测试库 `sinpersonalspace-verify` 原来没有站长账号，`next build` 读不到个人资料会失败；已在测试库里建了站长 `verify`（密码只存在本次会话的临时目录）。
