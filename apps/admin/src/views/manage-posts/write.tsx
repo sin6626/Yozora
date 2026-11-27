@@ -21,7 +21,7 @@ import type { CategoryModel } from '~/models/category'
 import type { DraftModel } from '~/models/draft'
 import type { PostModel } from '~/models/post'
 import type { ContentFormat, WriteBaseType } from '~/shared/types/base'
-import { isRichFormat } from '~/shared/types/base'
+import { isRichFormat, lexicalOverwriteError } from '~/shared/types/base'
 import type { LexicalEditor } from 'lexical'
 import type { SelectMixedOption } from 'naive-ui/lib/select/src/interface'
 
@@ -148,6 +148,8 @@ const PostWriteView = defineComponent(() => {
     }
   }
 
+  // 读出来的已发布格式：旧版 Lexical 只能按 Lexical 保存（见 lexicalOverwriteError）
+  let publishedFormat: ContentFormat | undefined
   const loadPublished = async (id: string) => {
     const payload = await postsApi.getById(id)
     const postData = payload as any
@@ -155,6 +157,7 @@ const PostWriteView = defineComponent(() => {
     postListState.append(postData.related)
     parsePayloadIntoReactiveData(postData as PostModel)
     data.contentFormat = postData.contentFormat || 'markdown'
+    publishedFormat = data.contentFormat
     data.content = postData.content || ''
   }
 
@@ -220,6 +223,11 @@ const PostWriteView = defineComponent(() => {
   const drawerShow = ref(false)
 
   const handleSubmit = async () => {
+    const formatError = lexicalOverwriteError(publishedFormat, data.contentFormat)
+    if (formatError) {
+      toast.error(formatError)
+      return
+    }
     if (!data.title || data.title.trim().length === 0) {
       toast.error('标题为空')
       return
@@ -301,7 +309,7 @@ const PostWriteView = defineComponent(() => {
         {!isMobile.value &&
           (data.contentFormat === 'lexical' ? (
             <LexicalDebugButton content={data.content} />
-          ) : (
+          ) : data.contentFormat === 'plate' ? null : (
             <ParseContentButton
               data={data}
               onHandleYamlParsedMeta={(meta) => {
