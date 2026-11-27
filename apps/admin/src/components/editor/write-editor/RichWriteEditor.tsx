@@ -1,3 +1,4 @@
+import { NAlert } from 'naive-ui'
 import { computed, defineComponent, reactive, ref, watch } from 'vue'
 import type { ContentFormat } from '~/shared/types/base'
 import type { LexicalEditor, SerializedEditorState } from 'lexical'
@@ -142,6 +143,17 @@ export const RichWriteEditor = defineComponent({
         hasContent={hasContent.value}
         onAutoFocusContent={() => richEditorRef.value?.focus()}
       >
+        {hasRichContent(props.richContent) && (
+          <NAlert
+            type="warning"
+            class="mt-6"
+            title="旧版 Lexical 富文本"
+            data-testid="lexical-legacy-notice"
+          >
+            这篇还没迁移到新编辑器（Plate）。这里仍用旧编辑器编辑，保存后依旧是
+            Lexical 格式，不会变成 Plate。要换成新编辑器，请先用迁移工具转换，不要复制粘贴过去。
+          </NAlert>
+        )}
         <RichEditor
           ref={richEditorRef}
           key={editorKey.value}

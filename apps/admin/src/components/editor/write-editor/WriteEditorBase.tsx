@@ -15,6 +15,7 @@ import {
   watch,
 } from 'vue'
 import type { ContentFormat } from '~/shared/types/base'
+import { isRichFormat } from '~/shared/types/base'
 import type { PropType, VNode } from 'vue'
 
 import { GhostInput } from '~/components/input/ghost-input'
@@ -92,7 +93,7 @@ export const WriteEditorBase = defineComponent({
       destory()
     })
 
-    const isRichMode = computed(() => props.contentFormat === 'lexical')
+    const isRichMode = computed(() => isRichFormat(props.contentFormat))
 
     const handleAutoFocus = () => {
       if (!props.autoFocus) return
@@ -140,7 +141,8 @@ export const WriteEditorBase = defineComponent({
 
     const handleToggleEditorType = () => {
       if (!props.onContentFormatChange) return
-      props.onContentFormatChange(isRichMode.value ? 'markdown' : 'lexical')
+      // 新写的富文本一律是 Plate；旧的 Lexical 文档只能切回 Markdown（空文档时），不会变成 Plate
+      props.onContentFormatChange(isRichMode.value ? 'markdown' : 'plate')
     }
 
     const handleToggleMarkdownRenderMode = () => {

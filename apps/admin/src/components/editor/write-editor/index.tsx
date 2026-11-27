@@ -1,18 +1,21 @@
 /**
  * WriteEditor facade
- * 根据 contentFormat 分发至 MarkdownWriteEditor 或 RichWriteEditor
+ * 根据 contentFormat 分发：plate → PlateWriteEditor（Suzuri），lexical → RichWriteEditor（Haklex，旧文档），其余 → MarkdownWriteEditor
  */
 import { defineComponent } from 'vue'
 import type { ContentFormat } from '~/shared/types/base'
+import type { SuzuriEnvelope } from '@suzuri/editor/schema'
 import type { LexicalEditor, SerializedEditorState } from 'lexical'
 import type { PropType, VNode } from 'vue'
 import type { WriteEditorVariant } from './types'
 
 import { editorBaseProps } from '../universal/props'
 import { MarkdownWriteEditor } from './MarkdownWriteEditor'
+import { PlateWriteEditor } from './PlateWriteEditor'
 import { RichWriteEditor } from './RichWriteEditor'
 
 export { MarkdownWriteEditor } from './MarkdownWriteEditor'
+export { PlateWriteEditor } from './PlateWriteEditor'
 export { RichWriteEditor } from './RichWriteEditor'
 export { WriteEditorBase } from './WriteEditorBase'
 export type { WriteEditorVariant } from './types'
@@ -52,10 +55,12 @@ export const WriteEditor = defineComponent({
       type: Function as PropType<(value: ContentFormat) => void>,
     },
     richContent: {
-      type: Object as PropType<SerializedEditorState>,
+      type: Object as PropType<SerializedEditorState | SuzuriEnvelope>,
     },
     onRichContentChange: {
-      type: Function as PropType<(value: SerializedEditorState) => void>,
+      type: Function as PropType<
+        (value: SerializedEditorState | SuzuriEnvelope) => void
+      >,
     },
     onRichEditorReady: {
       type: Function as PropType<(editor: LexicalEditor | null) => void>,
@@ -67,6 +72,25 @@ export const WriteEditor = defineComponent({
   },
   setup(props) {
     return () => {
+      if (props.contentFormat === 'plate') {
+        return (
+          <PlateWriteEditor
+            loading={props.loading}
+            title={props.title}
+            onTitleChange={props.onTitleChange}
+            titlePlaceholder={props.titlePlaceholder}
+            subtitleSlot={props.subtitleSlot}
+            autoFocus={props.autoFocus}
+            contentFormat={props.contentFormat}
+            onContentFormatChange={props.onContentFormatChange}
+            richContent={props.richContent as SuzuriEnvelope | undefined}
+            onRichContentChange={props.onRichContentChange}
+            onTextChange={props.onChange}
+            saveConfirmFn={props.saveConfirmFn}
+            variant={props.variant}
+          />
+        )
+      }
       if (props.contentFormat === 'lexical') {
         return (
           <RichWriteEditor
@@ -78,7 +102,7 @@ export const WriteEditor = defineComponent({
             autoFocus={props.autoFocus}
             contentFormat={props.contentFormat}
             onContentFormatChange={props.onContentFormatChange}
-            richContent={props.richContent}
+            richContent={props.richContent as SerializedEditorState | undefined}
             onRichContentChange={props.onRichContentChange}
             onRichEditorReady={props.onRichEditorReady}
             onTextChange={props.onChange}
