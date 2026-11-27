@@ -25,6 +25,7 @@ const { hasRichContent, richContentForComparison } = load('utils/rich-content.ts
 const { isRichFormat, lexicalOverwriteError, publishFormatError } = load('shared/types/base.ts')
 const { diffTextOf, plateMarkdown } = load('utils/plate-text.ts', { '@suzuri/editor/schema': schema })
 
+const { prepareInitialValue } = load('components/editor/plate/initial-value.ts', { '@suzuri/editor/schema': schema })
 const envelope = (children) => JSON.stringify(schema.createEnvelope({ children }))
 const empty = envelope([{ type: 'paragraph', children: [{ text: '' }] }, { type: 'paragraph', children: [{ text: '  ' }] }])
 const words = envelope([{ type: 'paragraph', children: [{ text: '你好' }] }])
@@ -67,4 +68,40 @@ assert.equal(diffTextOf({ contentFormat: 'plate', content: words, text: '旧的'
 assert.equal(diffTextOf({ contentFormat: 'lexical', content: '{}', text: 'lexical text' }), 'lexical text')
 assert.equal(diffTextOf({ contentFormat: 'markdown', text: 'md' }), 'md')
 
-console.log('PASS admin plate helpers: empty-envelope detection, lexical overwrite guard (re-read before every update), Markdown diff text')
+// 自动保存 → 重新打开 → 修链接 → 发布：Core 允许草稿带编辑中的占位链接（https://）保存，严格的编辑器初始化会抛错
+const draft = schema.createEnvelope({ children: [
+  { type: 'heading', level: 2, children: [{ text: '标题' }] },
+  { type: 'paragraph', children: [{ text: '看 ' }, { type: 'link', url: 'https://', children: [{ text: '这里', bold: true }] }, { text: ' 和 ' }, { type: 'link', url: 'https://ok.example', children: [{ text: '那里' }] }] },
+  { type: 'image', url: 'https://img.example/a.png', children: [{ text: '' }] },
+] })
+draft.document.children[1].children[1].url = 'https://' // createEnvelope 不校验，模拟 Core 草稿里存的样子
+assert.equal(schema.validateDocument(draft).ok, false, '前提：占位链接过不了严格校验')
+const reopened = prepareInitialValue(JSON.stringify(draft))
+assert.equal(reopened.status, 'repaired', '能重新打开')
+assert.deepEqual([...reopened.links], ['https://'], '只降级不合法的那个链接')
+assert.ok(schema.validateDocument(reopened.value, { requireEnvelope: true }).ok, '打开的副本是合法信封')
+const paragraph = reopened.value.document.children[1].children
+assert.deepEqual([...paragraph.map((n) => n.type ?? n.text)], ['看 ', '这里', ' 和 ', 'link'], '占位链接的文字（连同加粗）留下，好链接不动')
+assert.equal(paragraph[1].bold, true)
+assert.equal(reopened.value.document.children[0].type, 'heading')
+assert.equal(reopened.value.document.children[2].url, 'https://img.example/a.png', '其余内容原样')
+assert.equal(draft.document.children[1].children[1].url, 'https://', '原稿对象没被改动')
+// 用真实的 Suzuri 编辑器渲染一遍：原稿会让它初始化抛错，打开的副本不会
+const adminRequire = createRequire(new URL('package.json', admin))
+const { createElement } = adminRequire('react')
+const { renderToString } = adminRequire('react-dom/server')
+const { SuzuriEditor } = await import(new URL('node_modules/@suzuri/editor/dist/react/index.js', admin))
+assert.throws(() => renderToString(createElement(SuzuriEditor, { initialValue: draft })), /url/, '前提：原稿直接交给编辑器会抛错')
+assert.ok(renderToString(createElement(SuzuriEditor, { initialValue: reopened.value })).includes('这里'), '副本能在编辑器里打开')
+const fixed = structuredClone(reopened.value)
+fixed.document.children[1].children.splice(1, 1, { type: 'link', url: 'https://fixed.example', children: [{ text: '这里' }] })
+assert.ok(schema.validateDocument(fixed, { requireEnvelope: true }).ok && schema.toMarkdown(fixed).markdown.includes('[这里](https://fixed.example)'), '修好链接后可以发布')
+const valid = JSON.parse(words)
+assert.equal(prepareInitialValue(valid).value, valid, '合法内容原样交给编辑器')
+assert.equal(prepareInitialValue(undefined).status, 'ok')
+const unknownNode = prepareInitialValue(envelope([{ type: 'banner', children: [{ text: '横幅文字' }] }]))
+assert.equal(unknownNode.status, 'invalid', '修不好的不交给编辑器')
+assert.ok(unknownNode.text.includes('横幅文字') && unknownNode.error, '只读显示原文和原因')
+assert.equal(prepareInitialValue('{oops').status, 'invalid')
+
+console.log('PASS admin plate helpers: empty-envelope detection, lexical overwrite guard (re-read before every update), Markdown diff text, placeholder-link drafts reopen with the bad links downgraded')
