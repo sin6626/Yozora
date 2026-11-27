@@ -2,7 +2,7 @@ import type { IRequestAdapter } from '~/interfaces/adapter'
 import type { IController } from '~/interfaces/controller'
 import type { IRequestHandler } from '~/interfaces/request'
 import type { SelectFields } from '~/interfaces/types'
-import type { PaginateResult } from '~/models/base'
+import type { ContentPreference, PaginateResult } from '~/models/base'
 import type { PageModel } from '~/models/page'
 import { autoBind } from '~/utils/auto-bind'
 
@@ -59,7 +59,7 @@ export class PageController<ResponseWrapper> implements IController {
    * @param slug 路径
    * @returns
    */
-  getBySlug(slug: string, options?: { prefer?: 'lexical' }) {
+  getBySlug(slug: string, options?: { prefer?: ContentPreference }) {
     return this.proxy.slug(slug).get<PageModel>({
       params: options?.prefer ? { prefer: options.prefer } : undefined,
     })

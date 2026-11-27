@@ -153,6 +153,10 @@ assert.equal(lifetimes.length, 18)
 assert.ok(lifetimes.every(p => p.revalidate >= 300 && p.expire === p.revalidate), "缓存不留过期窗口（见 scripts/verify-cache-life.mjs）")
 post.contentFormat = 'lexical'
 assert.equal((await cache.getPost('technology', 'lexical')).content, 'unused JSON', 'Lexical 文章缓存 content 给富文本渲染器')
+post.contentFormat = 'plate'
+assert.equal((await cache.getPost('technology', 'plate')).content, 'unused JSON', 'Plate 文章同样缓存 content（Suzuri 信封）')
+post.contentFormat = 'markdown'
+assert.equal((await cache.getPost('technology', 'markdown')).content, undefined, 'Markdown 文章不缓存 content')
 delete post.contentFormat
 // 缓存函数抛出的错误会丢失 status，所以 404/403 必须在函数内转成返回值。
 detailError = { status: 404 }

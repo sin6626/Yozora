@@ -11,7 +11,7 @@ import { DatabaseService } from '~/processors/database/database.service'
 import { ImageService } from '~/processors/helper/helper.image.service'
 import { UrlBuilderService } from '~/processors/helper/helper.url-builder.service'
 import { MongoIdDto } from '~/shared/dto/id.dto'
-import { isLexical } from '~/utils/content.util'
+import { isRichContent } from '~/utils/content.util'
 import { AsyncQueue } from '~/utils/queue.util'
 
 import { NoteService } from '../note/note.service'
@@ -70,7 +70,7 @@ export class HelperController {
     const q = new AsyncQueue(10)
     q.addMultiple(
       [...post, ...notes, ...pages]
-        .filter((doc) => !isLexical(doc))
+        .filter((doc) => !isRichContent(doc))
         .map(
           (doc) => () =>
             imageService.saveImageDimensionsFromMarkdownText(

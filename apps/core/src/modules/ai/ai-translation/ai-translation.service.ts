@@ -4,6 +4,8 @@ import { BizException } from '~/common/exceptions/biz.exception'
 import { BusinessEvents, EventScope } from '~/constants/business-event.constant'
 import { CollectionRefTypes } from '~/constants/db.constant'
 import { ErrorCodeEnum } from '~/constants/error-code.constant'
+import { FileReferenceService } from '~/modules/file/file-reference.service'
+import { FileReferenceType } from '~/modules/file/file-reference.model'
 import { DatabaseService } from '~/processors/database/database.service'
 import { EventManagerService } from '~/processors/helper/helper.event.service'
 import { LexicalService } from '~/processors/helper/helper.lexical.service'
@@ -15,6 +17,7 @@ import {
 import { ContentFormat } from '~/shared/types/content-format.type'
 import { InjectModel } from '~/transformers/model.transformer'
 import { createAbortError } from '~/utils/abort.util'
+import { projectPlateContent } from '~/utils/plate-content.util'
 import { md5 } from '~/utils/tool.util'
 
 import { ConfigsService } from '../../configs/configs.service'
@@ -55,6 +58,7 @@ import type { ITranslationStrategy } from './translation-strategy.interface'
 import {
   LEXICAL_TRANSLATION_STRATEGY,
   MARKDOWN_TRANSLATION_STRATEGY,
+  PLATE_TRANSLATION_STRATEGY,
 } from './translation-strategy.interface'
 
 @Injectable()
@@ -68,6 +72,7 @@ export class AiTranslationService
     @InjectModel(AITranslationModel)
     private readonly aiTranslationModel: MongooseModel<AITranslationModel>,
     private readonly databaseService: DatabaseService,
+    private readonly fileReferences: FileReferenceService,
     private readonly translationConsistencyService: TranslationConsistencyService,
     private readonly configService: ConfigsService,
     private readonly aiService: AiService,
@@ -80,14 +85,16 @@ export class AiTranslationService
     private readonly lexicalStrategy: ITranslationStrategy,
     @Inject(MARKDOWN_TRANSLATION_STRATEGY)
     private readonly markdownStrategy: ITranslationStrategy,
+    @Inject(PLATE_TRANSLATION_STRATEGY)
+    private readonly plateStrategy: ITranslationStrategy,
   ) {
     super()
   }
 
   private getStrategy(contentFormat?: string): ITranslationStrategy {
-    return contentFormat === ContentFormat.Lexical
-      ? this.lexicalStrategy
-      : this.markdownStrategy
+    if (contentFormat === ContentFormat.Lexical) return this.lexicalStrategy
+    if (contentFormat === ContentFormat.Plate) return this.plateStrategy
+    return this.markdownStrategy
   }
 
   onModuleInit() {
@@ -559,6 +566,11 @@ export class AiTranslationService
     targetLang: string,
     content: ArticleContent,
   ): string {
+    if (content.contentFormat === ContentFormat.Plate) {
+      return md5(JSON.stringify([
+        'translation', articleId, targetLang, ContentFormat.Plate, this.computeContentHash(content, ''),
+      ]))
+    }
     return md5(
       JSON.stringify({
         feature: 'translation',
@@ -728,7 +740,7 @@ export class AiTranslationService
             `AI translation updated: article=${articleId} target=${targetLang}`,
           )
 
-          this.emitTranslationEvent(BusinessEvents.TRANSLATION_UPDATE, existing)
+          await this.afterTranslationSaved(BusinessEvents.TRANSLATION_UPDATE, existing)
 
           return { result: existing, resultId: existing.id }
         }
@@ -756,7 +768,7 @@ export class AiTranslationService
           `AI translation created: article=${articleId} target=${targetLang}`,
         )
 
-        this.emitTranslationEvent(BusinessEvents.TRANSLATION_CREATE, created)
+        await this.afterTranslationSaved(BusinessEvents.TRANSLATION_CREATE, created)
 
         return { result: created, resultId: created.id }
       },
@@ -802,10 +814,15 @@ export class AiTranslationService
     return this.runTranslationGeneration(articleId, targetLang, type, document)
   }
 
-  private emitTranslationEvent(
+  private async afterTranslationSaved(
     eventType: BusinessEvents,
     translation: AITranslationModel,
   ) {
+    await this.fileReferences.updateReferencesForDocument(
+      translation,
+      translation.id,
+      FileReferenceType.Translation,
+    )
     // `translation` can be a live Mongoose document. Its array fields may carry
     // Mongoose-specific internals that fail the gateway's `structuredClone()`.
     // Materialize `tags` into a plain array before emitting.
@@ -1074,7 +1091,12 @@ export class AiTranslationService
     if (data.summary !== undefined) doc.summary = data.summary
     if (data.tags !== undefined) doc.tags = data.tags
 
-    if (data.content !== undefined) {
+    if (doc.contentFormat === ContentFormat.Plate &&
+      (data.content !== undefined || data.text !== undefined)) {
+      const projected = projectPlateContent(data.content ?? doc.content ?? '')
+      doc.content = projected.content
+      doc.text = projected.text
+    } else if (data.content !== undefined) {
       doc.content = data.content
       doc.text = this.lexicalService.lexicalToMarkdown(data.content)
     } else if (data.text !== undefined) {
@@ -1082,7 +1104,7 @@ export class AiTranslationService
     }
 
     await doc.save()
-    this.emitTranslationEvent(BusinessEvents.TRANSLATION_UPDATE, doc)
+    await this.afterTranslationSaved(BusinessEvents.TRANSLATION_UPDATE, doc)
     return doc
   }
 
@@ -1092,6 +1114,7 @@ export class AiTranslationService
     if (!doc || result.deletedCount === 0) {
       throw new BizException(ErrorCodeEnum.AITranslationNotFound)
     }
+    await this.fileReferences.removeReferencesForDocument(id, FileReferenceType.Translation)
     this.eventManager.emit(
       BusinessEvents.TRANSLATION_DELETE,
       { id, refId: doc.refId, refType: doc.refType, lang: doc.lang },
@@ -1100,7 +1123,11 @@ export class AiTranslationService
   }
 
   async deleteTranslationsByRefId(refId: string) {
-    await this.aiTranslationModel.deleteMany({ refId })
+    const ids = await this.aiTranslationModel.distinct('_id', { refId })
+    await this.aiTranslationModel.deleteMany({ _id: { $in: ids } })
+    await Promise.all(ids.map(id =>
+      this.fileReferences.removeReferencesForDocument(String(id), FileReferenceType.Translation),
+    ))
   }
 
   async getTranslationForArticle(

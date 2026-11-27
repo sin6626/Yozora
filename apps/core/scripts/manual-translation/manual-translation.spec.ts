@@ -17,7 +17,7 @@ import { createHmac } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-import { MongoClient, ObjectId } from 'mongodb'
+import { MongoClient } from 'mongodb'
 import type { Db } from 'mongodb'
 import { test } from 'vitest'
 
@@ -29,22 +29,13 @@ import { LexicalService } from '~/processors/helper/helper.lexical.service'
 import { ContentFormat } from '~/shared/types/content-format.type'
 import { computeContentHash } from '~/utils/content.util'
 import { md5 } from '~/utils/tool.util'
+import { findArticle, type Article } from './source'
 
 const mode = process.env.MT_MODE
 const ids = (process.env.MT_IDS ?? '').split(',').filter(Boolean)
 const langs = (process.env.MT_LANGS ?? '').split(',').filter(Boolean)
 const dir = resolve(__dirname, '../../../../.local/manual-translation')
 const lexical = new LexicalService()
-
-type Article = { refType: 'posts' | 'notes' | 'pages'; doc: Record<string, any> }
-
-async function findArticle(db: Db, id: string): Promise<Article> {
-  for (const refType of ['posts', 'notes', 'pages'] as const) {
-    const doc = await db.collection(refType).findOne({ _id: new ObjectId(id) })
-    if (doc) return { refType, doc }
-  }
-  throw new Error(`找不到文章、手记或页面：${id}`)
-}
 
 // 与 Core 的 BaseTranslationService.toArticleContent 相同：没有的字段是 undefined
 function source(doc: Record<string, any>) {

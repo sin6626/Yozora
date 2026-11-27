@@ -2,7 +2,11 @@ import type { IRequestAdapter } from '~/interfaces/adapter'
 import type { IController } from '~/interfaces/controller'
 import type { IRequestHandler, RequestProxyResult } from '~/interfaces/request'
 import type { SelectFields } from '~/interfaces/types'
-import type { PaginateResult, TranslationMeta } from '~/models/base'
+import type {
+  ContentPreference,
+  PaginateResult,
+  TranslationMeta,
+} from '~/models/base'
 import type {
   NoteModel,
   NoteWrappedPayload,
@@ -36,7 +40,7 @@ export type NoteByNidOptions = {
   password?: string
   single?: boolean
   lang?: string
-  prefer?: 'lexical'
+  prefer?: ContentPreference
 }
 
 export type NoteBySlugDateOptions = NoteByNidOptions

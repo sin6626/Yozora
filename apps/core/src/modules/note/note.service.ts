@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
 import type { DocumentType } from '@typegoose/typegoose'
 import dayjs from 'dayjs'
-import { debounce, omit } from 'es-toolkit/compat'
+import { omit } from 'es-toolkit/compat'
 import type { PaginateOptions, QueryFilter } from 'mongoose'
 import slugify from 'slugify'
 
@@ -22,7 +22,7 @@ import { EventManagerService } from '~/processors/helper/helper.event.service'
 import { ImageService } from '~/processors/helper/helper.image.service'
 import { LexicalService } from '~/processors/helper/helper.lexical.service'
 import { InjectModel } from '~/transformers/model.transformer'
-import { isLexical } from '~/utils/content.util'
+import { isRichContent } from '~/utils/content.util'
 import { dbTransforms } from '~/utils/db-transform.util'
 import { scheduleManager } from '~/utils/schedule.util'
 import { getLessThanNow } from '~/utils/time.util'
@@ -350,11 +350,6 @@ export class NoteService {
 
     // 处理草稿：标记为已发布，并关联到新创建的日记
     if (draftId) {
-      // Release draft's file references first, they will be re-associated to the note
-      await this.fileReferenceService.removeReferencesForDocument(
-        draftId,
-        FileReferenceType.Draft,
-      )
       await this.draftService.linkToPublished(draftId, note.id)
       await this.draftService.markAsPublished(draftId)
     }
@@ -382,7 +377,7 @@ export class NoteService {
           this.aiSlugBackfillService
             .createBackfillTaskForNotes([note.id])
             .catch(() => undefined),
-        !isLexical(note) &&
+        !isRichContent(note) &&
           this.imageService.saveImageDimensionsFromMarkdownText(
             note.text,
             note.images,
@@ -512,7 +507,7 @@ export class NoteService {
         this.eventManager.emit(EventBusEvents.CleanAggregateCache, null, {
           scope: EventScope.TO_SYSTEM,
         }),
-        !isLexical(updated) &&
+        !isRichContent(updated) &&
           this.imageService.saveImageDimensionsFromMarkdownText(
             updated.text,
             updated.images,
@@ -534,27 +529,14 @@ export class NoteService {
       ])
     })
 
-    await this.broadcastNoteUpdateEvent(updated)
+    this.eventManager.emit(
+      BusinessEvents.NOTE_UPDATE,
+      { id: updated.id },
+      { scope: EventScope.TO_SYSTEM_VISITOR },
+    )
 
     return updated
   }
-
-  private broadcastNoteUpdateEvent = debounce(
-    async (updated: NoteModel) => {
-      if (!updated) {
-        return
-      }
-      this.eventManager.emit(
-        BusinessEvents.NOTE_UPDATE,
-        { id: updated.id },
-        {
-          scope: EventScope.TO_SYSTEM_VISITOR,
-        },
-      )
-    },
-    1000,
-    { leading: false },
-  )
 
   async deleteById(id: string) {
     const doc = await this.noteModel.findById(id)

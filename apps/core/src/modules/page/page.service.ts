@@ -12,7 +12,7 @@ import { EventManagerService } from '~/processors/helper/helper.event.service'
 import { ImageService } from '~/processors/helper/helper.image.service'
 import { LexicalService } from '~/processors/helper/helper.lexical.service'
 import { InjectModel } from '~/transformers/model.transformer'
-import { isLexical } from '~/utils/content.util'
+import { isRichContent } from '~/utils/content.util'
 import { dbTransforms } from '~/utils/db-transform.util'
 import { scheduleManager } from '~/utils/schedule.util'
 import { isDefined } from '~/utils/validator.util'
@@ -61,11 +61,6 @@ export class PageService {
 
     // 处理草稿：标记为已发布，并关联到新创建的页面
     if (draftId) {
-      // Release draft's file references first, they will be re-associated to the page
-      await this.fileReferenceService.removeReferencesForDocument(
-        draftId,
-        FileReferenceType.Draft,
-      )
       await this.draftService.linkToPublished(draftId, res.id)
       await this.draftService.markAsPublished(draftId)
     }
@@ -78,7 +73,7 @@ export class PageService {
         FileReferenceType.Page,
       )
 
-      if (!isLexical(res)) {
+      if (!isRichContent(res)) {
         this.imageService.saveImageDimensionsFromMarkdownText(
           res.text,
           res.images,
@@ -154,7 +149,7 @@ export class PageService {
       )
 
       await Promise.all([
-        !isLexical(newDoc) &&
+        !isRichContent(newDoc) &&
           this.imageService.saveImageDimensionsFromMarkdownText(
             newDoc.text,
             newDoc.images,

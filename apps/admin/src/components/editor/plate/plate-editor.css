@@ -1,0 +1,37 @@
+/* Suzuri 编辑器在后台：外观沿用 Suzuri 自带的中性配色（和后台 #171717 主色一致），只改手记的字体。
+   手记用思源宋体（和前台手记、Haklex 手记编辑器同款，浏览器按字下载切片），加粗用黑体：宋体正文的强调按中文排版习惯用黑体。
+   后台的 PostCSS 会把 Suzuri 样式表里的 @layer 展开成 :not(#\#) 这样的高优先级选择器，普通选择器压不过它的 font-serif 工具类，
+   所以这里用 !important。 */
+.plate-editor-note :is(.suzuri-root, .suzuri-root .font-serif) {
+  font-family:
+    'Noto Serif SC Variable', 'Noto Serif CJK SC', 'Source Han Serif SC',
+    'Songti SC', STSong, serif !important;
+}
+
+.plate-editor-note .suzuri-root strong {
+  font-family: var(--suzuri-font-sans) !important;
+}
+
+/* 打开时修过初值（占位链接降成文字）或只能只读显示时的提示 */
+.plate-editor-notice {
+  margin-bottom: 0.75rem;
+  border: 1px solid rgb(234 179 8 / 0.4);
+  border-radius: 6px;
+  background: rgb(234 179 8 / 0.08);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.plate-editor-notice.is-error {
+  border-color: rgb(239 68 68 / 0.4);
+  background: rgb(239 68 68 / 0.08);
+}
+
+.plate-editor-raw {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  opacity: 0.8;
+}

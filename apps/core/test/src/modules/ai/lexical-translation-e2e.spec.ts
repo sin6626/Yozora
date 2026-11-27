@@ -1,3 +1,4 @@
+import { FileReferenceService } from '~/modules/file/file-reference.service'
 import { Test } from '@nestjs/testing'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -9,11 +10,13 @@ import { AiTranslationService } from '~/modules/ai/ai-translation/ai-translation
 import { parseLexicalForTranslation } from '~/modules/ai/ai-translation/lexical-translation-parser'
 import { LexicalTranslationStrategy } from '~/modules/ai/ai-translation/strategies/lexical-translation.strategy'
 import { MarkdownTranslationStrategy } from '~/modules/ai/ai-translation/strategies/markdown-translation.strategy'
+import { PlateTranslationStrategy } from '~/modules/ai/ai-translation/strategies/plate-translation.strategy'
 import { TranslationConsistencyService } from '~/modules/ai/ai-translation/translation-consistency.service'
 import type { ITranslationStrategy } from '~/modules/ai/ai-translation/translation-strategy.interface'
 import {
   LEXICAL_TRANSLATION_STRATEGY,
   MARKDOWN_TRANSLATION_STRATEGY,
+  PLATE_TRANSLATION_STRATEGY,
 } from '~/modules/ai/ai-translation/translation-strategy.interface'
 import type { IModelRuntime } from '~/modules/ai/runtime'
 import { ConfigsService } from '~/modules/configs/configs.service'
@@ -154,6 +157,7 @@ describe('translateLexicalContent (real-world data)', () => {
     const module = await Test.createTestingModule({
       providers: [
         AiTranslationService,
+        { provide: FileReferenceService, useValue: { updateReferencesForDocument: vi.fn(), removeReferencesForDocument: vi.fn() } },
         {
           provide: getModelToken(AITranslationModel.name),
           useValue: {
@@ -206,6 +210,10 @@ describe('translateLexicalContent (real-world data)', () => {
         {
           provide: MARKDOWN_TRANSLATION_STRATEGY,
           useClass: MarkdownTranslationStrategy,
+        },
+        {
+          provide: PLATE_TRANSLATION_STRATEGY,
+          useClass: PlateTranslationStrategy,
         },
       ],
     }).compile()
@@ -643,6 +651,7 @@ describe('incremental translation', () => {
     const module = await Test.createTestingModule({
       providers: [
         AiTranslationService,
+        { provide: FileReferenceService, useValue: { updateReferencesForDocument: vi.fn(), removeReferencesForDocument: vi.fn() } },
         {
           provide: getModelToken(AITranslationModel.name),
           useValue: {
@@ -695,6 +704,10 @@ describe('incremental translation', () => {
         {
           provide: MARKDOWN_TRANSLATION_STRATEGY,
           useClass: MarkdownTranslationStrategy,
+        },
+        {
+          provide: PLATE_TRANSLATION_STRATEGY,
+          useClass: PlateTranslationStrategy,
         },
       ],
     }).compile()

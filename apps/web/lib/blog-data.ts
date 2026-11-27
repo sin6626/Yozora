@@ -29,9 +29,9 @@ function httpStatus(error: unknown) {
   return typeof error === "object" && error !== null && "status" in error ? error.status : undefined;
 }
 
-// Lexical 正文 JSON 只在 lexical 格式时缓存，给富文本渲染器用；Markdown 只需要 text。
-function lexicalContent(doc: { contentFormat?: string; content?: string }) {
-  return doc.contentFormat === "lexical" && typeof doc.content === "string" ? { content: doc.content } : {};
+// 富文本正文 JSON（Lexical 或 Plate 信封）只在这两种格式时缓存，给富文本渲染器用；Markdown 只需要 text。
+function richContent(doc: { contentFormat?: string; content?: string }) {
+  return (doc.contentFormat === "lexical" || doc.contentFormat === "plate") && typeof doc.content === "string" ? { content: doc.content } : {};
 }
 
 async function orNotFound<T>(request: Promise<T>) {
@@ -264,7 +264,7 @@ export async function getPost(category: string, slug: string, lang: ContentLang 
     contentFormat: post.contentFormat,
     allowComment: post.allowComment !== false,
     count: { read: post.count?.read ?? 0, like: post.count?.like ?? 0 },
-    ...lexicalContent(post),
+    ...richContent(post),
     created: post.created,
     category: post.category ? { name: names?.categories[post.category.slug] ?? post.category.name, slug: post.category.slug } : null,
   };
@@ -380,7 +380,7 @@ export async function getNote(nid: number, lang: ContentLang = "zh") {
     contentFormat: note.contentFormat,
     allowComment: note.allowComment !== false,
     count: { read: note.count?.read ?? 0, like: note.count?.like ?? 0 },
-    ...lexicalContent(note),
+    ...richContent(note),
     created: note.created,
     mood: (note.mood && names?.moods[note.mood]) || note.mood,
     weather: (note.weather && names?.weathers[note.weather]) || note.weather,
@@ -728,7 +728,7 @@ export async function getArticleTranslation(id: string, lang: TranslationLanguag
     summary: doc.summary,
     text: doc.text,
     contentFormat: doc.contentFormat,
-    ...lexicalContent(doc),
+    ...richContent(doc),
     sourceLang: doc.sourceLang,
     aiModel: doc.aiModel,
   };
@@ -745,7 +745,7 @@ export async function getPage(slug: string) {
     text: page.text,
     contentFormat: page.contentFormat,
     allowComment: page.allowComment !== false,
-    ...lexicalContent(page),
+    ...richContent(page),
   };
 }
 

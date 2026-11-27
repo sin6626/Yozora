@@ -54,7 +54,7 @@ export const zRefTypeTransform = z.preprocess((val) => {
   return mapping[val.toLowerCase()] || val
 }, z.string().optional())
 
-export const zPrefer = z.enum(['lexical']).optional()
+export const zPrefer = z.enum(['lexical', 'plate']).optional()
 
 export const zLang = z
   .preprocess(

@@ -21,6 +21,7 @@ import type { CreatePageData } from '~/api/pages'
 import type { DraftModel } from '~/models/draft'
 import type { PageModel } from '~/models/page'
 import type { ContentFormat, WriteBaseType } from '~/shared/types/base'
+import { isRichFormat, publishFormatError } from '~/shared/types/base'
 import type { LexicalEditor } from 'lexical'
 
 import { pagesApi } from '~/api/pages'
@@ -34,6 +35,7 @@ import {
   SectionTitle,
   TextBaseDrawer,
 } from '~/components/drawer/text-base-drawer'
+import { pendingUploadsError } from '~/components/editor/plate/uploads'
 import { WriteEditor } from '~/components/editor/write-editor'
 import { SlugInput } from '~/components/editor/write-editor/slug-input'
 import { ParseContentButton } from '~/components/special-button/parse-content'
@@ -162,6 +164,21 @@ const PageWriteView = defineComponent(() => {
   const drawerShow = ref(false)
 
   const handleSubmit = async () => {
+    const uploading = pendingUploadsError()
+    if (uploading) {
+      toast.error(uploading)
+      return
+    }
+    // 旧版 Lexical 只能按 Lexical 保存：提交前现读库里的格式（见 publishFormatError）
+    const formatError = await publishFormatError(
+      isString(actualRefId.value) ? actualRefId.value : undefined,
+      data.contentFormat,
+      async (id) => ((await pagesApi.getById(id)) as { contentFormat?: string }).contentFormat,
+    )
+    if (formatError) {
+      toast.error(formatError)
+      return
+    }
     const parseDataToPayload = () => {
       if (!data.title || data.title.trim().length === 0) {
         toast.error('标题为空')
@@ -176,7 +193,7 @@ const PageWriteView = defineComponent(() => {
         title: data.title.trim(),
         slug: data.slug.trim(),
         contentFormat: data.contentFormat,
-        content: data.contentFormat === 'lexical' ? data.content : undefined,
+        content: isRichFormat(data.contentFormat) ? data.content : undefined,
       }
     }
 
@@ -227,7 +244,7 @@ const PageWriteView = defineComponent(() => {
         {!isMobile.value &&
           (data.contentFormat === 'lexical' ? (
             <LexicalDebugButton content={data.content} />
-          ) : (
+          ) : data.contentFormat === 'plate' ? null : (
             <ParseContentButton
               data={data}
               onHandleYamlParsedMeta={(meta) => {

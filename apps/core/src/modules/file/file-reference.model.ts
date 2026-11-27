@@ -16,10 +16,12 @@ export enum FileReferenceType {
   Murmur = 'murmur',
   Owner = 'owner',
   Snippet = 'snippet',
+  Translation = 'translation',
 }
 
 @index({ fileUrl: 1 })
 @index({ refId: 1, refType: 1 })
+@index({ owners: 1 })
 @index({ status: 1, created: 1 })
 @modelOptions({
   options: {
@@ -40,6 +42,9 @@ export class FileReferenceModel extends BaseModel {
     default: FileReferenceStatus.Pending,
   })
   status!: FileReferenceStatus
+
+  @prop({ type: () => [String], default: undefined })
+  owners?: string[]
 
   @prop({ type: String })
   refId?: string

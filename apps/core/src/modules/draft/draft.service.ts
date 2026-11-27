@@ -6,6 +6,7 @@ import { ErrorCodeEnum } from '~/constants/error-code.constant'
 import { FileReferenceType } from '~/modules/file/file-reference.model'
 import { FileReferenceService } from '~/modules/file/file-reference.service'
 import { LexicalService } from '~/processors/helper/helper.lexical.service'
+import { ContentFormat } from '~/shared/types/content-format.type'
 import { InjectModel } from '~/transformers/model.transformer'
 import { dbTransforms } from '~/utils/db-transform.util'
 
@@ -83,6 +84,7 @@ export class DraftService {
       dto,
     )
 
+    let historyTrimmed = false
     if (hasContentChange && (draft.title || draft.text || draft.content)) {
       const { history } = this.draftHistoryService.pushHistoryEntry(
         {
@@ -96,6 +98,7 @@ export class DraftService {
         },
         draft.history,
       )
+      historyTrimmed = history.length <= draft.history.length
       draft.history = history
     }
 
@@ -118,7 +121,8 @@ export class DraftService {
     if (
       dto.text !== undefined ||
       dto.content !== undefined ||
-      dto.contentFormat !== undefined
+      dto.contentFormat !== undefined ||
+      historyTrimmed
     ) {
       await this.fileReferenceService.updateReferencesForDocument(
         draft,
@@ -236,8 +240,6 @@ export class DraftService {
     return this.draftHistoryService.resolveHistoryEntry(
       historyEntry,
       draft.history,
-      draft.text ?? '',
-      draft.content,
     )
   }
 
@@ -257,8 +259,6 @@ export class DraftService {
       ...this.draftHistoryService.resolveHistoryEntry(
         historyEntry,
         storedHistory,
-        draft.text ?? '',
-        draft.content,
       ),
     }
     this.lexicalService.populateDraftText(resolved)
@@ -279,8 +279,8 @@ export class DraftService {
 
     draft.title = resolved.title
     draft.text = resolved.text ?? ''
-    if (resolved.content !== undefined) draft.content = resolved.content
-    if (resolved.contentFormat) draft.contentFormat = resolved.contentFormat
+    draft.content = resolved.content
+    draft.contentFormat = resolved.contentFormat ?? ContentFormat.Markdown
     draft.typeSpecificData = resolved.typeSpecificData
     draft.version = draft.version + 1
 

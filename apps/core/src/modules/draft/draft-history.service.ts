@@ -1,5 +1,8 @@
-import { Injectable } from '@nestjs/common'
-import { ContentFormat } from '~/shared/types/content-format.type'
+import { BadRequestException, Injectable } from '@nestjs/common'
+import {
+  ContentFormat,
+  isRichContentFormat,
+} from '~/shared/types/content-format.type'
 import type { DiffStrategy } from './diff'
 import { jsonDiffStrategy, textDiffStrategy } from './diff'
 import { DraftHistoryModel } from './draft.model'
@@ -17,6 +20,12 @@ export interface DraftStateSnapshot {
 export interface HistoryPushResult {
   entry: DraftHistoryModel
   history: DraftHistoryModel[]
+}
+
+export class UnrestorableDraftVersion extends BadRequestException {
+  constructor(version: number) {
+    super(`Cannot restore draft version ${version}: missing or invalid history body`)
+  }
 }
 
 @Injectable()
@@ -87,7 +96,7 @@ export class DraftHistoryService {
 
     const format =
       incoming.contentFormat ?? current.contentFormat ?? ContentFormat.Markdown
-    if (format === ContentFormat.Lexical) {
+    if (isRichContentFormat(format)) {
       return (
         incoming.content !== undefined && incoming.content !== current.content
       )
@@ -99,21 +108,16 @@ export class DraftHistoryService {
   resolveHistoryEntry(
     entry: DraftHistoryModel,
     allHistory: DraftHistoryModel[],
-    currentText: string,
-    currentContent?: string,
   ): DraftHistoryModel {
     if (entry.isFullSnapshot) {
       return entry
     }
 
     const format = entry.contentFormat ?? ContentFormat.Markdown
-    const isLexical = format === ContentFormat.Lexical
-
-    if (isLexical) {
+    if (isRichContentFormat(format)) {
       const restoredContent = this.restoreFromHistory(
         entry.version,
         allHistory,
-        currentContent ?? '',
         this.getStrategy(format),
         'content',
       )
@@ -127,12 +131,14 @@ export class DraftHistoryService {
     const restoredText = this.restoreFromHistory(
       entry.version,
       allHistory,
-      currentText,
       this.getStrategy(format),
       'text',
     )
-    const content =
-      entry.content ?? this.findNearestFullSnapshot(allHistory)?.content
+    const base = allHistory.find(h =>
+      h.version < entry.version && h.isFullSnapshot &&
+      (h.contentFormat ?? ContentFormat.Markdown) === format,
+    )
+    const content = entry.content ?? base?.content
 
     return {
       ...entry,
@@ -161,13 +167,13 @@ export class DraftHistoryService {
   private getStrategy(
     contentFormat: ContentFormat = ContentFormat.Markdown,
   ): DiffStrategy {
-    return contentFormat === ContentFormat.Lexical
+    return isRichContentFormat(contentFormat)
       ? jsonDiffStrategy
       : textDiffStrategy
   }
 
   private getPrimaryField(contentFormat: ContentFormat): 'text' | 'content' {
-    return contentFormat === ContentFormat.Lexical ? 'content' : 'text'
+    return isRichContentFormat(contentFormat) ? 'content' : 'text'
   }
 
   private createHistoryEntry(
@@ -185,15 +191,17 @@ export class DraftHistoryService {
     const primaryValue =
       primaryField === 'content' ? (content ?? '') : (text ?? '')
 
-    const shouldFullSnapshot = this.shouldStoreFullSnapshot(
-      version,
-      primaryValue,
-      existingHistory,
-      strategy,
-      primaryField,
-    )
-
-    if (shouldFullSnapshot) {
+    const baseSnapshot = this.findNearestFullSnapshot(existingHistory)
+    const baseValue = baseSnapshot?.[primaryField]
+    const canDiff = version % this.FULL_SNAPSHOT_INTERVAL !== 1 &&
+      (baseSnapshot?.contentFormat ?? ContentFormat.Markdown) === contentFormat &&
+      baseValue !== undefined
+    const patchText = canDiff ? strategy.createPatch(baseValue, primaryValue) : undefined
+    if (
+      patchText === undefined ||
+      (patchText === '' && baseValue !== primaryValue) ||
+      strategy.isOversized(patchText, primaryValue, this.DIFF_SIZE_THRESHOLD)
+    ) {
       return {
         version,
         title,
@@ -205,13 +213,6 @@ export class DraftHistoryService {
         isFullSnapshot: true,
       }
     }
-
-    const baseSnapshot = this.findNearestFullSnapshot(existingHistory)
-    const baseValue =
-      primaryField === 'content'
-        ? (baseSnapshot?.content ?? primaryValue)
-        : (baseSnapshot?.text ?? primaryValue)
-    const patchText = strategy.createPatch(baseValue, primaryValue)
 
     if (!patchText) {
       const result: DraftHistoryModel = {
@@ -254,39 +255,6 @@ export class DraftHistoryService {
     return result
   }
 
-  private shouldStoreFullSnapshot(
-    version: number,
-    primaryValue: string,
-    existingHistory: DraftHistoryModel[],
-    strategy: DiffStrategy,
-    primaryField: 'text' | 'content',
-  ): boolean {
-    if (existingHistory.length === 0) {
-      return true
-    }
-
-    if (version % this.FULL_SNAPSHOT_INTERVAL === 1) {
-      return true
-    }
-
-    const nearestFullSnapshot = existingHistory.find((h) => h.isFullSnapshot)
-    if (!nearestFullSnapshot) {
-      return true
-    }
-
-    const baseValue =
-      primaryField === 'content'
-        ? (nearestFullSnapshot.content ?? '')
-        : (nearestFullSnapshot.text ?? '')
-    const patch = strategy.createPatch(baseValue, primaryValue)
-
-    if (strategy.isOversized(patch, primaryValue, this.DIFF_SIZE_THRESHOLD)) {
-      return true
-    }
-
-    return false
-  }
-
   private findNearestFullSnapshot(
     history: DraftHistoryModel[],
   ): DraftHistoryModel | undefined {
@@ -296,59 +264,34 @@ export class DraftHistoryService {
   private restoreFromHistory(
     targetVersion: number,
     history: DraftHistoryModel[],
-    currentValue: string,
     strategy: DiffStrategy,
     field: 'text' | 'content',
-    visited: Set<number> = new Set(),
+    visited = new Set<number>(),
   ): string {
-    if (visited.has(targetVersion)) {
-      return currentValue
-    }
+    const entry = history.find(h => h.version === targetVersion)
+    if (!entry || visited.has(targetVersion)) throw new UnrestorableDraftVersion(targetVersion)
     visited.add(targetVersion)
 
-    const targetIndex = history.findIndex((h) => h.version === targetVersion)
-    if (targetIndex === -1) {
-      return currentValue
+    if (entry.isFullSnapshot) {
+      const body = entry[field]
+      if (body === undefined) throw new UnrestorableDraftVersion(targetVersion)
+      return body
     }
-
-    const targetEntry = history[targetIndex]
-    if (targetEntry.refVersion !== undefined) {
-      const refEntry = history.find((h) => h.version === targetEntry.refVersion)
-      if (refEntry?.isFullSnapshot) {
-        return (
-          (field === 'content' ? refEntry.content : refEntry.text) ??
-          currentValue
-        )
-      }
-      return this.restoreFromHistory(
-        targetEntry.refVersion,
-        history,
-        currentValue,
-        strategy,
-        field,
-        visited,
-      )
+    const baseVersion = entry.refVersion ?? entry.baseVersion
+    const base = baseVersion === undefined
+      ? history.find(h => h.version < targetVersion && h.isFullSnapshot)
+      : history.find(h => h.version === baseVersion)
+    if (!base || (base.contentFormat ?? ContentFormat.Markdown) !==
+      (entry.contentFormat ?? ContentFormat.Markdown)) {
+      throw new UnrestorableDraftVersion(targetVersion)
     }
-    if (targetEntry.isFullSnapshot) {
-      return (
-        (field === 'content' ? targetEntry.content : targetEntry.text) ??
-        currentValue
-      )
-    }
-
-    let baseValue = currentValue
-    for (let i = targetIndex; i < history.length; i++) {
-      if (history[i].isFullSnapshot) {
-        baseValue =
-          (field === 'content' ? history[i].content : history[i].text) ??
-          currentValue
-        break
-      }
-    }
-
-    const patchValue =
-      (field === 'content' ? targetEntry.content : targetEntry.text) ?? ''
-    return strategy.applyPatch(baseValue, patchValue)
+    const baseValue = this.restoreFromHistory(base.version, history, strategy, field, visited)
+    if (entry.refVersion !== undefined) return baseValue
+    const patch = entry[field]
+    if (!patch) throw new UnrestorableDraftVersion(targetVersion)
+    const restored = strategy.applyPatch(baseValue, patch)
+    if (restored === baseValue) throw new UnrestorableDraftVersion(targetVersion)
+    return restored
   }
 
   private trimHistoryWithFullSnapshot(
@@ -362,17 +305,14 @@ export class DraftHistoryService {
 
     const trimmedVersions = new Set<number>(trimmed.map((h) => h.version))
     for (const entry of trimmed) {
-      if (
-        entry.refVersion !== undefined &&
-        !trimmedVersions.has(entry.refVersion)
-      ) {
+      const baseVersion = entry.refVersion ?? entry.baseVersion
+      if (baseVersion !== undefined && !trimmedVersions.has(baseVersion)) {
         const format = entry.contentFormat ?? ContentFormat.Markdown
         const strategy = this.getStrategy(format)
         const field = this.getPrimaryField(format)
         const resolvedValue = this.restoreFromHistory(
           entry.version,
           history,
-          '',
           strategy,
           field,
         )

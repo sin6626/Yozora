@@ -8,7 +8,10 @@ import {
   zPaginationSize,
   zSortOrder,
 } from '~/common/zod'
-import { ContentFormat } from '~/shared/types/content-format.type'
+import {
+  CONTENT_FORMATS,
+  ContentFormat,
+} from '~/shared/types/content-format.type'
 
 import { DraftRefType } from './draft.model'
 
@@ -23,7 +26,7 @@ export const CreateDraftSchema = z.object({
   title: z.string().optional(),
   text: z.string().optional(),
   contentFormat: z
-    .enum([ContentFormat.Markdown, ContentFormat.Lexical])
+    .enum(CONTENT_FORMATS)
     .default(ContentFormat.Markdown)
     .optional(),
   content: z.string().optional(),
@@ -36,7 +39,7 @@ export class CreateDraftDto extends createZodDto(CreateDraftSchema) {}
 
 export const UpdateDraftSchema = CreateDraftSchema.extend({
   contentFormat: z
-    .enum([ContentFormat.Markdown, ContentFormat.Lexical])
+    .enum(CONTENT_FORMATS)
     .optional(),
   meta: z.record(z.string(), z.any()).optional().nullable(),
 }).partial()

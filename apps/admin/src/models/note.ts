@@ -9,7 +9,7 @@ export interface NoteModel {
   }
   title: string
   text: string
-  contentFormat?: 'markdown' | 'lexical'
+  contentFormat?: 'markdown' | 'lexical' | 'plate'
   content?: string
   mood?: string
   weather?: string

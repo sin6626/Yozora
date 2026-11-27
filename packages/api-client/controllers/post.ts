@@ -3,6 +3,7 @@ import type { IController } from '~/interfaces/controller'
 import type { IRequestHandler, RequestProxyResult } from '~/interfaces/request'
 import type { SelectFields } from '~/interfaces/types'
 import type {
+  ContentPreference,
   ModelWithLiked,
   ModelWithTranslation,
   PaginateResult,
@@ -85,7 +86,7 @@ export class PostController<ResponseWrapper> implements IController {
   getPost(
     categoryName: string,
     slug: string,
-    options?: { lang?: string; prefer?: 'lexical' },
+    options?: { lang?: string; prefer?: ContentPreference },
   ): RequestProxyResult<
     ModelWithLiked<ModelWithTranslation<PostModel>>,
     ResponseWrapper
@@ -98,7 +99,7 @@ export class PostController<ResponseWrapper> implements IController {
   getPost(
     idOrCategoryName: string,
     slug?: string,
-    options?: { lang?: string; prefer?: 'lexical' },
+    options?: { lang?: string; prefer?: ContentPreference },
   ): any {
     if (arguments.length == 1) {
       return this.proxy(idOrCategoryName).get<PostModel>()

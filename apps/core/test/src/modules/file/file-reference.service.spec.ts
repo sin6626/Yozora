@@ -1,311 +1,199 @@
-import { Test } from '@nestjs/testing'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-
-import { ConfigsService } from '~/modules/configs/configs.service'
+import { getModelForClass } from '@typegoose/typegoose'
+import mongoose from 'mongoose'
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
+import { dbHelper } from '../../../helper/db-mock.helper'
 import {
   FileReferenceModel,
   FileReferenceStatus,
   FileReferenceType,
 } from '~/modules/file/file-reference.model'
 import { FileReferenceService } from '~/modules/file/file-reference.service'
-import { getModelToken } from '~/transformers/model.transformer'
+import { S3Uploader } from '~/utils/s3.util'
 
 describe('FileReferenceService', () => {
-  let fileReferenceService: FileReferenceService
-  let mockReferences: any[]
+  let service: FileReferenceService
+  let ownsDatabase = false
+  const model = getModelForClass(FileReferenceModel)
+  const url = 'https://img.example/test.jpg'
+  const doc = { text: `![image](${url})` }
+  const { Post, Draft } = FileReferenceType
 
-  const createMockModel = () => {
-    mockReferences = []
-
-    return {
-      find: vi.fn().mockImplementation((query: any) => {
-        let results = [...mockReferences]
-
-        if (query.fileUrl) {
-          results = results.filter((r) => r.fileUrl === query.fileUrl)
-        }
-        if (query.refId && query.refType) {
-          results = results.filter(
-            (r) => r.refId === query.refId && r.refType === query.refType,
-          )
-        }
-        if (query.status) {
-          results = results.filter((r) => r.status === query.status)
-        }
-
-        return {
-          sort: vi.fn().mockReturnThis(),
-          skip: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockReturnThis(),
-          lean: vi.fn().mockResolvedValue(results),
-        }
-      }),
-
-      findOne: vi.fn().mockImplementation((query: any) => {
-        const found = mockReferences.find((r) => r.fileUrl === query.fileUrl)
-        return Promise.resolve(found || null)
-      }),
-
-      create: vi.fn().mockImplementation((doc: any) => {
-        const newDoc = {
-          _id: `ref_${Date.now()}_${Math.random()}`,
-          ...doc,
-          created: new Date(),
-        }
-        mockReferences.push(newDoc)
-        return Promise.resolve(newDoc)
-      }),
-
-      updateMany: vi.fn().mockImplementation((query: any, update: any) => {
-        let matchCount = 0
-        mockReferences.forEach((ref) => {
-          let matches = true
-
-          if (query.fileUrl?.$in) {
-            matches = matches && query.fileUrl.$in.includes(ref.fileUrl)
-          }
-          if (query.refId !== undefined && query.refType !== undefined) {
-            matches =
-              matches &&
-              ref.refId === query.refId &&
-              ref.refType === query.refType
-          }
-          if (query.status) {
-            matches = matches && ref.status === query.status
-          }
-
-          if (matches) {
-            matchCount++
-            if (update.$set) {
-              Object.assign(ref, update.$set)
-            }
-          }
-        })
-        return Promise.resolve({ modifiedCount: matchCount })
-      }),
-
-      updateOne: vi.fn().mockImplementation((query: any, update: any) => {
-        const ref = mockReferences.find((r) => r.fileUrl === query.fileUrl)
-
-        if (ref && update.$set) {
-          Object.assign(ref, update.$set)
-        }
-
-        return Promise.resolve({ modifiedCount: ref ? 1 : 0 })
-      }),
-
-      deleteOne: vi.fn().mockImplementation((query: any) => {
-        const index = mockReferences.findIndex((r) => r._id === query._id)
-        if (index !== -1) {
-          mockReferences.splice(index, 1)
-          return Promise.resolve({ deletedCount: 1 })
-        }
-        return Promise.resolve({ deletedCount: 0 })
-      }),
-
-      countDocuments: vi.fn().mockImplementation((query: any) => {
-        let results = mockReferences
-        if (query.status) {
-          results = results.filter((r) => r.status === query.status)
-        }
-        return Promise.resolve(results.length)
-      }),
+  beforeAll(async () => {
+    if (!mongoose.connection.readyState) {
+      await dbHelper.connect()
+      ownsDatabase = true
     }
-  }
-
+    service = new FileReferenceService(
+      model as any,
+      {
+        get: async () => ({
+          enable: true,
+          endpoint: 'https://unused.example',
+          bucket: 'test',
+          secretKey: 'test',
+          secretId: 'test',
+        }),
+      } as any,
+    )
+  })
   beforeEach(async () => {
-    const mockModel = createMockModel()
-
-    const module = await Test.createTestingModule({
-      providers: [
-        FileReferenceService,
-        {
-          provide: getModelToken(FileReferenceModel.name),
-          useValue: mockModel,
-        },
-        {
-          provide: ConfigsService,
-          useValue: {
-            get: vi.fn().mockResolvedValue({ enable: false }),
-          },
-        },
-      ],
-    }).compile()
-
-    fileReferenceService =
-      module.get<FileReferenceService>(FileReferenceService)
+    vi.spyOn(S3Uploader.prototype, 'deleteObject').mockResolvedValue(undefined)
+    await model.deleteMany({})
   })
-
   afterEach(() => {
-    mockReferences = []
+    vi.restoreAllMocks()
+  })
+  afterAll(async () => {
+    if (ownsDatabase) await dbHelper.close()
   })
 
-  describe('createPendingReference', () => {
-    it('should create a pending reference for a new file', async () => {
-      const fileUrl = 'http://example.com/objects/image/test.jpg'
-      const fileName = 'test.jpg'
-
-      const result = await fileReferenceService.createPendingReference(
-        fileUrl,
-        fileName,
-      )
-
-      expect(result).toBeDefined()
-      expect(result.fileUrl).toBe(fileUrl)
-      expect(result.status).toBe(FileReferenceStatus.Pending)
-    })
-
-    it('should return existing reference if already exists', async () => {
-      const fileUrl = 'http://example.com/objects/image/test.jpg'
-      const fileName = 'test.jpg'
-
-      await fileReferenceService.createPendingReference(fileUrl, fileName)
-      const result = await fileReferenceService.createPendingReference(
-        fileUrl,
-        fileName,
-      )
-
-      expect(mockReferences.length).toBe(1)
-      expect(result.fileUrl).toBe(fileUrl)
-    })
+  it('creates a pending reference for a new file', async () => {
+    const file = await service.createPendingReference(url, 'test.jpg')
+    expect(file.fileUrl).toBe(url)
+    expect(file.status).toBe(FileReferenceStatus.Pending)
   })
 
-  describe('activateReferences', () => {
-    it('should activate references for images in markdown text', async () => {
-      const fileUrl = 'http://example.com/objects/image/test.jpg'
-      mockReferences.push({
-        _id: 'ref1',
-        fileUrl,
-        fileName: 'test.jpg',
-        status: FileReferenceStatus.Pending,
-      })
-
-      const text = `Some text with an image ![alt](${fileUrl}) and more text`
-      const refId = 'post123'
-      const refType = FileReferenceType.Post
-
-      await fileReferenceService.activateReferences({ text }, refId, refType)
-
-      expect(mockReferences[0].status).toBe(FileReferenceStatus.Active)
-      expect(mockReferences[0].refId).toBe(refId)
-      expect(mockReferences[0].refType).toBe(refType)
-    })
-
-    it('should only activate images that have DB records', async () => {
-      const trackedUrl = 'https://s3.example.com/bucket/img.jpg'
-      const externalUrl = 'http://external.com/image.jpg'
-
-      mockReferences.push({
-        _id: 'ref1',
-        fileUrl: trackedUrl,
-        fileName: 'img.jpg',
-        status: FileReferenceStatus.Pending,
-      })
-
-      const text = `![tracked](${trackedUrl}) ![external](${externalUrl})`
-      await fileReferenceService.activateReferences(
-        { text },
-        'post123',
-        FileReferenceType.Post,
-      )
-
-      expect(mockReferences[0].status).toBe(FileReferenceStatus.Active)
-      expect(mockReferences.length).toBe(1)
-    })
+  it('returns the existing reference on repeat registration', async () => {
+    const file = await service.createPendingReference(url, 'test.jpg')
+    expect((await service.createPendingReference(url, 'test.jpg')).id).toBe(
+      file.id,
+    )
+    expect(await model.countDocuments()).toBe(1)
   })
 
-  describe('updateReferencesForDocument', () => {
-    it('should release old references and activate new ones', async () => {
-      const oldUrl = 'http://example.com/objects/image/old.jpg'
-      const newUrl = 'http://example.com/objects/image/new.jpg'
-      const refId = 'post123'
-      const refType = FileReferenceType.Post
-
-      mockReferences.push({
-        _id: 'ref1',
-        fileUrl: oldUrl,
-        fileName: 'old.jpg',
-        status: FileReferenceStatus.Active,
-        refId,
-        refType,
-      })
-      mockReferences.push({
-        _id: 'ref2',
-        fileUrl: newUrl,
-        fileName: 'new.jpg',
-        status: FileReferenceStatus.Pending,
-      })
-
-      const newText = `Updated content with ![new](${newUrl})`
-      await fileReferenceService.updateReferencesForDocument(
-        { text: newText },
-        refId,
-        refType,
-      )
-
-      const oldRef = mockReferences.find((r) => r.fileUrl === oldUrl)
-      const newRef = mockReferences.find((r) => r.fileUrl === newUrl)
-
-      expect(oldRef.status).toBe(FileReferenceStatus.Pending)
-      expect(oldRef.refId).toBeNull()
-      expect(newRef.status).toBe(FileReferenceStatus.Active)
-      expect(newRef.refId).toBe(refId)
-    })
+  it('activates references for images in Markdown', async () => {
+    const file = await service.createPendingReference(url, 'test.jpg')
+    await service.activateReferences(doc, 'post', Post)
+    expect(
+      (await service.getReferencesForDocument('post', Post)).map((f) => f.id),
+    ).toEqual([file.id])
+    expect((await model.findById(file.id))?.status).toBe(
+      FileReferenceStatus.Active,
+    )
   })
 
-  describe('removeReferencesForDocument', () => {
-    it('should set references to pending status', async () => {
-      const refId = 'draft123'
-      const refType = FileReferenceType.Draft
-
-      mockReferences.push({
-        _id: 'ref1',
-        fileUrl: 'http://example.com/objects/image/test.jpg',
-        fileName: 'test.jpg',
-        status: FileReferenceStatus.Active,
-        refId,
-        refType,
-      })
-
-      await fileReferenceService.removeReferencesForDocument(refId, refType)
-
-      expect(mockReferences[0].status).toBe(FileReferenceStatus.Pending)
-      expect(mockReferences[0].refId).toBeNull()
-    })
+  it('only activates images with an upload record', async () => {
+    const file = await service.createPendingReference(url, 'test.jpg')
+    await service.activateReferences(
+      { text: doc.text + ' ![](https://other.example/x)' },
+      'post',
+      Post,
+    )
+    expect(await model.countDocuments()).toBe(1)
+    expect(
+      (await service.getReferencesForDocument('post', Post)).map((f) => f.id),
+    ).toEqual([file.id])
   })
 
-  describe('Draft to Post reference transfer', () => {
-    it('should transfer references from draft to post on publish', async () => {
-      const imageUrl = 'http://example.com/objects/image/test.jpg'
-      const draftId = 'draft123'
-      const postId = 'post456'
+  it('releases old references and activates new ones', async () => {
+    const old = await service.createPendingReference(url, 'test.jpg')
+    await service.activateReferences(doc, 'post', Post)
+    const next = await service.createPendingReference(url + '2', 'next.jpg')
+    await service.updateReferencesForDocument(
+      { text: `![](${next.fileUrl})` },
+      'post',
+      Post,
+    )
+    expect((await model.findById(old.id))?.status).toBe(
+      FileReferenceStatus.Pending,
+    )
+    expect(
+      (await service.getReferencesForDocument('post', Post)).map((f) => f.id),
+    ).toEqual([next.id])
+  })
 
-      mockReferences.push({
-        _id: 'ref1',
-        fileUrl: imageUrl,
-        fileName: 'test.jpg',
-        status: FileReferenceStatus.Active,
-        refId: draftId,
-        refType: FileReferenceType.Draft,
-      })
+  it('marks a file pending when its last owner releases it', async () => {
+    await service.createPendingReference(url, 'test.jpg')
+    await service.activateReferences(doc, 'draft', Draft)
+    await service.removeReferencesForDocument('draft', Draft)
+    expect(await service.getOrphanFilesCount()).toBe(1)
+    expect(await service.getReferencesForDocument('draft', Draft)).toHaveLength(
+      0,
+    )
+  })
 
-      await fileReferenceService.removeReferencesForDocument(
-        draftId,
-        FileReferenceType.Draft,
-      )
+  it('allows a published post to acquire a file released by a draft', async () => {
+    const file = await service.createPendingReference(url, 'test.jpg')
+    await service.activateReferences(doc, 'draft', Draft)
+    await service.removeReferencesForDocument('draft', Draft)
+    expect((await model.findById(file.id))?.status).toBe(
+      FileReferenceStatus.Pending,
+    )
+    await service.activateReferences(doc, 'post', Post)
+    expect(
+      (await service.getReferencesForDocument('post', Post)).map((f) => f.id),
+    ).toEqual([file.id])
+  })
 
-      expect(mockReferences[0].status).toBe(FileReferenceStatus.Pending)
-
-      const postText = `Content with ![image](${imageUrl})`
-      await fileReferenceService.activateReferences(
-        { text: postText },
-        postId,
-        FileReferenceType.Post,
-      )
-
-      expect(mockReferences[0].status).toBe(FileReferenceStatus.Active)
-      expect(mockReferences[0].refId).toBe(postId)
-      expect(mockReferences[0].refType).toBe(FileReferenceType.Post)
+  it('recovers a missing owner from a saved translation and a restorable history entry', async () => {
+    const file = await service.createPendingReference(url, 'test.jpg', 'test')
+    const db = mongoose.connection
+    const draft = await db.collection('drafts').insertOne({
+      text: 'current',
+      history: [{ version: 1, isFullSnapshot: true, text: doc.text }],
     })
+    const translation = await db.collection('ai_translations').insertOne(doc)
+    expect(
+      (await service.batchDeleteOrphans({ ids: [file.id] })).deletedCount,
+    ).toBe(0)
+    expect(
+      await service.getReferencesForDocument(String(draft.insertedId), Draft),
+    ).toHaveLength(1)
+    expect(
+      await service.getReferencesForDocument(
+        String(translation.insertedId),
+        FileReferenceType.Translation,
+      ),
+    ).toHaveLength(1)
+    await db.collection('drafts').deleteOne({ _id: draft.insertedId })
+    await db
+      .collection('ai_translations')
+      .deleteOne({ _id: translation.insertedId })
+  })
+
+  it('checks the current owner after the cleanup list was read', async () => {
+    await service.createPendingReference(url, 'test.jpg', 'test')
+    const deleteObject = vi.fn()
+    const storage = vi
+      .spyOn(service as any, 'buildS3Uploader')
+      .mockImplementationOnce(async () => {
+        await service.activateReferences(doc, 'late', Post)
+        return { deleteObject }
+      })
+    try {
+      expect((await service.cleanupOrphanFiles(-1)).deletedCount).toBe(0)
+      expect(deleteObject).not.toHaveBeenCalled()
+    } finally {
+      storage.mockRestore()
+    }
+  })
+
+  it('preserves an article image after deleting a draft that shares it', async () => {
+    // The article was registered by an older server, before per-owner tracking.
+    await model.create({
+      fileUrl: url,
+      fileName: 'test.jpg',
+      s3ObjectKey: 'test',
+      status: FileReferenceStatus.Active,
+      refId: 'post',
+      refType: Post,
+    })
+    await service.updateReferencesForDocument(doc, 'draft', Draft)
+    await service.removeReferencesForDocument('draft', Draft)
+    expect((await service.cleanupOrphanFiles(-1)).deletedCount).toBe(0)
+    expect(S3Uploader.prototype.deleteObject).not.toHaveBeenCalled()
+    expect(await service.getReferencesForDocument('post', Post)).toHaveLength(1)
+    await service.removeReferencesForDocument('post', Post)
+    expect((await service.cleanupOrphanFiles(-1)).deletedCount).toBe(1)
+    expect(S3Uploader.prototype.deleteObject).toHaveBeenCalledOnce()
   })
 })

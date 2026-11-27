@@ -3,6 +3,7 @@ import type { DraftModel } from '~/models/draft'
 import type { PropType } from 'vue'
 
 import { DraftDetailBase } from './draft-detail-base'
+import { diffSides } from './draft-versions'
 import { MarkdownDiffPanel } from './markdown-diff-panel'
 import { RichDiffPanel } from './rich-diff-panel'
 
@@ -26,31 +27,29 @@ export const DraftDetail = defineComponent({
     },
   },
   setup(props) {
-    const isLexical = () => props.draft.contentFormat === 'lexical'
-
+    // 每个版本按它自己的格式对比：两边都是 Lexical 才用富文本对比，否则各自投影成 Markdown（Plate 历史只存 content）
     return () => (
       <DraftDetailBase
         draft={props.draft}
         isMobile={props.isMobile}
         onBack={props.onBack}
         onDelete={props.onDelete}
-        diffContent={(slotProps) =>
-          isLexical() &&
-          slotProps.selectedRichContent &&
-          slotProps.currentRichContent ? (
+        diffContent={(slotProps) => {
+          const sides = diffSides(slotProps.selected, slotProps.current)
+          return sides.kind === 'rich' ? (
             <RichDiffPanel
-              oldContent={slotProps.selectedRichContent}
-              newContent={slotProps.currentRichContent}
+              oldContent={sides.oldContent}
+              newContent={sides.newContent}
             />
           ) : (
             <MarkdownDiffPanel
-              oldText={slotProps.selectedText}
-              newText={slotProps.currentText}
+              oldText={sides.oldText}
+              newText={sides.newText}
               oldVersion={slotProps.selectedVersion}
               newVersion={slotProps.currentVersion}
             />
           )
-        }
+        }}
       />
     )
   },

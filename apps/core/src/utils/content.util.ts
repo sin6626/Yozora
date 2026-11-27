@@ -2,9 +2,16 @@ import {
   BLOCK_ID_STATE_KEY,
   NODE_STATE_KEY,
 } from '~/constants/lexical.constant'
-import { ContentFormat } from '~/shared/types/content-format.type'
+import {
+  ContentFormat,
+  isRichContentFormat,
+} from '~/shared/types/content-format.type'
 
 import { pickImagesFromMarkdown } from './pic.util'
+import {
+  canonicalizePlateContentForHash,
+  extractPlateMediaUrls,
+} from './plate-content.util'
 import { md5 } from './tool.util'
 
 interface ContentDoc {
@@ -21,9 +28,19 @@ export function isLexical(doc: Pick<ContentDoc, 'contentFormat'>): boolean {
   return doc.contentFormat === ContentFormat.Lexical
 }
 
+export function isPlate(doc: Pick<ContentDoc, 'contentFormat'>): boolean {
+  return doc.contentFormat === ContentFormat.Plate
+}
+
+/** Lexical or Plate: `content` is the source of truth and `text` is its Markdown projection. */
+export function isRichContent(doc: Pick<ContentDoc, 'contentFormat'>): boolean {
+  return isRichContentFormat(doc.contentFormat)
+}
+
 export function extractImagesFromContent(
   doc: Pick<ContentDoc, 'text' | 'contentFormat' | 'content'>,
 ): string[] {
+  if (isPlate(doc)) return extractPlateMediaUrls(doc.content)
   if (!isLexical(doc)) {
     return pickImagesFromMarkdown(doc.text)
   }
@@ -56,7 +73,9 @@ export function computeContentHash(
 ): string {
   const sourceOfTruth = isLexical(doc)
     ? canonicalizeLexicalContentForHash(doc.content)
-    : doc.text
+    : isPlate(doc)
+      ? canonicalizePlateContentForHash(doc.content)
+      : doc.text
 
   return md5(
     JSON.stringify({
@@ -76,17 +95,17 @@ export function getTranslationPayload(
   if (isLexical(doc)) {
     return { format: 'lexical', title: doc.title, content: doc.content }
   }
+  if (isPlate(doc)) {
+    return { format: 'plate', title: doc.title, content: doc.content }
+  }
   return { format: 'markdown', title: doc.title, text: doc.text }
 }
 
 export function applyContentPreference<
   T extends { text?: string; contentFormat?: string; content?: string },
 >(doc: T, prefer?: string): T {
-  if (
-    prefer === 'lexical' &&
-    doc.contentFormat === ContentFormat.Lexical &&
-    doc.content
-  ) {
+  // `prefer` names the rich format the client renders; it then needs no Markdown `text`.
+  if (prefer && doc.contentFormat === prefer && isRichContent(doc) && doc.content) {
     const { text, ...rest } = doc
     return rest as T
   }

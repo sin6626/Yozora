@@ -1,3 +1,4 @@
+import { createEnvelope } from '@suzuri/editor/schema'
 import { Test } from '@nestjs/testing'
 import {
   afterEach,
@@ -49,6 +50,7 @@ describe('DraftService with FileReference integration', () => {
         if (draft) {
           draft.save = vi.fn().mockImplementation(async () => draft)
           draft.toObject = () => ({ ...draft })
+          draft.lean = draft.toObject
           return draft
         }
         return null
@@ -520,6 +522,7 @@ describe('DraftService with FileReference integration', () => {
       const updatedDraft = mockDrafts.find((d) => d.id === 'draft123')
       expect(updatedDraft.history.length).toBeLessThanOrEqual(100)
       expect(updatedDraft.history.some((h: any) => h.version === 1)).toBe(false)
+      expect(mockFileReferenceService.updateReferencesForDocument).toHaveBeenCalled()
       expect(updatedDraft.history[0].isFullSnapshot).toBe(true)
       expect(updatedDraft.history[0].refVersion).toBeUndefined()
       expect(updatedDraft.history[0].text).toBe('Same text')
@@ -893,6 +896,132 @@ describe('DraftService with FileReference integration', () => {
       expect(updatedDraft.history[0].isFullSnapshot).toBe(true)
       expect(updatedDraft.history[0].refVersion).toBeUndefined()
       expect(updatedDraft.history[0].content).toBe(content1)
+    })
+  })
+
+  describe('Plate contentFormat history', () => {
+    const makePlate = (text: string, url?: string) =>
+      JSON.stringify(
+        createEnvelope({
+          children: [
+            {
+              type: 'paragraph',
+              children: url
+                ? [
+                    { text },
+                    { type: 'link', url, children: [{ text: 'docs' }] },
+                    { text: '' },
+                  ]
+                : [{ text }],
+            },
+          ],
+        } as any),
+      )
+    const plateDraft = (id: string, content: string, extra = {}) => ({
+      _id: id,
+      id,
+      refType: DraftRefType.Post,
+      title: 'Plate',
+      text: 'see',
+      contentFormat: ContentFormat.Plate,
+      content,
+      version: 1,
+      history: [],
+      updated: new Date(),
+      created: new Date(),
+      ...extra,
+    })
+
+    it('creates a Plate draft with its Markdown projection', async () => {
+      const content = makePlate('hello')
+      const draft = await draftService.create({
+        refType: DraftRefType.Post,
+        title: 'New',
+        contentFormat: ContentFormat.Plate,
+        content,
+      })
+      expect(draft.text).toBe('hello')
+      expect(draft.content).toBe(content)
+    })
+
+    it('autosaves while a freshly inserted link still has its https:// placeholder', async () => {
+      mockDrafts.push(plateDraft('platedraft1', makePlate('see')))
+
+      const content = makePlate('see ', 'https://')
+      await draftService.update('platedraft1', { content })
+
+      const saved = mockDrafts.find((d) => d.id === 'platedraft1')
+      expect(saved.content).toBe(content)
+      expect(saved.text).toBe('see')
+    })
+
+    it('rejects draft content that is not a Plate envelope', async () => {
+      mockDrafts.push(plateDraft('platedraft2', makePlate('see')))
+      await expect(
+        draftService.update('platedraft2', { content: '{"root":{}}' }),
+      ).rejects.toThrow()
+    })
+
+    it('stores the previous Plate content as a full snapshot and re-projects text', async () => {
+      const first = makePlate('Version 1')
+      mockDrafts.push(plateDraft('platedraft3', first, { text: 'Version 1' }))
+
+      await draftService.update('platedraft3', {
+        content: makePlate('Version 2'),
+      })
+
+      const saved = mockDrafts.find((d) => d.id === 'platedraft3')
+      expect(saved.text).toBe('Version 2')
+      expect(saved.history).toHaveLength(1)
+      expect(saved.history[0].isFullSnapshot).toBe(true)
+      expect(saved.history[0].content).toBe(first)
+      expect(saved.history[0].contentFormat).toBe(ContentFormat.Plate)
+    })
+
+    it('refuses to restore a historical reference missing its Plate body', async () => {
+      const id = 'missing-body'
+      mockDrafts.push(plateDraft(id, makePlate('C'), { version: 3, history: [
+        { version: 2, contentFormat: ContentFormat.Plate, isFullSnapshot: false, refVersion: 1 },
+        { version: 1, contentFormat: ContentFormat.Plate, isFullSnapshot: true },
+      ] }))
+      await expect(draftService.restoreVersion(id, 2)).rejects.toThrow(/restore/i)
+      expect(mockDrafts[0].version).toBe(3)
+    })
+
+    it('reads and restores B after switching from Markdown A to Plate B then C', async () => {
+      const id = 'mixed-history'
+      const b = makePlate('B')
+      mockDrafts.push({ ...plateDraft(id, ''), text: 'A', content: undefined, contentFormat: ContentFormat.Markdown })
+      await draftService.update(id, { contentFormat: ContentFormat.Plate, content: b })
+      await draftService.update(id, { content: makePlate('C') })
+      expect((await draftService.getHistoryVersion(id, 2)).content).toBe(b)
+      expect((await draftService.restoreVersion(id, 2)).text).toBe('B')
+      const restoredA = await draftService.restoreVersion(id, 1)
+      expect(restoredA).toMatchObject({ text: 'A', contentFormat: ContentFormat.Markdown })
+      expect(restoredA.content).toBeUndefined()
+    })
+
+    it('restores a Plate version from history', async () => {
+      const v1 = makePlate('Version 1')
+      mockDrafts.push(
+        plateDraft('platedraft4', makePlate('Version 2'), {
+          version: 2,
+          history: [
+            {
+              version: 1,
+              title: 'Plate v1',
+              content: v1,
+              contentFormat: ContentFormat.Plate,
+              savedAt: new Date(),
+              isFullSnapshot: true,
+            },
+          ],
+        }),
+      )
+
+      const restored = await draftService.restoreVersion('platedraft4', 1)
+      expect(restored.content).toBe(v1)
+      expect(restored.title).toBe('Plate v1')
     })
   })
 })

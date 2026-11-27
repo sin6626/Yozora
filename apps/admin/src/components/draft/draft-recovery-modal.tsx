@@ -13,6 +13,11 @@ import { SplitPanel } from '~/components/layout'
 
 import { DiffPreview } from './diff-preview'
 import { VersionListItem } from './version-list-item'
+import {
+  canLexicalDiff,
+  diffTextOf,
+  formatChangeNotice,
+} from '~/utils/plate-text'
 
 function countDeltaOps(delta: any): { added: number; removed: number } {
   let added = 0
@@ -36,7 +41,7 @@ function countDeltaOps(delta: any): { added: number; removed: number } {
 export interface PublishedContent {
   title: string
   text: string
-  contentFormat?: 'markdown' | 'lexical'
+  contentFormat?: 'markdown' | 'lexical' | 'plate'
   content?: string
   updated: string
 }
@@ -72,14 +77,14 @@ export const DraftRecoveryModal = defineComponent({
     const selectedVersionContent = ref<{
       title: string
       text: string
-      contentFormat?: 'markdown' | 'lexical'
+      contentFormat?: 'markdown' | 'lexical' | 'plate'
       content?: string
     } | null>(null)
 
     type VersionContent = {
       text: string
       content?: string
-      contentFormat?: 'markdown' | 'lexical'
+      contentFormat?: 'markdown' | 'lexical' | 'plate'
     }
     const versionContentCache = ref(
       new Map<number | 'published', VersionContent>(),
@@ -102,11 +107,11 @@ export const DraftRecoveryModal = defineComponent({
       while (diffQueue.length > 0 && performance.now() - start < BUDGET) {
         const { version, content } = diffQueue.shift()!
         const stats = calcDiffStats(
-          props.publishedContent.text ?? '',
-          content.text ?? '',
+          diffTextOf(props.publishedContent),
+          diffTextOf(content),
           props.publishedContent.content,
           content.content,
-          content.contentFormat,
+          canLexicalDiff(props.publishedContent, content),
         )
         updates.set(version, stats)
         dirty = true
@@ -337,9 +342,9 @@ export const DraftRecoveryModal = defineComponent({
       newText: string,
       oldContent?: string,
       newContent?: string,
-      format?: 'markdown' | 'lexical',
+      lexicalDiff = false,
     ) => {
-      if (format === 'lexical' && oldContent && newContent) {
+      if (lexicalDiff && oldContent && newContent) {
         try {
           const oldJson = JSON.parse(oldContent)
           const newJson = JSON.parse(newContent)
@@ -354,13 +359,16 @@ export const DraftRecoveryModal = defineComponent({
       }
     }
 
-    const isRichMode = computed(() => {
-      return (
-        selectedVersionContent.value?.contentFormat === 'lexical' &&
-        !!selectedVersionContent.value.content &&
-        !!props.publishedContent.content
-      )
-    })
+    const isRichMode = computed(
+      () =>
+        !!selectedVersionContent.value &&
+        canLexicalDiff(props.publishedContent, selectedVersionContent.value),
+    )
+    const formatNotice = computed(() =>
+      selectedVersionContent.value
+        ? formatChangeNotice(props.publishedContent, selectedVersionContent.value)
+        : null,
+    )
 
     const diffStats = computed(() => {
       if (!selectedVersionContent.value) return null
@@ -383,8 +391,8 @@ export const DraftRecoveryModal = defineComponent({
         }
       }
 
-      const currentText = selectedVersionContent.value.text ?? ''
-      const publishedText = props.publishedContent.text ?? ''
+      const currentText = diffTextOf(selectedVersionContent.value)
+      const publishedText = diffTextOf(props.publishedContent)
       const diff = currentText.length - publishedText.length
       return { diff, isSame: currentText === publishedText }
     })
@@ -559,6 +567,14 @@ export const DraftRecoveryModal = defineComponent({
                   </div>
 
                   {/* Diff content */}
+                  {formatNotice.value && (
+                    <p
+                      class="mb-2 rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
+                      data-testid="draft-format-notice"
+                    >
+                      {formatNotice.value}
+                    </p>
+                  )}
                   <div class="min-h-0 flex-1 overflow-hidden">
                     {selectedVersionContent.value ? (
                       diffStats.value?.isSame ? (
@@ -593,11 +609,11 @@ export const DraftRecoveryModal = defineComponent({
                           <DiffPreview
                             oldFile={{
                               name: 'published.md',
-                              contents: props.publishedContent.text ?? '',
+                              contents: diffTextOf(props.publishedContent),
                             }}
                             newFile={{
                               name: 'draft.md',
-                              contents: selectedVersionContent.value.text ?? '',
+                              contents: diffTextOf(selectedVersionContent.value),
                             }}
                           />
                         </div>

@@ -18,6 +18,7 @@ import { computed, defineComponent, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { toast } from 'vue-sonner'
 import type { AITranslation, ArticleInfo } from '~/api/ai'
+import type { SuzuriEnvelope } from '@suzuri/editor/schema'
 import type { SerializedEditorState } from 'lexical'
 import type { PropType } from 'vue'
 
@@ -25,6 +26,11 @@ import { createThemeStyle } from '@haklex/rich-style-token'
 
 import { aiApi, AITaskType } from '~/api/ai'
 import { useAiTaskQueue } from '~/components/ai-task-queue'
+import { PlateEditor } from '~/components/editor/plate/PlateEditor'
+import {
+  pendingUploadsError,
+  usePlateUploads,
+} from '~/components/editor/plate/uploads'
 import { RichEditor } from '~/components/editor/rich/RichEditor'
 import { SplitPanelEmptyState, SplitPanelLayout } from '~/components/layout'
 import { MarkdownRender } from '~/components/markdown/markdown-render'
@@ -545,6 +551,11 @@ const TranslationEditPanel = defineComponent({
     const isLexical = computed(
       () => props.translation.contentFormat === 'lexical',
     )
+    // Plate 译文：编辑器回传信封（存成字符串），Core 保存时按 Plate 重新生成 Markdown text
+    const isPlate = computed(() => props.translation.contentFormat === 'plate')
+    const plateContentRef = ref(props.translation.content)
+    // 和写作页同一套持久上传：不传的话 Suzuri 默认把图片存成 data:、短片存成 blob:
+    const plateUploads = usePlateUploads()
 
     const titleRef = ref(props.translation.title)
     const textRef = ref(props.translation.text)
@@ -563,16 +574,23 @@ const TranslationEditPanel = defineComponent({
         textRef.value = props.translation.text
         summaryRef.value = props.translation.summary || ''
         richContentRef.value = parseRichContent(props.translation.content)
+        plateContentRef.value = props.translation.content
+        plateUploads.cancel()
         editorKey.value++
       },
     )
 
     const handleSave = async () => {
+      const uploading = pendingUploadsError()
+      if (uploading) {
+        toast.warning(uploading)
+        return
+      }
       if (!titleRef.value) {
         toast.warning('标题不能为空')
         return
       }
-      if (!isLexical.value && !textRef.value) {
+      if (!isLexical.value && !isPlate.value && !textRef.value) {
         toast.warning('内容不能为空')
         return
       }
@@ -587,6 +605,8 @@ const TranslationEditPanel = defineComponent({
           payload.content = richContentRef.value
             ? JSON.stringify(richContentRef.value)
             : undefined
+        } else if (isPlate.value) {
+          payload.content = plateContentRef.value
         } else {
           payload.text = textRef.value
         }
@@ -598,7 +618,9 @@ const TranslationEditPanel = defineComponent({
           summary: summaryRef.value || undefined,
           content: isLexical.value
             ? JSON.stringify(richContentRef.value)
-            : undefined,
+            : isPlate.value
+              ? plateContentRef.value
+              : undefined,
         })
         toast.success('保存成功')
         props.onClose()
@@ -608,6 +630,25 @@ const TranslationEditPanel = defineComponent({
     }
 
     const ContentEditor = () => {
+      if (isPlate.value) {
+        return (
+          <div class="min-h-[400px] overflow-hidden rounded-lg border border-neutral-200 dark:border-neutral-800">
+            <PlateEditor
+              class="h-full min-h-[400px] w-full"
+              documentKey={`${props.translation.id}-${editorKey.value}`}
+              initialValue={props.translation.content}
+              onUploadImage={plateUploads.uploadImage}
+              onUploadLivePhoto={plateUploads.uploadLivePhoto}
+              onChange={(envelope: SuzuriEnvelope) => {
+                plateContentRef.value = JSON.stringify(envelope)
+              }}
+              onTextChange={(text: string) => {
+                textRef.value = text
+              }}
+            />
+          </div>
+        )
+      }
       if (isLexical.value) {
         return (
           <div class="min-h-[400px] overflow-hidden rounded-lg border border-neutral-200 dark:border-neutral-800">

@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { zCoerceInt, zMongoId, zNonEmptyString, zPrefer } from '~/common/zod'
 import { WriteBaseSchema } from '~/shared/schema'
 import { ImageSchema } from '~/shared/schema/image.schema'
-import { ContentFormat } from '~/shared/types/content-format.type'
+import { CONTENT_FORMATS } from '~/shared/types/content-format.type'
 
 /**
  * Page schema for API validation
@@ -30,7 +30,7 @@ export class PageDto extends createZodDto(PageSchema) {}
  */
 export const PartialPageSchema = PageSchema.extend({
   contentFormat: z
-    .enum([ContentFormat.Markdown, ContentFormat.Lexical])
+    .enum(CONTENT_FORMATS)
     .optional(),
   meta: z.record(z.string(), z.any()).optional().nullable(),
   order: z.preprocess(

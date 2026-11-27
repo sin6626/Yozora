@@ -40,6 +40,7 @@
     "@mx-space/api-client": "1.21.2",
     "@pierre/diffs": "1.0.8",
     "@simplewebauthn/browser": "13.2.2",
+    "@suzuri/editor": "file:../../vendor/suzuri-editor-0.1.0.tgz",
     "@tanstack/query-async-storage-persister": "5.90.22",
     "@tanstack/query-persist-client-core": "5.91.19",
     "@tanstack/vue-query": "5.92.9",

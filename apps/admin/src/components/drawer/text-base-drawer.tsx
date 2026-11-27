@@ -151,7 +151,7 @@ export const TextBaseDrawer = defineComponent({
               />
             </FormField>
 
-            {props.data.contentFormat !== 'lexical' ? (
+            {props.data.contentFormat === 'plate' ? null : props.data.contentFormat !== 'lexical' ? (
               <ImageDetailSection
                 text={props.data.text}
                 images={props.data.images}

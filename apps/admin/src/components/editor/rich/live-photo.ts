@@ -33,7 +33,7 @@ import {
   ImageEditRenderer,
 } from '@haklex/rich-renderer-image'
 import { createMotionPhoto } from '@yozora/live-photo'
-import { readImage, readVideo } from '@yozora/live-photo/browser'
+import { readImage } from '@yozora/live-photo/browser'
 import {
   LiveOverlay,
   LivePhotoNode,
@@ -42,33 +42,12 @@ import {
 } from '@yozora/live-photo/haklex'
 
 import { filesApi } from '~/api/files'
-import { normalizeLiveMedia } from '~/api/live-photo-media'
+import { clipLimit, prepareClip, prepareCover } from '../live-photo-media'
 
 const coverAccept =
   'image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp,image/heic,image/heif,.heic,.heif'
 const videoAccept =
   'video/mp4,video/quicktime,video/webm,.mp4,.m4v,.mov,.webm,.mkv,.avi'
-async function prepareCover(file: File, signal?: AbortSignal) {
-  const image = await readImage(file, signal, normalizeLiveMedia)
-  if (image.blob.size > 20 * 1024 * 1024)
-    throw Error('The prepared cover exceeds 20 MB.')
-  const jpeg = new File(
-    [image.blob],
-    file.name.replace(/\.[^.]+$/, '') + '.jpg',
-    { type: 'image/jpeg' },
-  )
-  return { file: jpeg, width: image.width, height: image.height }
-}
-
-const clipLimit = 6 * 1024 * 1024
-async function prepareClip(file: File, signal: AbortSignal) {
-  const clip = await readVideo(file, signal, normalizeLiveMedia)
-  if (clip.blob.size > clipLimit)
-    throw Error('The prepared MP4 exceeds 6 MB. Try a shorter clip.')
-  return new File([clip.blob], file.name.replace(/\.[^.]+$/, '') + '.mp4', {
-    type: 'video/mp4',
-  })
-}
 async function uploadClip(file: File, signal: AbortSignal) {
   const { url } = await filesApi.upload(file, 'file', signal)
   if (!mediaUrl(url)) throw Error('The video upload returned an invalid URL.')

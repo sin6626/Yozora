@@ -19,10 +19,12 @@ const post = { id: 'post-id', count: { read: 3, like: 1 }, title: '测试', crea
 const { createElement } = require('react')
 const bodyCode = ts.transpileModule(readFileSync(new URL('../apps/web/components/article-body.tsx', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText
 const articleBody = { exports: {} }
-vm.runInNewContext(bodyCode, {
-  module: articleBody, exports: articleBody.exports,
-  require: (id) => id.endsWith('.css') ? {} : id === 'next/cache' ? { cacheLife() {} } : id === 'shiki' ? { bundledLanguages: {}, codeToHtml: async () => '' } : id === '../lib/config' ? { getApiUrl: () => 'http://api.test' } : id === './code-copy' ? { default: ({ code }) => createElement('button', { 'data-copy': code }) } : id === '@haklex/rich-renderer-codeblock/icons' ? { LanguageIcon: ({ language }) => createElement('span', { 'data-lang': language }) } : id === './rich-content' ? { default: ({ content, apiUrl, children }) => createElement('div', { 'data-rich': content, 'data-api': apiUrl }, children) } : require(id),
-})
+// 代码框 code-frame 也用真实代码，依赖和正文一样换成替身。
+const codeFrame = { exports: {} }
+const bodyRequire = (id) => id.endsWith('.css') ? {} : id === './code-frame' ? codeFrame.exports : id === 'next/cache' ? { cacheLife() {} } : id === 'shiki' ? { bundledLanguages: {}, codeToHtml: async () => '' } : id === '../lib/config' ? { getApiUrl: () => 'http://api.test' } : id === './code-copy' ? { default: ({ code }) => createElement('button', { 'data-copy': code }) } : id === '@haklex/rich-renderer-codeblock/icons' ? { LanguageIcon: ({ language }) => createElement('span', { 'data-lang': language }) } : id === './rich-content' ? { default: ({ content, apiUrl, children }) => createElement('div', { 'data-rich': content, 'data-api': apiUrl }, children) } : id === './plate-content' ? { default: ({ content, variant, children }) => createElement('div', { 'data-plate': content, 'data-variant': variant }, children) } : require(id)
+const codeFrameCode = ts.transpileModule(readFileSync(new URL('../apps/web/components/code-frame.tsx', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText
+vm.runInNewContext(codeFrameCode, { module: codeFrame, exports: codeFrame.exports, require: bodyRequire })
+vm.runInNewContext(bodyCode, { module: articleBody, exports: articleBody.exports, require: bodyRequire })
 const module = { exports: {} }
 vm.runInNewContext(code, {
   module, exports: module.exports,
@@ -62,7 +64,14 @@ const richHtml = renderToStaticMarkup(await render())
 assert.ok(richHtml.includes('data-rich=') && richHtml.includes('data-api="http://api.test"'))
 assert.ok(richHtml.includes('<h2 id="标题">标题</h2>'), 'Markdown 作为富文本的兜底 children 传入')
 assert.equal(richHtml.includes('简化阅读版'), false)
+post.contentFormat = 'plate'
+post.content = '{"document":{"children":[]},"schema":{"kind":"named","id":"suzuri","version":1,"fingerprint":"x"}}'
+const plateHtml = renderToStaticMarkup(await render())
+assert.ok(plateHtml.includes('data-plate=') && !plateHtml.includes('data-rich='), 'Plate 正文交给 Suzuri 渲染，不走 Haklex')
+assert.ok(plateHtml.includes('<h2 id="标题">标题</h2>'), 'Markdown 作为 Plate 的兜底 children 传入')
 delete post.content
+assert.equal(renderToStaticMarkup(await render()).includes('data-plate='), false, 'plate 但没有 content 时只用 Markdown')
+post.contentFormat = 'lexical'
 assert.equal(renderToStaticMarkup(await render()).includes('data-rich='), false, 'lexical 但没有 content 时只用 Markdown')
 delete post.text
 assert.ok(renderToStaticMarkup(await render()).includes('暂时没有可展示的正文'))
