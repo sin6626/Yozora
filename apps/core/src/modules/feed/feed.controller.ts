@@ -5,7 +5,7 @@ import xss from 'xss'
 
 import { HTTPDecorators } from '~/common/decorators/http.decorator'
 import { CacheKeys } from '~/constants/cache.constant'
-import { ContentFormat } from '~/shared/types/content-format.type'
+import { isRichContentFormat } from '~/shared/types/content-format.type'
 import { escapeXml } from '~/utils/tool.util'
 
 import { AggregateService } from '../aggregate/aggregate.service'
@@ -52,14 +52,14 @@ export class FeedController {
 </image>
 ${await Promise.all(
   data.map(async (item) => {
-    const isLexical = item.contentFormat === ContentFormat.Lexical
+    const isRichText = isRichContentFormat(item.contentFormat)
     const renderResult = await this.markdownService.renderArticle(item.id)
 
-    const description = isLexical
+    const description = isRichText
       ? '富文本内容，请前往原站查看'
       : escapeXml(xss(RemoveMarkdown(renderResult.document.text).slice(0, 50)))
 
-    const contentEncoded = isLexical
+    const contentEncoded = isRichText
       ? `<p>前往原站查看：<a href="${xss(item.link)}">${xss(item.link)}</a></p>`
       : `<blockquote>该渲染由 marked 生成，可能存在排版问题，最佳体验请前往：<a href='${xss(
           item.link,

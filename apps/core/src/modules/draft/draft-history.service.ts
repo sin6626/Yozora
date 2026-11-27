@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common'
-import { ContentFormat } from '~/shared/types/content-format.type'
+import {
+  ContentFormat,
+  isRichContentFormat,
+} from '~/shared/types/content-format.type'
 import type { DiffStrategy } from './diff'
 import { jsonDiffStrategy, textDiffStrategy } from './diff'
 import { DraftHistoryModel } from './draft.model'
@@ -87,7 +90,7 @@ export class DraftHistoryService {
 
     const format =
       incoming.contentFormat ?? current.contentFormat ?? ContentFormat.Markdown
-    if (format === ContentFormat.Lexical) {
+    if (isRichContentFormat(format)) {
       return (
         incoming.content !== undefined && incoming.content !== current.content
       )
@@ -107,9 +110,7 @@ export class DraftHistoryService {
     }
 
     const format = entry.contentFormat ?? ContentFormat.Markdown
-    const isLexical = format === ContentFormat.Lexical
-
-    if (isLexical) {
+    if (isRichContentFormat(format)) {
       const restoredContent = this.restoreFromHistory(
         entry.version,
         allHistory,
@@ -161,13 +162,13 @@ export class DraftHistoryService {
   private getStrategy(
     contentFormat: ContentFormat = ContentFormat.Markdown,
   ): DiffStrategy {
-    return contentFormat === ContentFormat.Lexical
+    return isRichContentFormat(contentFormat)
       ? jsonDiffStrategy
       : textDiffStrategy
   }
 
   private getPrimaryField(contentFormat: ContentFormat): 'text' | 'content' {
-    return contentFormat === ContentFormat.Lexical ? 'content' : 'text'
+    return isRichContentFormat(contentFormat) ? 'content' : 'text'
   }
 
   private createHistoryEntry(

@@ -24,7 +24,7 @@ import { EventManagerService } from '~/processors/helper/helper.event.service'
 import { ImageService } from '~/processors/helper/helper.image.service'
 import { LexicalService } from '~/processors/helper/helper.lexical.service'
 import { InjectModel } from '~/transformers/model.transformer'
-import { isLexical } from '~/utils/content.util'
+import { isRichContent } from '~/utils/content.util'
 import { dbTransforms } from '~/utils/db-transform.util'
 import { scheduleManager } from '~/utils/schedule.util'
 import { getLessThanNow } from '~/utils/time.util'
@@ -128,7 +128,7 @@ export class PostService implements OnApplicationBootstrap {
       )
 
       await Promise.all([
-        !isLexical(doc) &&
+        !isRichContent(doc) &&
           this.imageService.saveImageDimensionsFromMarkdownText(
             doc.text,
             doc.images,
@@ -350,7 +350,7 @@ export class PostService implements OnApplicationBootstrap {
           scope: EventScope.TO_SYSTEM,
         }),
         doc?.text &&
-          !isLexical(doc) &&
+          !isRichContent(doc) &&
           this.imageService.saveImageDimensionsFromMarkdownText(
             doc.text,
             doc.images,

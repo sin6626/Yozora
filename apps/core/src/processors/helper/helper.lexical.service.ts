@@ -14,6 +14,10 @@ import {
   $toProjectedMarkdown,
   validateProjectionNode,
 } from '~/utils/lexical-projection.util'
+import {
+  isPlateEnvelope,
+  projectPlateContent,
+} from '~/utils/plate-content.util'
 import { md5 } from '~/utils/tool.util'
 
 const lexicalNodeSchema = z
@@ -402,7 +406,7 @@ export class LexicalService {
   }
 
   // Autosave runs mid-edit (a new link starts as "https://"), so a draft keeps
-  // any well-formed Lexical document with its last good text; publish re-checks.
+  // any well-formed Lexical or Plate document with its last good text; publish re-checks.
   populateDraftText<T extends ContentDocument>(
     doc: T,
     existing?: ContentDocument,
@@ -410,7 +414,13 @@ export class LexicalService {
     try {
       return this.populateText(doc, existing)
     } catch (error) {
-      if (!isLexicalState(doc.content)) throw error
+      const format =
+        doc.contentFormat ?? existing?.contentFormat ?? ContentFormat.Markdown
+      const wellFormed =
+        format === ContentFormat.Plate
+          ? isPlateEnvelope(doc.content)
+          : isLexicalState(doc.content)
+      if (!wellFormed) throw error
       doc.text = existing?.text ?? ''
       return true
     }
@@ -447,8 +457,14 @@ export class LexicalService {
       doc.content ?? (formatChanged ? undefined : existing?.content)
     if (!content) {
       throw new BadRequestException(
-        'content is required when contentFormat is lexical',
+        `content is required when contentFormat is ${format}`,
       )
+    }
+    if (format === ContentFormat.Plate) {
+      const projected = projectPlateContent(content)
+      if (doc.content !== undefined) doc.content = projected.content
+      doc.text = projected.text
+      return true
     }
     const normalized = this.normalizeLegacyQuotes(content)
     const text = this.lexicalToMarkdown(normalized)

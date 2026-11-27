@@ -2,7 +2,10 @@ import { index, modelOptions, prop, PropType } from '@typegoose/typegoose'
 import { DRAFT_COLLECTION_NAME } from '~/constants/db.constant'
 import { BaseModel } from '~/shared/model/base.model'
 import { ImageModel } from '~/shared/model/image.model'
-import { ContentFormat } from '~/shared/types/content-format.type'
+import {
+  ContentFormat,
+  isRichContentFormat,
+} from '~/shared/types/content-format.type'
 import { Types } from 'mongoose'
 
 export enum DraftRefType {
@@ -29,7 +32,7 @@ export class DraftHistoryModel {
     validate: {
       validator(this: DraftHistoryModel, value: string | undefined) {
         if (this.refVersion !== undefined) return true
-        if (this.contentFormat === ContentFormat.Lexical) return true
+        if (isRichContentFormat(this.contentFormat)) return true
         return value !== undefined && value !== null
       },
       message: 'Path `text` is required.',
